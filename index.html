@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Huellas Sin Hogar — Portal del Staff</title>
+
+<!-- Tipografía: geométrica, redondeada y limpia, coherente con el mock-up -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Set de iconos ligero (solo iconografía, sin frameworks pesados) -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<style>
+  /* ══════════════════════════════════════════════
+     1. TOKENS DE DISEÑO
+     Paleta: fondo gris muy claro, tarjetas blancas,
+     acento principal verde salvia/oliva, acentos
+     secundarios en coral, ámbar y azul suave.
+     ══════════════════════════════════════════════ */
+  :root{
+    --bg:            #f3f4f6;
+    --bg-soft:       #f8f9fa;
+    --card:          #ffffff;
+    --border:        #e9eaed;
+    --border-soft:   #f0f1f3;
+
+    --text:          #1f2430;
+    --text-sub:      #7c8592;
+    --text-faint:    #a3aab5;
+
+    --green:         #3f6c52;   /* verde salvia/oliva — acento principal */
+    --green-dark:    #2f5540;
+    --green-pale:    #e8f0e8;
+    --green-pale-2:  #eef3ec;
+
+    --coral:         #e0705c;   /* naranja coral — acento secundario */
+    --coral-dark:    #c85a47;
+    --coral-pale:    #fbe9e5;
+
+    --amber:         #d99a3d;
+    --amber-pale:    #faf1de;
+
+    --blue:          #6570e0;
+    --blue-pale:     #edeffb;
+
+    --red:           #d1453b;
+    --red-pale:      #fbeae8;
+    --red-border:    #f3c9c4;
+
+    --radius-sm:  8px;
+    --radius-md:  12px;
+    --radius-lg:  18px;
+    --shadow:     0 1px 2px rgba(20,24,32,.04), 0 4px 16px rgba(20,24,32,.05);
+    --shadow-md:  0 8px 28px rgba(20,24,32,.09);
+
+    --font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+
+  body{
+    font-family:var(--font);
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  [data-lucide]{ width:18px; height:18px; stroke-width:2; display:block; }
+
+  /* ══════════════════════════════════════════════
+     2. SIDEBAR
+     ══════════════════════════════════════════════ */
+  #sidebar{
+    width:252px; min-height:100vh;
+    background:var(--card);
+    border-right:1px solid var(--border);
+    display:flex; flex-direction:column;
+    position:fixed; top:0; left:0; z-index:100;
+  }
+  .sidebar-logo{
+    display:flex; align-items:center; gap:11px;
+    padding:22px 20px 20px;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .logo-icon{
+    width:38px; height:38px; border-radius:11px;
+    background:var(--green-pale); color:var(--green);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .sidebar-logo h1{ font-size:.98rem; font-weight:800; color:var(--text); line-height:1.2; }
+  .sidebar-logo span{
+    font-size:.68rem; color:var(--text-faint);
+    letter-spacing:.05em; text-transform:uppercase; font-weight:600;
+  }
+  nav{ flex:1; padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  nav button{
+    display:flex; align-items:center; gap:12px;
+    width:100%; padding:10px 13px;
+    background:none; border:none;
+    color:var(--text-sub);
+    font-size:.87rem; font-family:var(--font); font-weight:600;
+    border-radius:9px; cursor:pointer;
+    transition:background .15s, color .15s;
+    text-align:left;
+  }
+  nav button:hover{ background:var(--bg-soft); color:var(--text); }
+  nav button.active{ background:var(--green-pale-2); color:var(--green-dark); }
+  nav button.active [data-lucide]{ color:var(--green-dark); }
+
+  /* ══════════════════════════════════════════════
+     3. MAIN LAYOUT
+     ══════════════════════════════════════════════ */
+  #main{ margin-left:252px; flex:1; padding:32px 40px 60px; max-width:1220px; }
+  .page{ display:none; }
+  .page.active{ display:block; animation:fadeIn .2s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  .page-header{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    margin-bottom:26px; gap:16px; flex-wrap:wrap;
+  }
+  .page-header h2{ font-size:1.55rem; font-weight:800; color:var(--text); letter-spacing:-.01em; }
+  .page-header p{ font-size:.87rem; color:var(--text-sub); margin-top:4px; }
+
+  /* ══════════════════════════════════════════════
+     4. BOTONES
+     ══════════════════════════════════════════════ */
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:10px 18px; border-radius:9px; border:1.5px solid transparent;
+    font-size:.85rem; font-family:var(--font); font-weight:700;
+    cursor:pointer; transition:opacity .15s, transform .1s, background .15s;
+    white-space:nowrap;
+  }
+  .btn:hover{ opacity:.9; }
+  .btn:active{ transform:scale(.98); }
+  .btn-primary{ background:var(--green); color:#fff; }
+  .btn-primary:hover{ background:var(--green-dark); opacity:1; }
+  .btn-outline{ background:var(--card); color:var(--text); border-color:var(--border); }
+  .btn-outline:hover{ background:var(--bg-soft); opacity:1; }
+  .btn-danger{ background:var(--red); color:#fff; }
+  .btn-pill{ border-radius:999px; }
+  .btn-block{ width:100%; justify-content:center; }
+  .btn-sm{ padding:7px 13px; font-size:.78rem; }
+  .link-btn{
+    background:none; border:none; color:var(--green); font-weight:700;
+    font-size:.83rem; cursor:pointer; font-family:var(--font);
+  }
+  .link-btn:hover{ text-decoration:underline; }
+
+  /* ══════════════════════════════════════════════
+     5. TARJETAS BASE
+     ══════════════════════════════════════════════ */
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);
+    padding:22px 24px;
+  }
+  .card-title{
+    font-size:1rem; font-weight:800; color:var(--text); margin-bottom:16px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .card-title small{ font-size:.78rem; font-weight:600; color:var(--text-sub); display:flex; align-items:center; gap:5px; }
+  .eyebrow{
+    font-size:.7rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--text-faint); margin-bottom:14px;
+  }
+
+  /* ══════════════════════════════════════════════
+     6. DASHBOARD — TARJETAS KPI
+     ══════════════════════════════════════════════ */
+  .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+  .stat-card{
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow);
+    padding:18px 20px;
+  }
+  .stat-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:14px; }
+  .stat-label{ font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--text-sub); }
+  .stat-icon{
+    width:38px; height:38px; border-radius:10px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stat-icon.g{ background:var(--green-pale); color:var(--green); }
+  .stat-icon.c{ background:var(--coral-pale); color:var(--coral-dark); }
+  .stat-icon.a{ background:var(--amber-pale); color:var(--amber); }
+  .stat-icon.b{ background:var(--blue-pale);  color:var(--blue); }
+  .stat-value{ font-size:1.9rem; font-weight:800; color:var(--text); line-height:1; }
+  .stat-sub{ font-size:.78rem; color:var(--text-sub); margin-top:6px; }
+
+  /* Grilla de 2 columnas (contenido / lateral) */
+  .split-2{ display:grid; grid-template-columns:1.4fr 1fr; gap:20px; align-items:start; }
+
+  /* Actividad reciente */
+  .activity-item{ display:flex; gap:12px; padding:11px 0; border-bottom:1px solid var(--border-soft); }
+  .activity-item:last-child{ border-bottom:none; }
+  .activity-icon{
+    width:34px; height:34px; border-radius:9px; flex-shrink:0;
+    background:var(--bg-soft); color:var(--text-sub);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .activity-text{ font-size:.85rem; color:var(--text); line-height:1.4; }
+  .activity-time{ font-size:.74rem; color:var(--text-faint); margin-top:2px; }
+
+  /* Acciones rápidas */
+  .quick-actions{ display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+  .quick-btn{
+    display:flex; align-items:center; gap:10px;
+    width:100%; padding:12px 14px; border-radius:10px;
+    border:1.5px solid var(--border); background:var(--card);
+    font-family:var(--font); font-size:.84rem; font-weight:700; color:var(--text);
+    cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .quick-btn:hover{ border-color:var(--green); background:var(--green-pale-2); }
+  .quick-btn .qi{ color:var(--green); }
+
+  /* Barras de progreso — ocupación */
+  .progress-row{ margin-bottom:14px; }
+  .progress-row:last-child{ margin-bottom:0; }
+  .progress-labels{ display:flex; justify-content:space-between; font-size:.82rem; margin-bottom:7px; }
+  .progress-labels span:first-child{ font-weight:700; color:var(--text); }
+  .progress-labels span:last-child{ color:var(--text-sub); font-weight:600; }
+  .progress-track{ height:8px; border-radius:99px; background:var(--bg-soft); overflow:hidden; }
+  .progress-fill{ height:100%; border-radius:99px; }
+  .progress-fill.coral{ background:var(--coral); }
+  .progress-fill.green{ background:var(--green); }
+
+  /* ══════════════════════════════════════════════
+     7. TOOLBAR / BUSCADOR
+     ══════════════════════════════════════════════ */
+  .toolbar{ display:flex; align-items:center; gap:10px; margin-bottom:22px; flex-wrap:wrap; }
+  .search-wrap{
+    position:relative; flex:1; min-width:200px;
+  }
+  .search-wrap [data-lucide]{
+    position:absolute; left:13px; top:50%; transform:translateY(-50%);
+    color:var(--text-faint); width:16px; height:16px;
+  }
+  .search-input{
+    width:100%; padding:10px 14px 10px 36px;
+    border:1.5px solid var(--border); border-radius:9px;
+    font-size:.85rem; font-family:var(--font); outline:none; background:var(--card);
+  }
+  .search-input:focus{ border-color:var(--green); }
+  select.filter-select, .pill-filter{
+    padding:10px 15px; border:1.5px solid var(--border); border-radius:9px;
+    font-size:.83rem; font-family:var(--font); font-weight:600;
+    background:var(--card); cursor:pointer; outline:none; color:var(--text);
+  }
+  .pill-filter{ border-radius:999px; display:inline-flex; align-items:center; gap:6px; }
+  .pill-filter:hover, select.filter-select:hover{ border-color:var(--green); }
+
+  /* ══════════════════════════════════════════════
+     8. GRID DE ANIMALES (Registro)
+     ══════════════════════════════════════════════ */
+  .animal-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
+  .animal-card{
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius-lg); overflow:hidden; cursor:pointer;
+    transition:transform .16s, box-shadow .16s; box-shadow:var(--shadow);
+  }
+  .animal-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow-md); }
+  .animal-photo{
+    height:118px; background:var(--green-pale-2);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--green); position:relative; overflow:hidden;
+  }
+  .animal-photo img{ width:100%; height:100%; object-fit:cover; }
+  .animal-photo [data-lucide]{ width:34px; height:34px; }
+  .animal-info{ padding:13px 14px 15px; }
+  .animal-name{ font-weight:800; font-size:.95rem; color:var(--text); }
+  .animal-meta{ font-size:.78rem; color:var(--text-sub); margin-top:3px; }
+  .animal-weight{
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:.72rem; font-weight:700; color:var(--text-sub);
+    background:var(--bg-soft); padding:2px 8px; border-radius:999px; margin-top:8px;
+  }
+  .status-badge{
+    display:inline-block; margin-top:8px; margin-left:6px;
+    padding:3px 9px; border-radius:999px;
+    font-size:.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.03em;
+  }
+  .badge-green{ background:var(--green-pale); color:var(--green-dark); }
+  .badge-amber{ background:var(--amber-pale); color:var(--amber); }
+  .badge-red{ background:var(--red-pale); color:var(--red); }
+  .badge-blue{ background:var(--blue-pale); color:var(--blue); }
+  .badge-gray{ background:var(--bg-soft); color:var(--text-sub); }
+  .badge-coral{ background:var(--coral-pale); color:var(--coral-dark); }
+
+  /* ══════════════════════════════════════════════
+     9. TABLAS
+     ══════════════════════════════════════════════ */
+  .table-wrap{ overflow-x:auto; border-radius:var(--radius-lg); border:1px solid var(--border); box-shadow:var(--shadow); }
+  table{ width:100%; border-collapse:collapse; background:var(--card); }
+  th{
+    background:var(--bg-soft); color:var(--text-sub);
+    font-size:.72rem; text-transform:uppercase; letter-spacing:.05em;
+    padding:12px 16px; text-align:left; font-weight:800; border-bottom:1px solid var(--border);
+  }
+  td{ padding:12px 16px; font-size:.85rem; border-bottom:1px solid var(--border-soft); color:var(--text); }
+  tr:last-child td{ border-bottom:none; }
+  tr:hover td{ background:var(--bg-soft); }
+  .alert-icon{ color:var(--red); font-weight:700; font-size:.82rem; }
+
+  /* ══════════════════════════════════════════════
+     10. VOLUNTARIOS — PLANIFICACIÓN SEMANAL
+     ══════════════════════════════════════════════ */
+  .week-table{ width:100%; border-collapse:collapse; }
+  .week-table th{ text-align:center; }
+  .week-table td{ text-align:center; padding:8px; vertical-align:top; border-bottom:1px solid var(--border-soft); }
+  .week-table td:first-child, .week-table th:first-child{ text-align:left; }
+  .turn-label{ font-size:.78rem; font-weight:800; color:var(--text); }
+  .shift-chip{
+    display:block; background:var(--bg-soft); border-radius:8px;
+    padding:7px 6px; font-size:.72rem; line-height:1.3;
+  }
+  .shift-chip strong{ display:block; font-size:.76rem; color:var(--text); }
+  .shift-chip span{ color:var(--text-sub); font-size:.68rem; }
+  .shift-empty{ color:var(--text-faint); font-size:.72rem; }
+
+  /* Directorio de voluntarios */
+  .vol-list{ display:flex; flex-direction:column; gap:12px; margin-bottom:18px; }
+  .vol-item{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    padding-bottom:12px; border-bottom:1px solid var(--border-soft);
+  }
+  .vol-item:last-child{ border-bottom:none; padding-bottom:0; }
+  .vol-name{ font-weight:800; font-size:.88rem; color:var(--text); }
+  .vol-phone{ font-size:.78rem; color:var(--text-sub); margin-top:2px; }
+  .vol-avail{ font-size:.74rem; color:var(--text-faint); margin-top:2px; }
+
+  /* ══════════════════════════════════════════════
+     11. SALUD Y VACUNAS
+     ══════════════════════════════════════════════ */
+  .vax-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:13px 14px; border-radius:11px; border:1.5px solid var(--border-soft);
+    background:var(--card); margin-bottom:10px;
+  }
+  .vax-row:last-child{ margin-bottom:0; }
+  .vax-row.urgent{ background:var(--red-pale); border-color:var(--red-border); }
+  .vax-left{ display:flex; align-items:center; gap:12px; }
+  .vax-icon{
+    width:34px; height:34px; border-radius:9px; flex-shrink:0;
+    background:var(--amber-pale); color:var(--amber);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .vax-row.urgent .vax-icon{ background:#fddede; color:var(--red); }
+  .vax-title{ font-size:.86rem; font-weight:800; color:var(--text); }
+  .vax-sub{ font-size:.78rem; color:var(--text-sub); margin-top:2px; }
+  .vax-row.urgent .vax-sub{ color:var(--red); font-weight:700; }
+
+  .cita-item{ padding:12px 0; border-bottom:1px solid var(--border-soft); }
+  .cita-item:last-child{ border-bottom:none; padding-bottom:0; }
+  .cita-top{ display:flex; align-items:center; justify-content:space-between; }
+  .cita-name{ font-weight:800; font-size:.88rem; color:var(--text); }
+  .cita-time{ font-size:.78rem; font-weight:700; color:var(--green-dark); }
+  .cita-motivo{ font-size:.8rem; color:var(--text-sub); margin-top:3px; }
+  .cita-vet{ font-size:.76rem; color:var(--text-faint); margin-top:2px; }
+
+  /* ══════════════════════════════════════════════
+     12. INVENTARIO
+     ══════════════════════════════════════════════ */
+  .canil-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:10px; margin-bottom:26px; }
+  .canil{
+    border-radius:10px; padding:12px 8px; text-align:center;
+    font-size:.78rem; font-weight:700; cursor:pointer; transition:transform .15s;
+    border:1.5px solid transparent;
+  }
+  .canil:hover{ transform:scale(1.04); }
+  .canil.ocupado{  background:var(--red-pale);   color:var(--red);   border-color:var(--red-border); }
+  .canil.libre{    background:var(--green-pale); color:var(--green-dark); border-color:#c9dfcd; }
+  .canil.cuarente{ background:var(--amber-pale); color:var(--amber); border-color:#f0d9a8; }
+  .canil .canil-num{ font-size:1.05rem; display:block; margin-bottom:4px; }
+
+  /* Página Caniles — tarjetas detalladas con animal alojado */
+  .canil-detail-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+  .canil-detail{
+    background:var(--card); border:1.5px solid var(--border); border-radius:var(--radius-lg);
+    box-shadow:var(--shadow); padding:16px 16px 14px; cursor:pointer;
+    transition:transform .15s, box-shadow .15s; border-top:4px solid var(--border);
+  }
+  .canil-detail:hover{ transform:translateY(-3px); box-shadow:var(--shadow-md); }
+  .canil-detail.ocupado{  border-top-color:var(--red); }
+  .canil-detail.libre{    border-top-color:var(--green); }
+  .canil-detail.cuarente{ border-top-color:var(--amber); }
+  .canil-detail-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .canil-detail-num{ font-size:.95rem; font-weight:800; color:var(--text); }
+  .canil-detail-occupant{ display:flex; align-items:center; gap:10px; }
+  .canil-detail-photo{
+    width:40px; height:40px; border-radius:10px; flex-shrink:0; overflow:hidden;
+    background:var(--bg-soft); color:var(--text-faint);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .canil-detail-photo img{ width:100%; height:100%; object-fit:cover; }
+  .canil-detail-animal{ font-size:.86rem; font-weight:800; color:var(--text); }
+  .canil-detail-meta{ font-size:.74rem; color:var(--text-sub); margin-top:1px; }
+  .canil-detail-empty{ display:flex; align-items:center; gap:8px; color:var(--text-faint); font-size:.82rem; font-weight:600; }
+
+  /* ══════════════════════════════════════════════
+     13. MODALES
+     ══════════════════════════════════════════════ */
+  .modal-bg{
+    display:none; position:fixed; inset:0; background:rgba(20,24,32,.45);
+    z-index:500; align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-bg.open{ display:flex; }
+  .modal{
+    background:var(--card); border-radius:16px; box-shadow:0 16px 48px rgba(20,24,32,.22);
+    padding:28px 30px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto;
+  }
+  .modal h3{ font-size:1.15rem; font-weight:800; color:var(--text); margin-bottom:18px; display:flex; align-items:center; gap:8px; }
+  .form-group{ margin-bottom:15px; }
+  .form-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  label{ display:block; font-size:.78rem; font-weight:700; color:var(--text-sub); margin-bottom:5px; }
+  input[type=text], input[type=email], input[type=number], input[type=tel], textarea, select.form-select{
+    width:100%; padding:10px 13px; border:1.5px solid var(--border); border-radius:9px;
+    font-size:.85rem; font-family:var(--font); outline:none; background:var(--card); color:var(--text);
+  }
+  input:focus, textarea:focus, select.form-select:focus{ border-color:var(--green); }
+  textarea{ resize:vertical; min-height:66px; }
+  .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+
+  /* Subida de foto dentro del modal */
+  .photo-input-wrap{
+    display:flex; align-items:center; gap:14px;
+    border:1.5px dashed var(--border); border-radius:12px; padding:12px;
+  }
+  .photo-input-preview{
+    width:56px; height:56px; border-radius:10px; background:var(--bg-soft);
+    display:flex; align-items:center; justify-content:center; color:var(--text-faint); overflow:hidden; flex-shrink:0;
+  }
+  .photo-input-preview img{ width:100%; height:100%; object-fit:cover; }
+  .file-btn{
+    position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:7px;
+    padding:8px 14px; border-radius:8px; border:1.5px solid var(--border);
+    font-size:.78rem; font-weight:700; color:var(--text); background:var(--card); cursor:pointer;
+  }
+  .file-btn:hover{ border-color:var(--green); color:var(--green-dark); }
+  .file-btn input[type=file]{
+    position:absolute; inset:0; opacity:0; cursor:pointer;
+  }
+
+  /* ══════════════════════════════════════════════
+     14. FICHA INDIVIDUAL — panel lateral
+     ══════════════════════════════════════════════ */
+  .profile-panel{
+    display:none; position:fixed; top:0; right:0; bottom:0; width:400px;
+    background:var(--card); box-shadow:-8px 0 32px rgba(20,24,32,.14);
+    z-index:200; overflow-y:auto; padding:26px 26px 32px;
+  }
+  .profile-panel.open{ display:block; animation:slideIn .22s ease; }
+  @keyframes slideIn{ from{ transform:translateX(24px); opacity:0; } to{ transform:translateX(0); opacity:1; } }
+
+  .profile-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+  .profile-head h3{ font-size:1.15rem; font-weight:800; color:var(--text); }
+  .close-btn{ background:none; border:none; cursor:pointer; color:var(--text-sub); display:flex; }
+  .close-btn:hover{ color:var(--text); }
+
+  .profile-top{ display:flex; align-items:center; gap:16px; margin-bottom:24px; }
+  .profile-photo-wrap{ position:relative; width:76px; height:76px; flex-shrink:0; }
+  .profile-photo{
+    width:76px; height:76px; border-radius:16px; overflow:hidden;
+    background:var(--green-pale-2); color:var(--green);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .profile-photo img{ width:100%; height:100%; object-fit:cover; }
+  .profile-photo [data-lucide]{ width:30px; height:30px; }
+  .photo-upload-btn{
+    position:absolute; bottom:-4px; right:-4px; width:26px; height:26px; border-radius:50%;
+    background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; border:2px solid var(--card); overflow:hidden;
+  }
+  .photo-upload-btn [data-lucide]{ width:13px; height:13px; }
+  .photo-upload-btn input[type=file]{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+  .profile-name{ font-size:1.2rem; font-weight:800; color:var(--text); }
+  .profile-meta{ font-size:.83rem; color:var(--text-sub); margin-top:2px; }
+  .profile-chip{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:.74rem; color:var(--text-faint); font-weight:700; margin-top:6px;
+  }
+  .profile-chip [data-lucide]{ width:13px; height:13px; }
+
+  .profile-section{ margin-top:22px; }
+  .profile-section h4{
+    font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--text-sub); margin-bottom:10px;
+  }
+  .vax-history-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 0; border-bottom:1px solid var(--border-soft);
+  }
+  .vax-history-row:last-child{ border-bottom:none; }
+  .vax-h-name{ font-weight:800; font-size:.87rem; color:var(--text); }
+  .vax-h-sub{ font-size:.76rem; color:var(--text-faint); margin-top:2px; }
+  .vax-h-status{ font-size:.78rem; font-weight:800; }
+  .vax-h-status.ok{ color:var(--green); }
+  .vax-h-status.bad{ color:var(--red); }
+
+  .info-row{ display:flex; align-items:center; justify-content:space-between; font-size:.85rem; padding:9px 0; border-bottom:1px solid var(--border-soft); }
+  .info-row:last-child{ border-bottom:none; }
+  .info-row span:first-child{ color:var(--text-sub); font-weight:600; }
+  .info-row span:last-child{ font-weight:800; color:var(--text); }
+  .note-box{ background:var(--bg-soft); border-radius:10px; padding:11px 13px; font-size:.83rem; color:var(--text); line-height:1.5; border-left:3px solid var(--amber); margin-top:6px; }
+
+  /* ══════════════════════════════════════════════
+     15. TOAST
+     ══════════════════════════════════════════════ */
+  #toast{
+    position:fixed; bottom:26px; right:26px; background:var(--text); color:#fff;
+    padding:12px 20px; border-radius:10px; font-size:.85rem; font-weight:600;
+    box-shadow:0 8px 24px rgba(0,0,0,.2); transform:translateY(80px); opacity:0;
+    transition:transform .3s, opacity .3s; z-index:999; display:flex; align-items:center; gap:8px;
+  }
+  #toast.show{ transform:translateY(0); opacity:1; }
+
+  /* ══════════════════════════════════════════════
+     16. RESPONSIVE
+     ══════════════════════════════════════════════ */
+  @media (max-width:1024px){
+    .stat-grid{ grid-template-columns:repeat(2,1fr); }
+    .split-2{ grid-template-columns:1fr; }
+  }
+  @media (max-width:768px){
+    #sidebar{ width:64px; }
+    #sidebar .sidebar-logo span, #sidebar .sidebar-logo h1, nav button span{ display:none; }
+    .sidebar-logo{ justify-content:center; }
+    nav button{ justify-content:center; padding:12px; }
+    #main{ margin-left:64px; padding:22px 16px; }
+    .stat-grid{ grid-template-columns:1fr 1fr; }
+    .profile-panel{ width:100%; }
+    .form-row{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon"><i data-lucide="paw-print"></i></div>
+    <div>
+      <h1>Huellas sin Hogar</h1>
+      <span>Portal del Staff</span>
+    </div>
+  </div>
+  <nav>
+    <button class="active" data-page="dashboard"><i data-lucide="layout-grid"></i><span>Inicio</span></button>
+    <button data-page="animales"><i data-lucide="dog"></i><span>Registro Animales</span></button>
+    <button data-page="adopciones"><i data-lucide="house-heart"></i><span>Adopciones</span></button>
+    <button data-page="caniles"><i data-lucide="door-open"></i><span>Caniles</span></button>
+    <button data-page="inventario"><i data-lucide="package"></i><span>Inventario</span></button>
+    <button data-page="voluntarios"><i data-lucide="heart-handshake "></i><span>Voluntarios</span></button>
+    <button data-page="salud"><i data-lucide="stethoscope"></i><span>Salud y Vacunas</span></button>
+  </nav>
+</aside>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main id="main">
+
+  <!-- ═════ DASHBOARD ═════ -->
+  <section id="page-dashboard" class="page active">
+    <div class="page-header">
+      <div>
+        <h2 id="dash-greeting">¡Hola, Valentina!</h2>
+        <p>Panel de resumen operativo para hoy. Esperanza es el camino.</p>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-label">Animales Albergados</span>
+          <div class="stat-icon g"><i data-lucide="paw-print"></i></div>
+        </div>
+        <div class="stat-value" id="stat-animales">84</div>
+        <div class="stat-sub">Capacidad al 82%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-label">Adopciones del Mes</span>
+          <div class="stat-icon c"><i data-lucide="heart"></i></div>
+        </div>
+        <div class="stat-value" id="stat-adopciones">18</div>
+        <div class="stat-sub">+3 vs mes anterior</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-label">Vacunas Pendientes</span>
+          <div class="stat-icon a"><i data-lucide="syringe"></i></div>
+        </div>
+        <div class="stat-value" id="stat-vacunas">12</div>
+        <div class="stat-sub">4 críticas hoy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-label">Voluntarios Activos</span>
+          <div class="stat-icon b"><i data-lucide="users"></i></div>
+        </div>
+        <div class="stat-value" id="stat-vols">24</div>
+        <div class="stat-sub">8 turnos cubiertos hoy</div>
+      </div>
+    </div>
+
+    <div class="split-2">
+      <div class="card">
+        <div class="card-title">Actividad Reciente</div>
+        <div id="activity-list"></div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">Acciones Rápidas</div>
+          <div class="quick-actions">
+            <button class="quick-btn" onclick="openModal('modal-animal')"><i class="qi" data-lucide="plus-circle"></i>Registrar Entrada de Animal</button>
+            <button class="quick-btn" onclick="openModal('modal-cita')"><i class="qi" data-lucide="file-plus"></i>Solicitar Suministro/Vacuna</button>
+            <button class="quick-btn" onclick="openModal('modal-adopcion')"><i class="qi" data-lucide="heart-handshake"></i>Registrar Nueva Adopción</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Ocupación del Refugio</div>
+          <div class="progress-row">
+            <div class="progress-labels"><span>Caniles (Perros)</span><span id="occ-perros-lbl">42 / 50</span></div>
+            <div class="progress-track"><div class="progress-fill coral" id="occ-perros-bar" style="width:84%"></div></div>
+          </div>
+          <div class="progress-row">
+            <div class="progress-labels"><span>Gateras</span><span id="occ-gatos-lbl">32 / 40</span></div>
+            <div class="progress-track"><div class="progress-fill green" id="occ-gatos-bar" style="width:80%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ REGISTRO ANIMALES ═════ -->
+  <section id="page-animales" class="page">
+    <div class="page-header">
+      <div><h2>Registro de Animales</h2><p>Perfiles, estados de salud y fichas individuales</p></div>
+      <button class="btn btn-primary" onclick="openModal('modal-animal')"><i data-lucide="plus"></i>Registrar animal</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <i data-lucide="search"></i>
+        <input class="search-input" type="text" placeholder="Buscar por nombre…" oninput="filterAnimals(this.value)">
+      </div>
+      <select class="filter-select" onchange="filterByStatus(this.value)">
+        <option value="">Todos los estados</option>
+        <option value="green">🟢 Normal</option>
+        <option value="yellow">🟡 Condición especial</option>
+        <option value="red">🔴 Crítico</option>
+      </select>
+      <select class="filter-select" onchange="filterBySpecies(this.value)">
+        <option value="">Todas las especies</option>
+        <option value="Perro">Perros</option>
+        <option value="Gato">Gatos</option>
+      </select>
+    </div>
+
+    <div class="animal-grid" id="animal-grid"></div>
+  </section>
+
+  <!-- ═════ ADOPCIONES ═════ -->
+  <section id="page-adopciones" class="page">
+    <div class="page-header">
+      <div><h2>Adopciones</h2><p>Solicitudes y seguimiento post-adopción</p></div>
+      <button class="btn btn-primary" onclick="openModal('modal-adopcion')"><i data-lucide="plus"></i>Nueva solicitud</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="adopt-table">
+        <thead>
+          <tr><th>Solicitante</th><th>Animal</th><th>Fecha</th><th>Etapa</th><th>Alerta</th><th>Acción</th></tr>
+        </thead>
+        <tbody id="adopt-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═════ INVENTARIO ═════ -->
+  <section id="page-inventario" class="page">
+    <div class="page-header">
+      <div><h2>Inventario</h2><p>Insumos, alimento y equipamiento del refugio</p></div>
+      <button class="btn btn-primary" onclick="openModal('modal-insumo')"><i data-lucide="plus"></i>Agregar insumo</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Insumos</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Estado</th></tr></thead>
+          <tbody id="insumo-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ CANILES ═════ -->
+  <section id="page-caniles" class="page">
+    <div class="page-header">
+      <div><h2>Caniles</h2><p>Ocupación de espacios y animal alojado en cada uno</p></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="status-badge badge-green" style="margin:0;">Libre</span>
+        <span class="status-badge badge-red" style="margin:0;">Ocupado</span>
+        <span class="status-badge badge-amber" style="margin:0;">Cuarentena</span>
+      </div>
+    </div>
+
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Caniles Libres</span><div class="stat-icon g"><i data-lucide="door-open"></i></div></div>
+        <div class="stat-value" id="canil-stat-libres">0</div>
+        <div class="stat-sub">Disponibles para nuevos ingresos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">Caniles Ocupados</span><div class="stat-icon c"><i data-lucide="door-closed"></i></div></div>
+        <div class="stat-value" id="canil-stat-ocupados">0</div>
+        <div class="stat-sub">Con animal alojado</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><span class="stat-label">En Cuarentena</span><div class="stat-icon a"><i data-lucide="shield-alert"></i></div></div>
+        <div class="stat-value" id="canil-stat-cuarentena">0</div>
+        <div class="stat-sub">En observación médica</div>
+      </div>
+    </div>
+
+    <div class="canil-detail-grid" id="canil-detail-grid"></div>
+  </section>
+
+  <!-- ═════ VOLUNTARIOS ═════ -->
+  <section id="page-voluntarios" class="page">
+    <div class="page-header">
+      <div><h2>Horarios de Voluntarios</h2><p>Asignación semanal de turnos y áreas de servicio.</p></div>
+      <button class="btn btn-primary" onclick="openModal('modal-turno')"><i data-lucide="plus"></i>Asignar Turno</button>
+    </div>
+
+    <div class="split-2">
+      <div class="card">
+        <div class="card-title">
+          Planificación Semanal
+          <small><i data-lucide="calendar"></i>Semana Actual</small>
+        </div>
+        <div class="table-wrap" style="box-shadow:none;">
+          <table class="week-table">
+            <thead>
+              <tr><th>Turno</th><th>Lunes</th><th>Martes</th><th>Miércoles</th><th>Jueves</th><th>Viernes</th><th>Sábado</th><th>Domingo</th></tr>
+            </thead>
+            <tbody id="week-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Directorio de Voluntarios</div>
+        <div class="vol-list" id="vol-list"></div>
+        <button class="btn btn-outline btn-block" style="margin-bottom:10px;" onclick="showToast('Función de baja / inasistencia próximamente')">Reportar Inasistencia / Baja</button>
+        <button class="btn btn-primary btn-block" onclick="showToast('Función de permuta de turnos próximamente')">Gestionar Permuta de Turnos</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ SALUD Y VACUNAS ═════ -->
+  <section id="page-salud" class="page">
+    <div class="page-header">
+      <div><h2>Vacunación y Salud</h2><p>Control de tratamientos preventivos, citas clínicas y alertas médicas.</p></div>
+      <button class="btn btn-primary" onclick="openModal('modal-cita')"><i data-lucide="plus"></i>Nueva Cita Médica</button>
+    </div>
+
+    <div class="toolbar">
+      <button class="pill-filter" onclick="showToast('Mostrando todos los animales')"><i data-lucide="filter"></i>Todos los animales</button>
+      <button class="pill-filter" onclick="showToast('Filtrando por tipo de vacuna')"><i data-lucide="syringe"></i>Tipo: Rabia, Parvo…</button>
+    </div>
+
+    <div class="split-2">
+      <div class="card">
+        <div class="card-title">Calendario de Vacunas Próximas</div>
+        <div id="vax-upcoming"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Citas Veterinarias</div>
+        <div id="citas-list"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══════════════ MODALES ══════════════ -->
+
+<!-- Modal: Registrar Animal -->
+<div class="modal-bg" id="modal-animal">
+  <div class="modal">
+    <h3><i data-lucide="paw-print"></i>Registrar nuevo animal</h3>
+
+    <div class="form-group">
+      <label>Fotografía</label>
+      <div class="photo-input-wrap">
+        <div class="photo-input-preview" id="an-foto-preview"><i data-lucide="image" style="width:22px;height:22px;"></i></div>
+        <label class="file-btn"><i data-lucide="upload" style="width:14px;height:14px;"></i>Subir foto<input type="file" accept="image/*" onchange="previewAnimalPhoto(event)"></label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Nombre</label>
+      <input type="text" id="an-nombre" placeholder="Ej: Mochi">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Especie</label>
+        <select class="form-select" id="an-especie"><option>Perro</option><option>Gato</option></select>
+      </div>
+      <div class="form-group">
+        <label>Sexo</label>
+        <select class="form-select" id="an-sexo"><option>Macho</option><option>Hembra</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Edad estimada</label>
+        <input type="text" id="an-edad" placeholder="Ej: 2 años">
+      </div>
+      <div class="form-group">
+        <label>Peso (kg)</label>
+        <input type="number" step="0.1" id="an-peso" placeholder="Ej: 14.5">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Raza</label>
+      <input type="text" id="an-raza" placeholder="Ej: Mestizo">
+    </div>
+    <div class="form-group">
+      <label>Estado de salud</label>
+      <select class="form-select" id="an-estado">
+        <option value="green">🟢 Normal</option>
+        <option value="yellow">🟡 Condición especial</option>
+        <option value="red">🔴 Crítico</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Notas del día (restricciones, cirugías, dieta…)</label>
+      <textarea id="an-nota" placeholder="Ej: No puede comer antes de las 8am — cirugía hoy tarde"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-animal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="addAnimal()">Guardar animal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Solicitud de Adopción -->
+<div class="modal-bg" id="modal-adopcion">
+  <div class="modal">
+    <h3><i data-lucide="heart-handshake"></i>Nueva solicitud de adopción</h3>
+    <div class="form-group" id="adopt-dup-alert" style="display:none;background:var(--amber-pale);border-radius:9px;padding:10px 12px;font-size:.82rem;color:var(--amber);font-weight:700;">
+      Esta persona ya tiene una solicitud activa en el sistema.
+    </div>
+    <div class="form-group">
+      <label>Nombre del solicitante</label>
+      <input type="text" id="ad-nombre" placeholder="Nombre completo">
+    </div>
+    <div class="form-group">
+      <label>RUT / Email</label>
+      <input type="text" id="ad-rut" placeholder="12.345.678-9" oninput="checkDuplicate(this.value)">
+    </div>
+    <div class="form-group">
+      <label>Animal solicitado</label>
+      <select class="form-select" id="ad-animal"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-adopcion')">Cancelar</button>
+      <button class="btn btn-primary" onclick="addAdopcion()">Registrar solicitud</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Asignar Turno -->
+<div class="modal-bg" id="modal-turno">
+  <div class="modal">
+    <h3><i data-lucide="calendar-days"></i>Asignar turno</h3>
+    <div class="form-group">
+      <label>Voluntario</label>
+      <input type="text" id="turno-vol" placeholder="Nombre del voluntario">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Franja</label>
+        <select class="form-select" id="turno-franja">
+          <option value="manana">Mañana (08:00 - 13:00)</option>
+          <option value="tarde">Tarde (14:00 - 19:00)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Día</label>
+        <select class="form-select" id="turno-dia">
+          <option value="lunes">Lunes</option><option value="martes">Martes</option>
+          <option value="miercoles">Miércoles</option><option value="jueves">Jueves</option>
+          <option value="viernes">Viernes</option><option value="sabado">Sábado</option>
+          <option value="domingo">Domingo</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Área de servicio</label>
+      <input type="text" id="turno-area" placeholder="Ej: Paseos, Limpieza, Clínica…">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-turno')">Cancelar</button>
+      <button class="btn btn-primary" onclick="addTurno()">Confirmar turno</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Agregar Insumo -->
+<div class="modal-bg" id="modal-insumo">
+  <div class="modal">
+    <h3><i data-lucide="package"></i>Agregar insumo</h3>
+    <div class="form-group">
+      <label>Producto</label>
+      <input type="text" id="ins-nombre" placeholder="Ej: Alimento seco gatos">
+    </div>
+    <div class="form-group">
+      <label>Categoría</label>
+      <select class="form-select" id="ins-cat">
+        <option>Alimento</option><option>Medicamento</option><option>Higiene</option><option>Equipamiento</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Stock actual (kg/unid)</label><input type="number" id="ins-stock" placeholder="0"></div>
+      <div class="form-group"><label>Stock mínimo</label><input type="number" id="ins-min" placeholder="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-insumo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="addInsumo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Asignar Canil -->
+<div class="modal-bg" id="modal-canil">
+  <div class="modal">
+    <h3><i data-lucide="door-open"></i>Canil <span id="canil-modal-num"></span></h3>
+    <div class="form-group">
+      <label>Estado</label>
+      <select class="form-select" id="canil-estado">
+        <option value="libre">Libre</option>
+        <option value="ocupado">Ocupado</option>
+        <option value="cuarente">Cuarentena</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Animal alojado</label>
+      <select class="form-select" id="canil-animal">
+        <option value="">— Sin animal asignado —</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-canil')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCanil()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nueva Cita Médica -->
+<div class="modal-bg" id="modal-cita">
+  <div class="modal">
+    <h3><i data-lucide="stethoscope"></i>Nueva cita médica</h3>
+    <div class="form-group">
+      <label>Animal</label>
+      <select class="form-select" id="cita-animal"></select>
+    </div>
+    <div class="form-group">
+      <label>Motivo</label>
+      <input type="text" id="cita-motivo" placeholder="Ej: Control de castración">
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Fecha / hora</label><input type="text" id="cita-hora" placeholder="Ej: Mañana, 10:00"></div>
+      <div class="form-group"><label>Veterinario/a asignado</label><input type="text" id="cita-vet" placeholder="Ej: Dra. Elena Ruiz"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-cita')">Cancelar</button>
+      <button class="btn btn-primary" onclick="addCita()">Guardar cita</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ FICHA INDIVIDUAL (panel lateral) ══════════════ -->
+<div class="profile-panel" id="profile-panel">
+  <div class="profile-head">
+    <h3>Ficha Individual</h3>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="link-btn" onclick="changeStatus(currentProfileId)">Editar</button>
+      <button class="close-btn" onclick="closeProfile()"><i data-lucide="x"></i></button>
+    </div>
+  </div>
+  <div id="profile-content"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════
+const state = {
+  animales: [
+    { id:1,  nombre:'Mochi',     especie:'Gato',  sexo:'Hembra', edad:'3 años',   raza:'Mestizo',        peso:4.1,  chip:null,           estado:'green',  nota:'Vacunas al día. Lista para adopción.',
+      vacunas:[{n:'Rabia',f:'15/03/2025',s:'al-dia'},{n:'Panleucopenia',f:'15/03/2025',s:'al-dia'}], esterilizacion:'SÍ (Operada)', comportamiento:'Tranquila, cariñosa', foto:null },
+    { id:2,  nombre:'Rocky',     especie:'Perro', sexo:'Macho',  edad:'2 años',   raza:'Labrador',       peso:26.5, chip:'ES-4471120',   estado:'yellow', nota:'Dieta blanda por 5 días. No puede correr.',
+      vacunas:[{n:'Rabia',f:'10/01/2025',s:'al-dia'},{n:'Moquillo',f:null,s:'refuerzo'}], esterilizacion:'NO', comportamiento:'Activo, en recuperación', foto:null },
+    { id:3,  nombre:'Luna',      especie:'Perro', sexo:'Hembra', edad:'1.5 años', raza:'Mestizo',        peso:14.5, chip:'ES-9831122',   estado:'green',  nota:'Sin novedad.',
+      vacunas:[{n:'Rabia',f:'15/10/2025',s:'al-dia'},{n:'Parvovirus',f:'15/10/2025',s:'al-dia'},{n:'Moquillo',f:null,s:'refuerzo'}], esterilizacion:'SÍ (Operada)', comportamiento:'Sociable, dócil, activa', foto:null },
+    { id:4,  nombre:'Bruno',     especie:'Perro', sexo:'Macho',  edad:'5 años',   raza:'Mestizo',        peso:22,   chip:'ES-1120987',   estado:'green',  nota:'Sin novedad. Paseos normales.',
+      vacunas:[{n:'Rabia',f:'02/02/2025',s:'al-dia'},{n:'Moquillo',f:'02/02/2025',s:'al-dia'},{n:'Parvovirus',f:'02/02/2025',s:'al-dia'}], esterilizacion:'SÍ (Operado)', comportamiento:'Calmado, obediente', foto:null },
+    { id:5,  nombre:'Nala',      especie:'Gato',  sexo:'Hembra', edad:'4 meses',  raza:'Mestizo',        peso:1.8,  chip:null,           estado:'yellow', nota:'En cuarentena. Observación por 7 días.',
+      vacunas:[], esterilizacion:'NO', comportamiento:'Tímida, en observación', foto:null },
+    { id:6,  nombre:'Thor',      especie:'Perro', sexo:'Macho',  edad:'3 años',   raza:'Husky',          peso:24,   chip:'ES-7743201',   estado:'green',  nota:'Energético. Requiere paseos largos.',
+      vacunas:[{n:'Rabia',f:'20/04/2025',s:'al-dia'},{n:'Moquillo',f:'20/04/2025',s:'al-dia'}], esterilizacion:'SÍ (Operado)', comportamiento:'Enérgico, requiere paseos largos', foto:null },
+    { id:7,  nombre:'Simba',     especie:'Gato',  sexo:'Macho',  edad:'6 años',   raza:'Naranja',        peso:5.2,  chip:null,           estado:'green',  nota:'Muy tranquilo. Ideal para departamento.',
+      vacunas:[{n:'Rabia',f:'11/06/2025',s:'al-dia'},{n:'Panleucopenia',f:'11/06/2025',s:'al-dia'}], esterilizacion:'SÍ (Operado)', comportamiento:'Muy tranquilo, ideal para departamento', foto:null },
+    { id:8,  nombre:'Canela',    especie:'Perro', sexo:'Hembra', edad:'2 años',   raza:'Cocker',         peso:12,   chip:'ES-5528834',   estado:'red',    nota:'Tratamiento antibiótico. Solo personal avanzado.',
+      vacunas:[{n:'Rabia',f:'05/05/2025',s:'al-dia'}], esterilizacion:'NO', comportamiento:'En recuperación, solo personal avanzado', foto:null },
+    { id:9,  nombre:'Oreo',      especie:'Gato',  sexo:'Macho',  edad:'1 año',    raza:'Mestizo',        peso:3.6,  chip:null,           estado:'green',  nota:'Juguetón. Sin restricciones.',
+      vacunas:[{n:'Rabia',f:'18/07/2025',s:'al-dia'},{n:'Panleucopenia',f:'18/07/2025',s:'al-dia'}], esterilizacion:'NO', comportamiento:'Juguetón, sin restricciones', foto:null },
+    { id:10, nombre:'Perla',     especie:'Perro', sexo:'Hembra', edad:'7 años',   raza:'Poodle',         peso:9.4,  chip:'ES-3341556',   estado:'yellow', nota:'Medicación para artritis cada 12h.',
+      vacunas:[{n:'Rabia',f:'14/02/2025',s:'al-dia'},{n:'Moquillo',f:'14/02/2025',s:'al-dia'}], esterilizacion:'SÍ (Operada)', comportamiento:'Tranquila, medicada', foto:null },
+    { id:11, nombre:'Max',       especie:'Perro', sexo:'Macho',  edad:'1 año',    raza:'Mestizo',        peso:15,   chip:null,           estado:'green',  nota:'Recién llegado. Sociable.',
+      vacunas:[], esterilizacion:'NO', comportamiento:'Recién llegado, sociable', foto:null },
+    { id:12, nombre:'Cleopatra', especie:'Gato',  sexo:'Hembra', edad:'5 años',   raza:'Persa',          peso:4.8,  chip:'ES-9012233',   estado:'green',  nota:'Sin novedad. Muy independiente.',
+      vacunas:[{n:'Rabia',f:'09/09/2025',s:'al-dia'},{n:'Panleucopenia',f:'09/09/2025',s:'al-dia'}], esterilizacion:'SÍ (Operada)', comportamiento:'Independiente, tranquila', foto:null },
+    { id:13, nombre:'Lucas',     especie:'Perro', sexo:'Macho',  edad:'2 años',   raza:'Mestizo',        peso:18,   chip:'ES-2201199',   estado:'yellow', nota:'Refuerzo de rabia vencido. Adoptado recientemente.',
+      vacunas:[{n:'Rabia (Refuerzo)',f:null,s:'vencida'}], esterilizacion:'SÍ (Operado)', comportamiento:'Sociable, cariñoso', foto:null },
+    { id:14, nombre:'Tomy',      especie:'Perro', sexo:'Macho',  edad:'4 años',   raza:'Mestizo',        peso:20,   chip:null,           estado:'yellow', nota:'Control postoperatorio de castración hoy.',
+      vacunas:[{n:'Rabia',f:'01/06/2025',s:'al-dia'}], esterilizacion:'SÍ (Operado)', comportamiento:'Tranquilo, en recuperación', foto:null },
+    { id:15, nombre:'Bella',     especie:'Perro', sexo:'Hembra', edad:'8 meses',  raza:'Mestiza',        peso:8,    chip:null,           estado:'yellow', nota:'Parvovirus pendiente de aplicar mañana.',
+      vacunas:[{n:'Parvovirus',f:null,s:'refuerzo'}], esterilizacion:'NO', comportamiento:'Juguetona', foto:null },
+    { id:16, nombre:'Cleo',      especie:'Gato',  sexo:'Hembra', edad:'2 años',   raza:'Siamés',         peso:4,    chip:null,           estado:'green',  nota:'Triple felina programada.',
+      vacunas:[{n:'Rabia',f:'23/08/2026',s:'al-dia'}], esterilizacion:'NO', comportamiento:'Curiosa, activa', foto:null },
+    { id:17, nombre:'Toby',      especie:'Perro', sexo:'Macho',  edad:'3 años',   raza:'Mestizo',        peso:16,   chip:null,           estado:'green',  nota:'Desparasitación programada.',
+      vacunas:[{n:'Rabia',f:'12/03/2025',s:'al-dia'}], esterilizacion:'SÍ (Operado)', comportamiento:'Tranquilo', foto:null },
+    { id:18, nombre:'Mora',      especie:'Perro', sexo:'Hembra', edad:'1 año',    raza:'Golden Retriever',peso:19,  chip:null,           estado:'yellow', nota:'Ingresada en zona de cuarentena.',
+      vacunas:[], esterilizacion:'NO', comportamiento:'En observación', foto:null },
+  ],
+
+  adopciones: [
+    { id:1, solicitante:'Ana González',   rut:'12.345.678-9', animal:'Mochi',  fecha:'2026-08-10', etapa:'Visita agendada',    devolucion:false },
+    { id:2, solicitante:'Carlos Pérez',   rut:'9.876.543-2',  animal:'Bruno',  fecha:'2026-08-12', etapa:'Solicitud recibida', devolucion:true },
+    { id:3, solicitante:'María López',    rut:'15.111.222-3', animal:'Simba',  fecha:'2026-08-15', etapa:'En revisión',        devolucion:false },
+    { id:4, solicitante:'Jorge Soto',     rut:'8.222.333-4',  animal:'Thor',   fecha:'2026-08-18', etapa:'Visita al hogar',    devolucion:false },
+    { id:5, solicitante:'Valentina Ruiz', rut:'11.444.555-6', animal:'Oreo',   fecha:'2026-08-20', etapa:'Seguimiento 15d',    devolucion:false },
+  ],
+
+  caniles: [
+    {num:1,estado:'ocupado', animalId:2}, {num:2,estado:'ocupado', animalId:4}, {num:3,estado:'libre', animalId:null},
+    {num:4,estado:'cuarente',animalId:5}, {num:5,estado:'ocupado', animalId:6}, {num:6,estado:'libre', animalId:null},
+    {num:7,estado:'ocupado', animalId:8}, {num:8,estado:'libre', animalId:null}, {num:9,estado:'ocupado', animalId:10},
+    {num:10,estado:'libre',  animalId:null},{num:11,estado:'ocupado',animalId:13},{num:12,estado:'cuarente',animalId:18},
+    {num:13,estado:'libre',  animalId:null},{num:14,estado:'ocupado',animalId:14},{num:15,estado:'libre', animalId:null},
+    {num:16,estado:'ocupado',animalId:15}, {num:17,estado:'libre', animalId:null},{num:18,estado:'ocupado',animalId:17},
+  ],
+
+  insumos: [
+    { nombre:'Alimento seco perros', cat:'Alimento',    stock:18, min:10 },
+    { nombre:'Alimento seco gatos',  cat:'Alimento',    stock:7,  min:10 },
+    { nombre:'Amoxicilina 250mg',    cat:'Medicamento', stock:24, min:15 },
+    { nombre:'Ivermectina',          cat:'Medicamento', stock:3,  min:10 },
+    { nombre:'Vendas elásticas',     cat:'Higiene',     stock:12, min:5  },
+    { nombre:'Desinfectante caniles',cat:'Higiene',     stock:4,  min:6  },
+  ],
+
+  // Directorio de voluntarios (coincide con la maqueta)
+  voluntarios: [
+    { nombre:'Andrés Mendoza', telefono:'654 321 098', area:'Paseos',        disp:'L, Mi, V, S' },
+    { nombre:'María Portero',  telefono:'612 984 556', area:'Limpieza',      disp:'L, Ma, D' },
+    { nombre:'Diego Rivera',   telefono:'677 889 900', area:'Atención Vet.', disp:'L, Mi, V' },
+    { nombre:'Sofía Valdés',   telefono:'600 112 233', area:'Alimentación',  disp:'Mi, V, S' },
+  ],
+
+  // Planificación semanal — franja > día > lista de asignaciones {vol, area}
+  turnosSemana: {
+    manana: {
+      lunes:    [{vol:'Andrés M.', area:'Paseos'}],
+      martes:   [{vol:'María P.',  area:'Limpieza'}],
+      miercoles:[{vol:'Sofía V.',  area:'Alim.'}],
+      jueves:   [{vol:'Andrés M.', area:'Paseos'}],
+      viernes:  [{vol:'Pedro L.',  area:'Clínica'}],
+      sabado:   [{vol:'Andrés M.', area:'Paseos'}],
+      domingo:  [{vol:'María P.',  area:'Limpieza'}],
+    },
+    tarde: {
+      lunes:    [{vol:'Diego R.', area:'Clínica'}],
+      martes:   [{vol:'Lucía G.', area:'Paseos'}],
+      miercoles:[{vol:'Diego R.', area:'Clínica'}],
+      jueves:   [{vol:'Lucía G.', area:'Paseos'}],
+      viernes:  [{vol:'Sofía V.', area:'Alim.'}],
+      sabado:   [{vol:'Diego R.', area:'Clínica'}],
+      domingo:  [{vol:'Lucía G.', area:'Paseos'}],
+    }
+  },
+
+  // Salud y vacunas
+  vacunasProximas: [
+    { titulo:'Rabia (Refuerzo)', animal:'Lucas', sub:'Vencido 10/11/2025', urgente:true },
+    { titulo:'Parvovirus',       animal:'Bella', sub:'Mañana, 09:00',      urgente:false },
+    { titulo:'Triple Felina',    animal:'Cleo',  sub:'25/11/2025, 11:30',  urgente:false },
+    { titulo:'Desparasitación',  animal:'Toby',  sub:'28/11/2025',         urgente:false },
+  ],
+  citasVet: [
+    { animal:'Tomy',  hora:'Hoy, 16:30',    motivo:'Control de castración / postoperatorio', vet:'Dra. Elena Ruiz' },
+    { animal:'Simba', hora:'Mañana, 10:00', motivo:'Chequeo dermatológico',                   vet:'Dr. Carlos Mendoza' },
+  ],
+};
+
+let currentProfileId = null;
+let pendingAnimalPhoto = null; // dataURL temporal para el modal "Registrar animal"
+
+// ══════════════════════════════════════
+// ICONOS (lucide) — refrescar tras cada render
+// ══════════════════════════════════════
+function refreshIcons(){ if (window.lucide) lucide.createIcons(); }
+
+// ══════════════════════════════════════
+// NAVEGACIÓN
+// ══════════════════════════════════════
+document.querySelectorAll('nav button[data-page]').forEach(btn => {
+  btn.addEventListener('click', () => showPage(btn.dataset.page, btn));
+});
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  closeProfile();
+  render(id);
+}
+
+function render(id) {
+  if (id === 'dashboard')   renderDashboard();
+  if (id === 'animales')    renderAnimals(state.animales);
+  if (id === 'adopciones')  renderAdopciones();
+  if (id === 'inventario')  renderInventario();
+  if (id === 'caniles')     renderCaniles();
+  if (id === 'voluntarios') renderVoluntarios();
+  if (id === 'salud')       renderSalud();
+  refreshIcons();
+}
+
+// ══════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════
+function renderDashboard() {
+  const actividad = [
+    { icon:'home',           text:'<strong>Lucas</strong> (Perro, Mestizo) fue adoptado por la familia Gómez.', time:'Hace 15 mins' },
+    { icon:'syringe',        text:'Vacuna de Rabia administrada a <strong>Cleo</strong> (Gato, Siamés).',       time:'Hace 1 hora' },
+    { icon:'alert-triangle', text:'<strong>Mora</strong> (Perra, Golden Retriever) ingresada en zona de cuarentena.', time:'Hace 3 horas' },
+    { icon:'footprints',     text:'Shift de paseos cubierto por <strong>Andrés Mendoza</strong>.',              time:'Hace 5 horas' },
+  ];
+  document.getElementById('activity-list').innerHTML = actividad.map(a => `
+    <div class="activity-item">
+      <div class="activity-icon"><i data-lucide="${a.icon}"></i></div>
+      <div>
+        <div class="activity-text">${a.text}</div>
+        <div class="activity-time">${a.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════
+// REGISTRO DE ANIMALES
+// ══════════════════════════════════════
+const speciesIcon = { 'Perro':'dog', 'Gato':'cat' };
+
+function animalPhotoHtml(a){
+  if (a.foto) return `<img src="${a.foto}" alt="${a.nombre}">`;
+  return `<i data-lucide="${speciesIcon[a.especie] || 'paw-print'}"></i>`;
+}
+
+function renderAnimals(list) {
+  const grid = document.getElementById('animal-grid');
+  if (!list.length) {
+    grid.innerHTML = '<p style="color:var(--text-sub);grid-column:1/-1;text-align:center;padding:32px;">No se encontraron animales con ese filtro.</p>';
+    refreshIcons();
+    return;
+  }
+  grid.innerHTML = list.map(a => {
+    const badgeClass = a.estado === 'green' ? 'badge-green' : a.estado === 'yellow' ? 'badge-amber' : 'badge-red';
+    const badgeLabel = a.estado === 'green' ? 'Normal' : a.estado === 'yellow' ? 'Especial' : 'Crítico';
+    return `<div class="animal-card" onclick="openProfile(${a.id})">
+      <div class="animal-photo">${animalPhotoHtml(a)}</div>
+      <div class="animal-info">
+        <div class="animal-name">${a.nombre}</div>
+        <div class="animal-meta">${a.especie} · ${a.sexo} · ${a.edad}</div>
+        <span class="animal-weight"><i data-lucide="scale" style="width:11px;height:11px;"></i>${a.peso} kg</span>
+        <span class="status-badge ${badgeClass}">${badgeLabel}</span>
+      </div>
+    </div>`;
+  }).join('');
+  refreshIcons();
+}
+
+function filterAnimals(q) { renderAnimals(state.animales.filter(a => a.nombre.toLowerCase().includes(q.toLowerCase()))); }
+function filterByStatus(s) { renderAnimals(s ? state.animales.filter(a => a.estado === s) : state.animales); }
+function filterBySpecies(sp) { renderAnimals(sp ? state.animales.filter(a => a.especie === sp) : state.animales); }
+
+// ── Ficha Individual ──
+function vaxStatusLabel(v){
+  if (v.s === 'al-dia')   return { label:'Al día',              cls:'ok'  };
+  if (v.s === 'vencida')  return { label:'Vencida',             cls:'bad' };
+  return { label:'Refuerzo requerido', cls:'bad' };
+}
+
+function openProfile(id) {
+  currentProfileId = id;
+  const a = state.animales.find(x => x.id === id);
+
+  const vaxRows = a.vacunas.length ? a.vacunas.map(v => {
+    const st = vaxStatusLabel(v);
+    const sub = v.f ? `Aplicada: ${v.f}` : 'Refuerzo requerido';
+    return `<div class="vax-history-row">
+      <div><div class="vax-h-name">${v.n}</div><div class="vax-h-sub">${sub}</div></div>
+      <span class="vax-h-status ${st.cls}">${st.label}</span>
+    </div>`;
+  }).join('') : '<p style="font-size:.83rem;color:var(--text-sub);">Sin vacunas registradas.</p>';
+
+  document.getElementById('profile-content').innerHTML = `
+    <div class="profile-top">
+      <div class="profile-photo-wrap">
+        <div class="profile-photo" id="profile-photo-box">${animalPhotoHtml(a)}</div>
+        <label class="photo-upload-btn" title="Cambiar foto">
+          <i data-lucide="camera"></i>
+          <input type="file" accept="image/*" onchange="handleProfilePhotoUpload(event, ${a.id})">
+        </label>
+      </div>
+      <div>
+        <div class="profile-name">${a.nombre}</div>
+        <div class="profile-meta">${a.especie} · ${a.sexo} · ${a.peso} Kg</div>
+        ${a.chip ? `<div class="profile-chip"><i data-lucide="cpu"></i>CHIP: ${a.chip}</div>` : `<div class="profile-chip"><i data-lucide="cpu"></i>Sin chip registrado</div>`}
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <h4>Historial de Vacunación</h4>
+      ${vaxRows}
+    </div>
+
+    <div class="profile-section">
+      <div class="info-row"><span>Esterilización:</span><span>${a.esterilizacion}</span></div>
+      <div class="info-row"><span>Comportamiento:</span><span>${a.comportamiento}</span></div>
+    </div>
+
+    <div class="profile-section">
+      <h4>Nota del día</h4>
+      <div class="note-box">${a.nota}</div>
+    </div>
+
+    <div class="profile-section">
+      <button class="btn btn-outline btn-sm btn-block" onclick="changeStatus(${a.id})">Cambiar estado de salud</button>
+    </div>`;
+  document.getElementById('profile-panel').classList.add('open');
+  refreshIcons();
+}
+function closeProfile(){ document.getElementById('profile-panel').classList.remove('open'); currentProfileId = null; }
+
+function handleProfilePhotoUpload(evt, id){
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const a = state.animales.find(x => x.id === id);
+    a.foto = e.target.result;
+    document.getElementById('profile-photo-box').innerHTML = `<img src="${a.foto}" alt="${a.nombre}">`;
+    renderAnimals(state.animales.filter(x => document.querySelectorAll('.search-input')[0]?.value ? x.nombre.toLowerCase().includes(document.querySelectorAll('.search-input')[0].value.toLowerCase()) : true));
+    showToast(`Foto de ${a.nombre} actualizada`);
+  };
+  reader.readAsDataURL(file);
+}
+
+function changeStatus(id) {
+  if (id == null) return;
+  const a = state.animales.find(x => x.id === id);
+  const cycle = { green:'yellow', yellow:'red', red:'green' };
+  a.estado = cycle[a.estado];
+  openProfile(id);
+  renderAnimals(state.animales);
+  showToast(`Estado de ${a.nombre} actualizado a ${a.estado === 'green' ? 'Normal' : a.estado === 'yellow' ? 'Especial' : 'Crítico'}`);
+}
+
+// ── Subida de foto en modal "Registrar animal" ──
+function previewAnimalPhoto(evt){
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    pendingAnimalPhoto = e.target.result;
+    document.getElementById('an-foto-preview').innerHTML = `<img src="${pendingAnimalPhoto}" alt="preview">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function addAnimal() {
+  const nombre = document.getElementById('an-nombre').value.trim();
+  if (!nombre) { showToast('Ingresa un nombre para el animal'); return; }
+  const nuevo = {
+    id: Date.now(),
+    nombre,
+    especie: document.getElementById('an-especie').value,
+    sexo:    document.getElementById('an-sexo').value,
+    edad:    document.getElementById('an-edad').value || 'Desconocida',
+    raza:    document.getElementById('an-raza').value || 'Mestizo',
+    peso:    parseFloat(document.getElementById('an-peso').value) || 0,
+    chip:    null,
+    estado:  document.getElementById('an-estado').value,
+    nota:    document.getElementById('an-nota').value || 'Sin notas.',
+    vacunas: [], esterilizacion:'NO', comportamiento:'Por evaluar',
+    foto: pendingAnimalPhoto
+  };
+  state.animales.push(nuevo);
+  closeModal('modal-animal');
+  renderAnimals(state.animales);
+  showToast(`${nombre} registrado/a correctamente`);
+  ['an-nombre','an-edad','an-raza','an-nota','an-peso'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('an-foto-preview').innerHTML = '<i data-lucide="image" style="width:22px;height:22px;"></i>';
+  pendingAnimalPhoto = null;
+  refreshIcons();
+}
+
+// ══════════════════════════════════════
+// ADOPCIONES
+// ══════════════════════════════════════
+const etapaColors = {
+  'Solicitud recibida': 'badge-gray', 'En revisión': 'badge-blue',
+  'Visita agendada': 'badge-amber', 'Visita al hogar': 'badge-amber',
+  'Adoptado': 'badge-green', 'Seguimiento 15d': 'badge-blue',
+  'Seguimiento 30d': 'badge-blue', 'Devuelto': 'badge-red',
+};
+
+function renderAdopciones() {
+  document.getElementById('adopt-tbody').innerHTML = state.adopciones.map(a => `
+    <tr>
+      <td><strong>${a.solicitante}</strong><br><span style="font-size:.76rem;color:var(--text-sub);">${a.rut}</span></td>
+      <td>${a.animal}</td>
+      <td>${a.fecha}</td>
+      <td><span class="status-badge ${etapaColors[a.etapa] || 'badge-gray'}">${a.etapa}</span></td>
+      <td>${a.devolucion ? '<span class="alert-icon">⚠ Devolución previa</span>' : '—'}</td>
+      <td>
+        <select onchange="updateEtapa(${a.id}, this.value)" style="font-size:.78rem;padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;background:var(--card);">
+          ${['Solicitud recibida','En revisión','Visita agendada','Visita al hogar','Seguimiento 15d','Seguimiento 30d','Adoptado','Devuelto']
+            .map(e => `<option ${e===a.etapa?'selected':''}>${e}</option>`).join('')}
+        </select>
+      </td>
+    </tr>`).join('');
+}
+
+function updateEtapa(id, etapa) {
+  const a = state.adopciones.find(x => x.id === id);
+  a.etapa = etapa;
+  if (etapa === 'Devuelto') a.devolucion = true;
+  renderAdopciones();
+  showToast(`Solicitud de ${a.solicitante} actualizada a "${etapa}"`);
+}
+
+const rutsActivos = new Set(state.adopciones.map(a => a.rut));
+function checkDuplicate(val) {
+  document.getElementById('adopt-dup-alert').style.display = rutsActivos.has(val.trim()) ? 'block' : 'none';
+}
+
+function addAdopcion() {
+  const nombre = document.getElementById('ad-nombre').value.trim();
+  const rut    = document.getElementById('ad-rut').value.trim();
+  const animal = document.getElementById('ad-animal').value;
+  if (!nombre || !rut) { showToast('Completa nombre y RUT'); return; }
+  if (rutsActivos.has(rut)) { showToast('Esta persona ya tiene una solicitud activa'); return; }
+  state.adopciones.push({ id: Date.now(), solicitante: nombre, rut, animal, fecha: new Date().toISOString().split('T')[0], etapa: 'Solicitud recibida', devolucion: false });
+  rutsActivos.add(rut);
+  closeModal('modal-adopcion');
+  renderAdopciones();
+  showToast(`Solicitud de ${nombre} registrada`);
+  ['ad-nombre','ad-rut'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('adopt-dup-alert').style.display = 'none';
+}
+
+// ══════════════════════════════════════
+// INVENTARIO
+// ══════════════════════════════════════
+function renderInventario() {
+  document.getElementById('insumo-tbody').innerHTML = state.insumos.map(i => {
+    const bajo = i.stock < i.min;
+    return `<tr>
+      <td><strong>${i.nombre}</strong></td><td>${i.cat}</td><td>${i.stock}</td><td>${i.min}</td>
+      <td><span class="status-badge ${bajo ? 'badge-red' : 'badge-green'}">${bajo ? 'Stock bajo' : 'OK'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function addInsumo() {
+  const nombre = document.getElementById('ins-nombre').value.trim();
+  if (!nombre) { showToast('Ingresa el nombre del producto'); return; }
+  state.insumos.push({
+    nombre, cat: document.getElementById('ins-cat').value,
+    stock: parseInt(document.getElementById('ins-stock').value) || 0,
+    min:   parseInt(document.getElementById('ins-min').value)   || 0,
+  });
+  closeModal('modal-insumo');
+  renderInventario();
+  showToast(`${nombre} agregado al inventario`);
+  ['ins-nombre','ins-stock','ins-min'].forEach(id => document.getElementById(id).value = '');
+  refreshIcons();
+}
+
+// ══════════════════════════════════════
+// CANILES — ocupación y animal alojado
+// ══════════════════════════════════════
+const estadoLabelCanil = { libre:'LIBRE', ocupado:'OCUPADO', cuarente:'CUARENTENA' };
+
+function renderCaniles() {
+  document.getElementById('canil-stat-libres').textContent    = state.caniles.filter(c => c.estado === 'libre').length;
+  document.getElementById('canil-stat-ocupados').textContent  = state.caniles.filter(c => c.estado === 'ocupado').length;
+  document.getElementById('canil-stat-cuarentena').textContent = state.caniles.filter(c => c.estado === 'cuarente').length;
+
+  document.getElementById('canil-detail-grid').innerHTML = state.caniles.map(c => {
+    const a = c.animalId ? state.animales.find(x => x.id === c.animalId) : null;
+    const badgeClass = c.estado === 'libre' ? 'badge-green' : c.estado === 'ocupado' ? 'badge-red' : 'badge-amber';
+    const occupantHtml = a
+      ? `<div class="canil-detail-occupant">
+           <div class="canil-detail-photo">${animalPhotoHtml(a)}</div>
+           <div>
+             <div class="canil-detail-animal">${a.nombre}</div>
+             <div class="canil-detail-meta">${a.especie} · ${a.sexo}</div>
+           </div>
+         </div>`
+      : `<div class="canil-detail-empty"><i data-lucide="door-open" style="width:16px;height:16px;"></i>Sin animal asignado</div>`;
+    return `<div class="canil-detail ${c.estado}" onclick="openCanilModal(${c.num})">
+      <div class="canil-detail-top">
+        <span class="canil-detail-num">Canil #${c.num}</span>
+        <span class="status-badge ${badgeClass}" style="margin:0;">${estadoLabelCanil[c.estado]}</span>
+      </div>
+      ${occupantHtml}
+    </div>`;
+  }).join('');
+  refreshIcons();
+}
+
+function openCanilModal(num) {
+  const c = state.caniles.find(x => x.num === num);
+  document.getElementById('canil-modal-num').textContent = '#' + num;
+  document.getElementById('canil-estado').value = c.estado;
+  document.getElementById('canil-animal').innerHTML =
+    '<option value="">— Sin animal asignado —</option>' +
+    state.animales.map(a => `<option value="${a.id}" ${a.id === c.animalId ? 'selected' : ''}>${a.nombre} (${a.especie})</option>`).join('');
+  document.getElementById('modal-canil').dataset.num = num;
+  openModal('modal-canil');
+}
+
+function saveCanil() {
+  const num = parseInt(document.getElementById('modal-canil').dataset.num);
+  const c = state.caniles.find(x => x.num === num);
+  c.estado = document.getElementById('canil-estado').value;
+  const animalVal = document.getElementById('canil-animal').value;
+  c.animalId = animalVal ? parseInt(animalVal) : null;
+  // Si queda "libre", se libera cualquier animal asignado por consistencia
+  if (c.estado === 'libre') c.animalId = null;
+  closeModal('modal-canil');
+  renderCaniles();
+  showToast(`Canil #${num} actualizado`);
+  refreshIcons();
+}
+
+// ══════════════════════════════════════
+// VOLUNTARIOS — planificación semanal
+// ══════════════════════════════════════
+const diasSemana = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+
+function shiftChip(entry){
+  if (!entry) return '';
+  return `<div class="shift-chip"><strong>${entry.vol}</strong><span>${entry.area}</span></div>`;
+}
+
+function renderVoluntarios() {
+  const franjas = [
+    { key:'manana', label:'Mañana (08:00 - 13:00)' },
+    { key:'tarde',  label:'Tarde (14:00 - 19:00)' },
+  ];
+  document.getElementById('week-tbody').innerHTML = franjas.map(fr => `
+    <tr>
+      <td class="turn-label">${fr.label}</td>
+      ${diasSemana.map(d => {
+        const list = state.turnosSemana[fr.key][d] || [];
+        return `<td>${list.length ? list.map(shiftChip).join('') : '<span class="shift-empty">—</span>'}</td>`;
+      }).join('')}
+    </tr>`).join('');
+
+  document.getElementById('vol-list').innerHTML = state.voluntarios.map(v => `
+    <div class="vol-item">
+      <div>
+        <div class="vol-name">${v.nombre}</div>
+        <div class="vol-phone">Telf: ${v.telefono} · Disp: ${v.disp}</div>
+      </div>
+      <span class="status-badge badge-green" style="margin:0;">${v.area}</span>
+    </div>`).join('');
+}
+
+function addTurno() {
+  const vol = document.getElementById('turno-vol').value.trim();
+  const franja = document.getElementById('turno-franja').value;
+  const dia = document.getElementById('turno-dia').value;
+  const area = document.getElementById('turno-area').value.trim() || 'General';
+  if (!vol) { showToast('Ingresa el nombre del voluntario'); return; }
+  if (!state.turnosSemana[franja][dia]) state.turnosSemana[franja][dia] = [];
+  state.turnosSemana[franja][dia].push({ vol, area });
+  closeModal('modal-turno');
+  renderVoluntarios();
+  showToast(`Turno asignado a ${vol}`);
+  ['turno-vol','turno-area'].forEach(id => document.getElementById(id).value = '');
+  refreshIcons();
+}
+
+// ══════════════════════════════════════
+// SALUD Y VACUNAS
+// ══════════════════════════════════════
+function renderSalud() {
+  document.getElementById('vax-upcoming').innerHTML = state.vacunasProximas.map(v => `
+    <div class="vax-row ${v.urgente ? 'urgent' : ''}">
+      <div class="vax-left">
+        <div class="vax-icon"><i data-lucide="syringe"></i></div>
+        <div>
+          <div class="vax-title">${v.titulo} · ${v.animal}</div>
+          <div class="vax-sub">${v.sub}</div>
+        </div>
+      </div>
+      ${v.urgente ? '<span class="status-badge badge-red">Urgente</span>' : ''}
+    </div>`).join('');
+
+  document.getElementById('citas-list').innerHTML = state.citasVet.map(c => `
+    <div class="cita-item">
+      <div class="cita-top"><span class="cita-name">${c.animal}</span><span class="cita-time">${c.hora}</span></div>
+      <div class="cita-motivo">Motivo: ${c.motivo}</div>
+      <div class="cita-vet">Asignado: ${c.vet}</div>
+    </div>`).join('');
+}
+
+function addCita() {
+  const animal = document.getElementById('cita-animal').value;
+  const motivo = document.getElementById('cita-motivo').value.trim();
+  const hora   = document.getElementById('cita-hora').value.trim() || 'Por confirmar';
+  const vet    = document.getElementById('cita-vet').value.trim() || 'Por asignar';
+  if (!motivo) { showToast('Ingresa el motivo de la cita'); return; }
+  state.citasVet.unshift({ animal, hora, motivo, vet });
+  closeModal('modal-cita');
+  renderSalud();
+  showToast(`Cita registrada para ${animal}`);
+  ['cita-motivo','cita-hora','cita-vet'].forEach(id => document.getElementById(id).value = '');
+}
+
+// ══════════════════════════════════════
+// MODALES
+// ══════════════════════════════════════
+function openModal(id) {
+  if (id === 'modal-adopcion') {
+    document.getElementById('ad-animal').innerHTML = state.animales.map(a => `<option>${a.nombre}</option>`).join('');
+  }
+  if (id === 'modal-cita') {
+    document.getElementById('cita-animal').innerHTML = state.animales.map(a => `<option>${a.nombre}</option>`).join('');
+  }
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(bg =>
+  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); })
+);
+
+// ══════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+renderDashboard();
+refreshIcons();
+</script>
+</body>
+</html>
