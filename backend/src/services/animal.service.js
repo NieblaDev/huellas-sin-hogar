@@ -10,7 +10,12 @@ export const getAllAnimals = async ({ especie, estadoSalud, search }) => {
 };
 
 export const createAnimal = async (data, userId) => {
-  return await prisma.animal.create({ data: { ...data, creadoPorId: userId || null } });
+  return await prisma.animal.create({
+    data: {
+      ...data,
+      creadoPorId: userId || null
+    }
+  });
 };
 
 export const deleteAnimal = async (id) => {
