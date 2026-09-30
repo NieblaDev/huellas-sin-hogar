@@ -17,3 +17,13 @@ export const createAnimal = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+
+export const deleteAnimal = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await animalService.deleteAnimal(id);
+    res.json({ message: 'Animal eliminado correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar el animal' });
+  }
+};
