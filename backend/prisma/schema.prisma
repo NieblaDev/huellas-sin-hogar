@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  DIRECTORA
+  VETERINARIA
+  ENCARGADA_ADOPCIONES
+  VOLUNTARIO_AVANZADO
+  VOLUNTARIO_NOVATO
+}
+
+enum EstadoSalud {
+  NORMAL
+  CONDICION_ESPECIAL
+  CRITICO
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique @db.VarChar(120)
+  password  String   @db.VarChar(255)
+  nombre    String   @db.VarChar(100)
+  rol       Rol      @default(VOLUNTARIO_NOVATO)
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  animalesRegistrados Animal[]
+
+  @@map("usuarios")
+}
+
+model Animal {
+  id             Int         @id @default(autoincrement())
+  nombre         String      @db.VarChar(80)
+  especie        String      @db.VarChar(40)
+  sexo           String      @db.VarChar(20)
+  edad           String      @db.VarChar(50)
+  raza           String?     @default("Mestizo") @db.VarChar(80)
+  peso           Float       @default(0)
+  chip           String?     @unique @db.VarChar(50)
+  estadoSalud    EstadoSalud @default(NORMAL)
+  nota           String?     @db.Text
+  fotoUrl        String?     @db.Text
+  esterilizacion String?     @default("NO") @db.VarChar(50)
+  comportamiento String?     @db.Text
+  creadoEn       DateTime    @default(now())
+
+  creadoPorId    Int?
+  creadoPor      Usuario?    @relation(fields: [creadoPorId], references: [id], onDelete: SetNull)
+
+  @@map("animales")
+}
