@@ -28,8 +28,8 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
   };
 
   const handleDelete = async (id, nombre, e) => {
-    e.stopPropagation(); // Evita que se abra algún evento de la tarjeta
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${nombre} del refugio?`)) return;
+    e.stopPropagation();
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${nombre}?`)) return;
 
     try {
       const res = await fetch(`${API_URL}/animals/${id}`, {
@@ -37,8 +37,6 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
         headers: getAuthHeaders()
       });
       if (!res.ok) throw new Error('Error al eliminar');
-      
-      // Actualiza la lista en pantalla
       setAnimales(animales.filter(a => a.id !== id));
     } catch (err) {
       alert(err.message);
@@ -86,12 +84,10 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                 <div style={{ padding: '14px' }}>
                   <div style={{ fontWeight: '800', fontSize: '1rem', color: '#1f2430' }}>{a.nombre}</div>
                   <div style={{ fontSize: '0.8rem', color: '#7c8592', marginTop: '2px' }}>{a.especie} · {a.sexo} · {a.edad}</div>
-                  
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
                     <span style={{ fontSize: '0.75rem', background: '#f8f9fa', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }}>⚖️ {a.peso} kg</span>
                     <span style={{ fontSize: '0.7rem', fontWeight: '800', padding: '2px 8px', borderRadius: '12px', background: b.bg, color: b.color }}>{b.label}</span>
                   </div>
-
                   <button
                     onClick={(e) => handleDelete(a.id, a.nombre, e)}
                     style={{
