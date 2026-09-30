@@ -11,8 +11,8 @@ export const getAnimals = async (req, res) => {
 
 export const createAnimal = async (req, res) => {
   try {
-    const nuevo = await animalService.createAnimal(req.body, req.user?.id);
-    res.status(201).json(nuevo);
+    const newAnimal = await animalService.createAnimal(req.body, req.user?.id);
+    res.status(201).json(newAnimal);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
