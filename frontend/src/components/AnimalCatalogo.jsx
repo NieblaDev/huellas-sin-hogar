@@ -27,6 +27,24 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
     }
   };
 
+  const handleDelete = async (id, nombre, e) => {
+    e.stopPropagation(); // Evita que se abra algún evento de la tarjeta
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${nombre} del refugio?`)) return;
+
+    try {
+      const res = await fetch(`${API_URL}/animals/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) throw new Error('Error al eliminar');
+      
+      // Actualiza la lista en pantalla
+      setAnimales(animales.filter(a => a.id !== id));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const badgeMap = {
     NORMAL: { bg: '#e8f0e8', color: '#2f5540', label: 'Normal' },
     CONDICION_ESPECIAL: { bg: '#faf1de', color: '#d99a3d', label: 'Especial' },
@@ -68,10 +86,22 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                 <div style={{ padding: '14px' }}>
                   <div style={{ fontWeight: '800', fontSize: '1rem', color: '#1f2430' }}>{a.nombre}</div>
                   <div style={{ fontSize: '0.8rem', color: '#7c8592', marginTop: '2px' }}>{a.especie} · {a.sexo} · {a.edad}</div>
+                  
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
                     <span style={{ fontSize: '0.75rem', background: '#f8f9fa', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }}>⚖️ {a.peso} kg</span>
                     <span style={{ fontSize: '0.7rem', fontWeight: '800', padding: '2px 8px', borderRadius: '12px', background: b.bg, color: b.color }}>{b.label}</span>
                   </div>
+
+                  <button
+                    onClick={(e) => handleDelete(a.id, a.nombre, e)}
+                    style={{
+                      width: '100%', marginTop: '12px', padding: '6px', background: '#fbeae8',
+                      color: '#d1453b', border: '1px solid #f3c9c4', borderRadius: '8px',
+                      cursor: 'pointer', fontSize: '0.78rem', fontWeight: '700'
+                    }}
+                  >
+                    Eliminar
+                  </button>
                 </div>
               </div>
             );
