@@ -8,3 +8,5 @@ const router = Router();
 router.get('/', authenticateToken, getAnimals);
 router.post('/', authenticateToken, validate(createAnimalSchema, 'body'), createAnimal);
 export default router;
+
+router.delete('/:id', authenticateToken, deleteAnimal);
