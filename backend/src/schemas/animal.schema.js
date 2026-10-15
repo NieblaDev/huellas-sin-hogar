@@ -3,7 +3,7 @@ export const createAnimalSchema = z.object({
   nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   especie: z.enum(['Perro', 'Gato']),
   sexo: z.enum(['Macho', 'Hembra']),
-  edad: z.string().min(1, 'La edad es obligatoria'),
+  edad: z.string().min(0, 'La edad es obligatoria'),
   raza: z.string().optional().default('Mestizo'),
   peso: z.number().nonnegative().default(0),
   chip: z.string().optional().nullable(),

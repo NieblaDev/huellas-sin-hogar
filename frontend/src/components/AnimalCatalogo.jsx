@@ -29,14 +29,14 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
 
   const handleDelete = async (id, nombre, e) => {
     e.stopPropagation();
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${nombre}?`)) return;
+    if (!window.confirm(`¿Estás seguro de que deseas dar de baja lógica a ${nombre}? Se guardará en la auditoría del refugio.`)) return;
 
     try {
       const res = await fetch(`${API_URL}/animals/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
-      if (!res.ok) throw new Error('Error al eliminar');
+      if (!res.ok) throw new Error('Error al dar de baja');
       setAnimales(animales.filter(a => a.id !== id));
     } catch (err) {
       alert(err.message);
@@ -50,20 +50,30 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
   };
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
+    <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>Registro de Animales</h2>
           <p style={{ color: '#7c8592', fontSize: '0.88rem', margin: '4px 0 0' }}>Fichas y perfiles albergados en Huellas Sin Hogar</p>
         </div>
         <button onClick={onOpenModal} style={{ background: '#3f6c52', color: '#fff', padding: '10px 18px', borderRadius: '9px', border: 'none', fontWeight: '700', cursor: 'pointer' }}>
-          + Registrar animal
+          + Registrar nuevo animal
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-        <input type="text" placeholder="Buscar por nombre..." value={search} onChange={e => setSearch(e.target.value)} style={{ padding: '10px 14px', borderRadius: '9px', border: '1.5px solid #e9eaed', flex: 1 }} />
-        <select value={especie} onChange={e => setEspecie(e.target.value)} style={{ padding: '10px 14px', borderRadius: '9px', border: '1.5px solid #e9eaed', background: '#fff' }}>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <input
+          type="text"
+          placeholder="Buscar por nombre..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ flex: 1, minWidth: '220px', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e9eaed', fontSize: '0.88rem' }}
+        />
+        <select
+          value={especie}
+          onChange={e => setEspecie(e.target.value)}
+          style={{ padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e9eaed', fontSize: '0.88rem', background: '#fff' }}
+        >
           <option value="">Todas las especies</option>
           <option value="Perro">Perros</option>
           <option value="Gato">Gatos</option>
@@ -71,33 +81,73 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
       </div>
 
       {cargando ? (
-        <p style={{ textAlign: 'center', color: '#7c8592' }}>Cargando catálogo...</p>
+        <div style={{ textAlign: 'center', padding: '40px', color: '#7c8592' }}>Cargando catálogo...</div>
+      ) : animales.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px', background: '#fff', borderRadius: '14px', border: '1px solid #e9eaed', color: '#7c8592' }}>
+          No se encontraron animales activos.
+        </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '18px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '18px' }}>
           {animales.map(a => {
-            const b = badgeMap[a.estadoSalud] || badgeMap.NORMAL;
+            const badge = badgeMap[a.estadoSalud] || badgeMap.NORMAL;
             return (
-              <div key={a.id} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e9eaed', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <div style={{ height: '110px', background: '#eef3ec', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {a.fotoUrl ? <img src={a.fotoUrl} alt={a.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '2.5rem' }}>{a.especie === 'Perro' ? '🐶' : '🐱'}</span>}
+              <div
+                key={a.id}
+                style={{
+                  background: '#fff', borderRadius: '16px', border: '1px solid #e9eaed', overflow: 'hidden',
+                  boxShadow: '0 1px 3px rgba(20,24,32,0.04)', display: 'flex', flexDirection: 'column'
+                }}
+              >
+                <div style={{ height: '160px', background: '#f0f1f3', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {a.fotoUrl ? (
+                    <img src={a.fotoUrl} alt={a.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ fontSize: '3rem' }}>🐾</span>
+                  )}
+                  <span style={{
+                    position: 'absolute', top: '12px', right: '12px', background: badge.bg, color: badge.color,
+                    padding: '4px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800'
+                  }}>
+                    {badge.label}
+                  </span>
                 </div>
-                <div style={{ padding: '14px' }}>
-                  <div style={{ fontWeight: '800', fontSize: '1rem', color: '#1f2430' }}>{a.nombre}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#7c8592', marginTop: '2px' }}>{a.especie} · {a.sexo} · {a.edad}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                    <span style={{ fontSize: '0.75rem', background: '#f8f9fa', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }}>⚖️ {a.peso} kg</span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: '800', padding: '2px 8px', borderRadius: '12px', background: b.bg, color: b.color }}>{b.label}</span>
+
+                <div style={{ padding: '18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#1f2430' }}>{a.nombre}</h3>
+                      <span style={{ fontSize: '0.8rem', color: '#7c8592' }}>{a.especie} · {a.sexo} · {a.edad}</span>
+                    </div>
                   </div>
-                  <button
-                    onClick={(e) => handleDelete(a.id, a.nombre, e)}
-                    style={{
-                      width: '100%', marginTop: '12px', padding: '6px', background: '#fbeae8',
-                      color: '#d1453b', border: '1px solid #f3c9c4', borderRadius: '8px',
-                      cursor: 'pointer', fontSize: '0.78rem', fontWeight: '700'
-                    }}
-                  >
-                    Eliminar
-                  </button>
+
+                  {/* Canil asignado en tiempo real */}
+                  <div style={{
+                    margin: '10px 0', padding: '8px 10px', borderRadius: '8px',
+                    background: a.canil ? '#e8f0e8' : '#f8f9fa',
+                    border: a.canil ? '1px solid #c9dfcd' : '1px dashed #e9eaed',
+                    display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem'
+                  }}>
+                    <span>🚪</span>
+                    <span>
+                      Ubicación: <strong>{a.canil ? `${a.canil.nombre} (${a.canil.sector})` : 'Sin canil asignado'}</strong>
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: '0.82rem', color: '#555e6d', margin: '0 0 14px', flex: 1 }}>
+                    {a.nota || 'Sin notas registradas.'}
+                  </p>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f0f1f3', paddingTop: '12px' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#7c8592' }}>
+                      {a.raza || 'Mestizo'} · {a.peso} kg
+                    </span>
+                    <button
+                      onClick={(e) => handleDelete(a.id, a.nombre, e)}
+                      style={{ background: '#fbeae8', border: '1px solid #f3c9c4', color: '#d1453b', padding: '5px 10px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: '700', cursor: 'pointer' }}
+                    >
+                      Baja Lógica
+                    </button>
+                  </div>
                 </div>
               </div>
             );

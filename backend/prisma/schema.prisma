@@ -21,6 +21,32 @@ enum EstadoSalud {
   CRITICO
 }
 
+enum EstadoCanil {
+  LIBRE
+  OCUPADO
+  CUARENTENA
+  MANTENIMIENTO
+}
+
+enum TipoTraslado {
+  INTERNO_CANIL
+  PROTECTORA_ALIADA
+  HOGAR_TEMPORAL
+}
+
+enum EstadoTraslado {
+  PENDIENTE_APROBACION
+  APROBADO
+  RECHAZADO
+  COMPLETADO
+}
+
+enum AccionAuditoria {
+  CREACION
+  MODIFICACION
+  BAJA_LOGICA
+}
+
 model Usuario {
   id        Int      @id @default(autoincrement())
   email     String   @unique @db.VarChar(120)
@@ -30,7 +56,10 @@ model Usuario {
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  animalesRegistrados Animal[]
+  animalesRegistrados  Animal[]
+  trasladosSolicitados Traslado[] @relation("TrasladoSolicitante")
+  trasladosAprobados   Traslado[] @relation("TrasladoAprobador")
+  auditorias           Auditoria[]
 
   @@map("usuarios")
 }
@@ -49,10 +78,139 @@ model Animal {
   fotoUrl        String?     @db.Text
   esterilizacion String?     @default("NO") @db.VarChar(50)
   comportamiento String?     @db.Text
+  activo         Boolean     @default(true) // Baja lógica
   creadoEn       DateTime    @default(now())
 
   creadoPorId    Int?
   creadoPor      Usuario?    @relation(fields: [creadoPorId], references: [id], onDelete: SetNull)
 
+  // Asignación de Canil actual
+  canilId        Int?        @unique
+  canil          Canil?      @relation(fields: [canilId], references: [id], onDelete: SetNull)
+
+  traslados      Traslado[]
+  adopciones     Adopcion[]
+
   @@map("animales")
+}
+
+model Canil {
+  id          Int         @id @default(autoincrement())
+  codigo      String      @unique @db.VarChar(30) // Ej: "C-01", "G-05"
+  nombre      String      @db.VarChar(80)
+  sector      String      @default("General") @db.VarChar(60) // Ej: "Caniles Perros", "Gateras", "Cuarentena"
+  tipo        String      @default("Perro") @db.VarChar(40) // "Perro", "Gato"
+  capacidad   Int         @default(1)
+  estado      EstadoCanil @default(LIBRE)
+
+  animalAlojado Animal?
+
+  trasladosOrigen  Traslado[] @relation("TrasladoCanilOrigen")
+  trasladosDestino Traslado[] @relation("TrasladoCanilDestino")
+
+  @@map("caniles")
+}
+
+model Traslado {
+  id              Int            @id @default(autoincrement())
+  animalId        Int
+  animal          Animal         @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  
+  tipo            TipoTraslado
+  motivo          String         @db.Text // Obligatorio según R1
+  estado          EstadoTraslado @default(PENDIENTE_APROBACION)
+  
+  // Si es traslado entre caniles
+  canilOrigenId   Int?
+  canilOrigen     Canil?         @relation("TrasladoCanilOrigen", fields: [canilOrigenId], references: [id], onDelete: SetNull)
+  canilDestinoId  Int?
+  canilDestino    Canil?         @relation("TrasladoCanilDestino", fields: [canilDestinoId], references: [id], onDelete: SetNull)
+
+  // Si es a protectora aliada u hogar temporal
+  destinoNombre   String?        @db.VarChar(120)
+  destinoContacto String?        @db.VarChar(120)
+  destinoDireccion String?       @db.VarChar(200)
+
+  // Auditoría del movimiento
+  responsableId   Int
+  responsable     Usuario        @relation("TrasladoSolicitante", fields: [responsableId], references: [id])
+  
+  // Aprobación por la Directora (si aplica traslado externo)
+  aprobadoPorId   Int?
+  aprobadoPor     Usuario?       @relation("TrasladoAprobador", fields: [aprobadoPorId], references: [id], onDelete: SetNull)
+  fechaAprobacion DateTime?
+  comentarioAprobacion String?   @db.Text
+
+  fechaRegistro   DateTime       @default(now())
+
+  @@map("traslados")
+}
+
+model Postulante {
+  id          Int        @id @default(autoincrement())
+  nombre      String     @db.VarChar(100)
+  rut         String     @unique @db.VarChar(20)
+  telefono    String?    @db.VarChar(40)
+  email       String?    @db.VarChar(120)
+  direccion   String?    @db.VarChar(200)
+  activo      Boolean    @default(true) // Baja lógica
+  creadoEn    DateTime   @default(now())
+
+  adopciones  Adopcion[]
+
+  @@map("postulantes")
+}
+
+model Adopcion {
+  id             Int         @id @default(autoincrement())
+  animalId       Int
+  animal         Animal      @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  postulanteId   Int
+  postulante     Postulante  @relation(fields: [postulanteId], references: [id], onDelete: Cascade)
+  fecha          DateTime    @default(now())
+  etapa          String      @default("Solicitud recibida") @db.VarChar(60)
+  devolucion     Boolean     @default(false)
+
+  @@map("adopciones")
+}
+
+model Insumo {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @db.VarChar(100)
+  categoria   String   @db.VarChar(60)
+  stock       Int      @default(0)
+  stockMinimo Int      @default(5)
+  activo      Boolean  @default(true) // Baja lógica
+  creadoEn    DateTime @default(now())
+
+  @@map("insumos")
+}
+
+model Turno {
+  id          Int      @id @default(autoincrement())
+  diaSemana   String   @db.VarChar(20) // "Lunes", "Martes", etc.
+  franja      String   @db.VarChar(20) // "Mañana", "Tarde"
+  area        String   @db.VarChar(60) // "Paseos", "Limpieza", "Clínica", etc.
+  voluntario  String?  @db.VarChar(100) // Nombre o nulo si descubierto
+  cubierto    Boolean  @default(false)
+  fecha       DateTime?
+
+  @@map("turnos")
+}
+
+model Auditoria {
+  id             Int             @id @default(autoincrement())
+  entidad        String          @db.VarChar(60) // "Animal", "Postulante", "Insumo", "Canil", "Traslado"
+  entidadId      Int?
+  accion         AccionAuditoria // CREACION, MODIFICACION, BAJA_LOGICA
+  valorAnterior  Json?
+  valorNuevo     Json?
+  usuarioId      Int?
+  usuario        Usuario?        @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  usuarioEmail   String?         @db.VarChar(120)
+  usuarioNombre  String?         @db.VarChar(100)
+  fechaHora      DateTime        @default(now())
+  ipAddress      String?         @db.VarChar(50)
+
+  @@map("auditorias")
 }

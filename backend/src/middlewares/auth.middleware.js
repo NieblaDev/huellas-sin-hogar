@@ -10,3 +10,20 @@ export const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
+/**
+ * Middleware para validar uno o varios roles permitidos
+ */
+export const requireRole = (...rolesPermitidos) => (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Usuario no autenticado' });
+  }
+
+  if (!rolesPermitidos.includes(req.user.rol)) {
+    return res.status(403).json({
+      error: `Acceso denegado: Se requiere rol [${rolesPermitidos.join(', ')}]. Tu rol actual es '${req.user.rol}'`
+    });
+  }
+
+  next();
+};
