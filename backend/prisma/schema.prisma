@@ -60,6 +60,7 @@ model Usuario {
   trasladosSolicitados Traslado[] @relation("TrasladoSolicitante")
   trasladosAprobados   Traslado[] @relation("TrasladoAprobador")
   auditorias           Auditoria[]
+  atencionesClinicas AtencionClinica[]
 
   @@map("usuarios")
 }
@@ -90,6 +91,11 @@ model Animal {
 
   traslados      Traslado[]
   adopciones     Adopcion[]
+  vacunas            VacunaAnimal[]
+atencionesClinicas AtencionClinica[]
+tratamientos       TratamientoAnimal[]
+procedimientos     ProcedimientoAnimal[]
+cuarentenas        CuarentenaAnimal[]
 
   @@map("animales")
 }
@@ -213,4 +219,100 @@ model Auditoria {
   ipAddress      String?         @db.VarChar(50)
 
   @@map("auditorias")
+}
+
+enum TipoProcedimiento {
+  ESTERILIZACION
+  CIRUGIA_GENERAL
+  DESPARASITACION_INTERNA
+  DESPARASITACION_EXTERNA
+  LIMPIEZA_DENTAL
+  CURACION
+  REVISION_GENERAL
+}
+
+enum EstadoCuarentena {
+  ACTIVA
+  FINALIZADA
+  INTERRUMPIDA
+}
+
+model VacunaAnimal {
+  id               Int      @id @default(autoincrement())
+  animalId         Int
+  animal           Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  nombreVacuna     String   @db.VarChar(100)
+  dosis            String   @db.VarChar(50)
+  lote             String?  @db.VarChar(60)
+  fechaAplicacion  DateTime @default(now())
+  fechaVencimiento DateTime
+  veterinariaId    Int
+  observaciones    String?  @db.Text
+  activo           Boolean  @default(true)
+
+  @@map("vacunas_animales")
+}
+
+model AtencionClinica {
+  id            Int      @id @default(autoincrement())
+  animalId      Int
+  animal        Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  veterinariaId Int
+  veterinaria   Usuario  @relation(fields: [veterinariaId], references: [id])
+  motivo        String   @db.VarChar(150)
+  diagnostico   String   @db.Text
+  temperatura   Float?
+  pesoActual    Float?
+  fechaAtencion DateTime @default(now())
+
+  tratamientos   TratamientoAnimal[]
+  procedimientos ProcedimientoAnimal[]
+
+  @@map("atenciones_clinicas")
+}
+
+model TratamientoAnimal {
+  id                Int              @id @default(autoincrement())
+  animalId          Int
+  animal            Animal           @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  atencionClinicaId Int?
+  atencionClinica   AtencionClinica? @relation(fields: [atencionClinicaId], references: [id], onDelete: SetNull)
+  medicamento       String           @db.VarChar(100)
+  dosis             String           @db.VarChar(80)
+  frecuenciaHoras   Int
+  fechaInicio       DateTime         @default(now())
+  fechaFin          DateTime
+  activo            Boolean          @default(true)
+  indicacionesExtra String?          @db.Text
+
+  @@map("tratamientos_animales")
+}
+
+model ProcedimientoAnimal {
+  id                Int               @id @default(autoincrement())
+  animalId          Int
+  animal            Animal            @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  atencionClinicaId Int?
+  atencionClinica   AtencionClinica?  @relation(fields: [atencionClinicaId], references: [id], onDelete: SetNull)
+  tipo              TipoProcedimiento
+  descripcion       String            @db.Text
+  resultado         String?           @db.Text
+  fecha             DateTime          @default(now())
+
+  @@map("procedimientos_animales")
+}
+
+model CuarentenaAnimal {
+  id               Int              @id @default(autoincrement())
+  animalId         Int
+  animal           Animal           @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  motivo           String           @db.Text
+  canilAislamiento String?          @db.VarChar(50)
+  fechaInicio      DateTime         @default(now())
+  fechaFinEstimada DateTime
+  fechaFinReal     DateTime?
+  estado           EstadoCuarentena @default(ACTIVA)
+  observaciones    String?          @db.Text
+
+  @@map("cuarentenas_animales")
 }
