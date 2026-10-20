@@ -46,6 +46,27 @@ export const gestionarAprobacion = async (req, res) => {
   }
 };
 
+export const createCanil = async (req, res) => {
+  try {
+    const ip = req.ip || req.connection?.remoteAddress;
+    const canil = await canilService.createCanil(req.body, req.user, ip);
+    res.status(201).json({ message: 'Canil creado con éxito', canil });
+  } catch (error) {
+    res.status(400).json({ error: error.message || 'Error al crear canil' });
+  }
+};
+
+export const deleteCanil = async (req, res) => {
+  try {
+    const ip = req.ip || req.connection?.remoteAddress;
+    const { id } = req.params;
+    const resultado = await canilService.deleteCanil({ canilId: id }, req.user, ip);
+    res.json(resultado);
+  } catch (error) {
+    res.status(400).json({ error: error.message || 'Error al eliminar canil' });
+  }
+};
+
 export const getTraslados = async (req, res) => {
   try {
     const traslados = await canilService.getTraslados(req.query);
