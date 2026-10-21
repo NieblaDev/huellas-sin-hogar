@@ -66,29 +66,38 @@ export const exportAnimalPdf = async (req, res) => {
   try {
     const ip = req.ip || req.connection?.remoteAddress;
     const { id } = req.params;
-    const { buffer, filename, notificacion } = await exportService.generarFichaAnimalPDF(id, req.user, ip);
+    const { buffer, filename, contentType, notificacion } = await exportService.generarFichaAnimalPDF(
+      id,
+      req.user,
+      ip,
+      req.query
+    );
 
-    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Type', contentType || 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, X-Notification-Message');
     res.setHeader('X-Notification-Message', encodeURIComponent(notificacion.mensaje));
     res.send(buffer);
   } catch (error) {
-    res.status(400).json({ error: error.message || 'Error al exportar ficha técnica en PDF' });
+    res.status(400).json({ error: error.message || 'Error al exportar expediente del animal' });
   }
 };
 
 export const exportConsolidatedCsv = async (req, res) => {
   try {
     const ip = req.ip || req.connection?.remoteAddress;
-    const { csv, filename, notificacion } = await exportService.generarReporteConsolidadoCSV(req.user, ip);
+    const { buffer, csv, filename, contentType, notificacion } = await exportService.generarReporteConsolidadoCSV(
+      req.user,
+      ip,
+      req.query
+    );
 
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Type', contentType || 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, X-Notification-Message');
     res.setHeader('X-Notification-Message', encodeURIComponent(notificacion.mensaje));
-    res.send(csv);
+    res.send(buffer || csv);
   } catch (error) {
-    res.status(403).json({ error: error.message || 'Error al exportar reporte consolidado en CSV' });
+    res.status(403).json({ error: error.message || 'Error al exportar reporte consolidado' });
   }
 };

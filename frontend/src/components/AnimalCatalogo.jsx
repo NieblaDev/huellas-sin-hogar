@@ -7,16 +7,28 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
   const [search, setSearch] = useState('');
   const [especie, setEspecie] = useState('');
 
-  // Notificaciones del personal del refugio
+  // Notificaciones del personal del refugio (RF8 y RF9)
   const [notificaciones, setNotificaciones] = useState([]);
   const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
   const [avisoReciente, setAvisoReciente] = useState(null);
 
-  // Modal de Ficha Técnica Individual
+  // Modal de Ficha Técnica Individual y Exportación de Expediente (RF8 y RF9)
   const [fichaSeleccionada, setFichaSeleccionada] = useState(null);
   const [cargandoFicha, setCargandoFicha] = useState(false);
   const [descargandoId, setDescargandoId] = useState(null);
-  const [descargandoCsv, setDescargandoCsv] = useState(false);
+
+  // Módulo / Panel de Configuración de Reportes Consolidados (RF9)
+  const [mostrarConfigReporte, setMostrarConfigReporte] = useState(false);
+  const [descargandoConsolidado, setDescargandoConsolidado] = useState(false);
+  const [configReporte, setConfigReporte] = useState({
+    fechaDesde: '',
+    fechaHasta: '',
+    tipoInformacion: 'TODOS',
+    especie: '',
+    estadoSalud: '',
+    tipoIngreso: '',
+    formato: 'CSV'
+  });
 
   const currentUser = (() => {
     try {
@@ -28,7 +40,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
 
   const rolUsuario = currentUser?.rol || 'VOLUNTARIO_NOVATO';
   const esDirectora = rolUsuario === 'DIRECTORA';
-  const puedeDescargarPdf = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'].includes(rolUsuario);
+  const puedeExportarExpediente = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'].includes(rolUsuario);
 
   useEffect(() => {
     fetchAnimals();
@@ -89,23 +101,23 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
     }
   };
 
-  const handleExportPdf = async (animal, e) => {
+  const handleExportExpediente = async (animal, formato = 'PDF', e) => {
     if (e) e.stopPropagation();
-    if (!puedeDescargarPdf) {
-      alert('Acceso restringido: Solo el Personal del Refugio y la Directora están autorizados para descargar fichas técnicas en PDF.');
+    if (!puedeExportarExpediente) {
+      alert('Acceso restringido: Solo el Personal del Refugio y la Directora están autorizados para exportar expedientes.');
       return;
     }
 
-    setDescargandoId(animal.id);
+    setDescargandoId(`${animal.id}-${formato}`);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/animals/${animal.id}/export-pdf`, {
+      const res = await fetch(`${API_URL}/animals/${animal.id}/export-pdf?formato=${formato}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'No se pudo exportar la ficha técnica en PDF');
+        throw new Error(errData.error || `No se pudo exportar el expediente en ${formato}`);
       }
 
       const notifHeader = res.headers.get('X-Notification-Message');
@@ -114,7 +126,8 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
       const link = document.createElement('a');
       link.href = url;
       const safeName = (animal.nombre || 'animal').toLowerCase().replace(/[^a-z0-9]+/g, '_');
-      link.download = `ficha_tecnica_${safeName}_${animal.id}.pdf`;
+      const ext = formato.toLowerCase() === 'csv' ? 'csv' : 'pdf';
+      link.download = `ficha_tecnica_${safeName}_${animal.id}.${ext}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -122,7 +135,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
 
       const msgNotif = notifHeader
         ? decodeURIComponent(notifHeader)
-        : `Ficha PDF de ${animal.nombre} exportada. Evento registrado en auditoría y notificado al personal del refugio.`;
+        : `Expediente ${formato} de ${animal.nombre} exportado (datos personales de postulantes omitidos por privacidad).`;
       setAvisoReciente(msgNotif);
       setTimeout(() => setAvisoReciente(null), 6500);
       fetchNotificaciones();
@@ -133,22 +146,32 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
     }
   };
 
-  const handleExportCsv = async () => {
+  const handleExportConsolidado = async (e) => {
+    if (e) e.preventDefault();
     if (!esDirectora) {
-      alert('Acceso denegado: Únicamente el rol de Directora tiene autorización para descargar balances generales y reportes consolidados en CSV.');
+      alert('Acceso denegado: El sistema genera reportes consolidados solo si el usuario posee rol de Directora.');
       return;
     }
 
-    setDescargandoCsv(true);
+    setDescargandoConsolidado(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/animals/reportes/export-csv`, {
+      const params = new URLSearchParams();
+      if (configReporte.fechaDesde) params.append('fechaDesde', configReporte.fechaDesde);
+      if (configReporte.fechaHasta) params.append('fechaHasta', configReporte.fechaHasta);
+      if (configReporte.tipoInformacion) params.append('tipoInformacion', configReporte.tipoInformacion);
+      if (configReporte.especie) params.append('especie', configReporte.especie);
+      if (configReporte.estadoSalud) params.append('estadoSalud', configReporte.estadoSalud);
+      if (configReporte.tipoIngreso) params.append('tipoIngreso', configReporte.tipoIngreso);
+      if (configReporte.formato) params.append('formato', configReporte.formato);
+
+      const res = await fetch(`${API_URL}/animals/reportes/export-csv?${params.toString()}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'No se pudo exportar el reporte consolidado en CSV');
+        throw new Error(errData.error || 'No se pudo exportar el reporte consolidado');
       }
 
       const notifHeader = res.headers.get('X-Notification-Message');
@@ -157,7 +180,8 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
       const link = document.createElement('a');
       link.href = url;
       const fecha = new Date().toISOString().split('T')[0];
-      link.download = `reporte_consolidado_gestion_${fecha}.csv`;
+      const ext = configReporte.formato === 'PDF' ? 'pdf' : 'csv';
+      link.download = `reporte_consolidado_${configReporte.tipoInformacion.toLowerCase()}_${fecha}.${ext}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -165,14 +189,14 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
 
       const msgNotif = notifHeader
         ? decodeURIComponent(notifHeader)
-        : 'Reporte consolidado CSV descargado. Registrado en bitácora de auditoría y notificado al personal del refugio.';
+        : `Reporte consolidado (${configReporte.formato}) descargado. Registrado en bitácora de auditoría.`;
       setAvisoReciente(msgNotif);
       setTimeout(() => setAvisoReciente(null), 6500);
       fetchNotificaciones();
     } catch (err) {
       alert(err.message);
     } finally {
-      setDescargandoCsv(false);
+      setDescargandoConsolidado(false);
     }
   };
 
@@ -215,10 +239,10 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
       >
         <div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>
-            Registro de Animales y Fichas Técnicas
+            Registro de Ingreso, Fichas Técnicas y Reportes
           </h2>
           <p style={{ color: '#7c8592', fontSize: '0.88rem', margin: '4px 0 0' }}>
-            Gestión de ingresos (rescate, abandono o decomiso), fichas técnicas individuales y exportación de reportes
+            RF8: Ingreso por rescate, abandono o decomiso · RF9: Exportación de expedientes y reportes consolidados (PDF / CSV)
           </p>
         </div>
 
@@ -255,14 +279,13 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
             </span>
           </button>
 
-          {/* Requerimiento 2.2: Botón Exportar CSV (Exclusivo Directora) */}
+          {/* RF9: Botón Módulo de Reportes Consolidados (Exclusivo Directora) */}
           {esDirectora ? (
             <button
               type="button"
-              onClick={handleExportCsv}
-              disabled={descargandoCsv}
+              onClick={() => setMostrarConfigReporte(!mostrarConfigReporte)}
               style={{
-                background: '#4550c0',
+                background: mostrarConfigReporte ? '#313a9e' : '#4550c0',
                 color: '#fff',
                 padding: '10px 16px',
                 borderRadius: '9px',
@@ -272,13 +295,15 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                 cursor: 'pointer'
               }}
             >
-              {descargandoCsv ? 'Generando CSV...' : '📊 Exportar Balance y Reporte (CSV)'}
+              📊 {mostrarConfigReporte ? 'Cerrar Módulo de Reportes' : 'Configurar y Exportar Reportes (PDF/CSV)'}
             </button>
           ) : (
             <button
               type="button"
-              onClick={handleExportCsv}
-              title="Restringido: Solo el rol Directora puede exportar el reporte consolidado en CSV"
+              onClick={() =>
+                alert('Restricción RF9: El sistema genera reportes consolidados solo si el usuario posee rol de Directora.')
+              }
+              title="Restringido: Solo el rol Directora puede generar reportes consolidados de gestión"
               style={{
                 background: '#f0f1f3',
                 color: '#7c8592',
@@ -290,11 +315,11 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                 cursor: 'not-allowed'
               }}
             >
-              🔒 Reporte CSV (Solo Directora)
+              🔒 Reportes Consolidados (Solo Directora)
             </button>
           )}
 
-          {/* Requerimiento 1: Botón Registrar Ingreso Animal */}
+          {/* RF8: Botón Registrar Ingreso Animal */}
           <button
             type="button"
             onClick={onOpenModal}
@@ -313,6 +338,188 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
           </button>
         </div>
       </div>
+
+      {/* MÓDULO DE CONFIGURACIÓN Y EXPORTACIÓN DE REPORTES CONSOLIDADOS (RF9 - SOLO DIRECTORA) */}
+      {esDirectora && mostrarConfigReporte && (
+        <form
+          onSubmit={handleExportConsolidado}
+          style={{
+            background: '#fff',
+            border: '1.5px solid #c5cbf5',
+            borderRadius: '16px',
+            padding: '20px 22px',
+            marginBottom: '22px',
+            boxShadow: '0 4px 16px rgba(69,80,192,0.08)'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <strong style={{ fontSize: '1rem', color: '#1f2430', display: 'block' }}>
+                📊 Módulo de Reportes Consolidados de Gestión Operativa (RF9)
+              </strong>
+              <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
+                Configura rangos de fecha, tipo de información (ingresos, adopciones, devoluciones, censo e insumos), filtros y formato digital.
+              </span>
+            </div>
+            <span
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: '800',
+                background: '#fbeae8',
+                color: '#d1453b',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                border: '1px solid #f3c9c4'
+              }}
+            >
+              🔒 Privacidad RF9: Omite estrictamente datos personales de postulantes
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+              gap: '12px',
+              marginBottom: '14px'
+            }}
+          >
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Fecha Desde
+              </label>
+              <input
+                type="date"
+                value={configReporte.fechaDesde}
+                onChange={(e) => setConfigReporte({ ...configReporte, fechaDesde: e.target.value })}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', boxSizing: 'border-box', fontSize: '0.84rem' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Fecha Hasta
+              </label>
+              <input
+                type="date"
+                value={configReporte.fechaHasta}
+                onChange={(e) => setConfigReporte({ ...configReporte, fechaHasta: e.target.value })}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', boxSizing: 'border-box', fontSize: '0.84rem' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Tipo de Información
+              </label>
+              <select
+                value={configReporte.tipoInformacion}
+                onChange={(e) => setConfigReporte({ ...configReporte, tipoInformacion: e.target.value })}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.84rem' }}
+              >
+                <option value="TODOS">Consolidado Completo (Todos)</option>
+                <option value="INGRESOS">Balance de Ingresos</option>
+                <option value="ADOPCIONES">Balance de Adopciones</option>
+                <option value="DEVOLUCIONES">Balance de Devoluciones</option>
+                <option value="CENSO">Censo y Capacidad</option>
+                <option value="INSUMOS">Estado de Insumos</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Filtro Especie
+              </label>
+              <select
+                value={configReporte.especie}
+                onChange={(e) => setConfigReporte({ ...configReporte, especie: e.target.value })}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.84rem' }}
+              >
+                <option value="">Todas las especies</option>
+                <option value="Perro">Perro (Canina)</option>
+                <option value="Gato">Gato (Felina)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Filtro Causal Ingreso
+              </label>
+              <select
+                value={configReporte.tipoIngreso}
+                onChange={(e) => setConfigReporte({ ...configReporte, tipoIngreso: e.target.value })}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.84rem' }}
+              >
+                <option value="">Todas las causales</option>
+                <option value="Rescate">Rescate</option>
+                <option value="Abandono">Abandono</option>
+                <option value="Decomiso">Decomiso</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Formato Estándar
+              </label>
+              <select
+                value={configReporte.formato}
+                onChange={(e) => setConfigReporte({ ...configReporte, formato: e.target.value })}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', background: '#fff', fontWeight: '700', fontSize: '0.84rem' }}
+              >
+                <option value="CSV">CSV (Planilla / Datos)</option>
+                <option value="PDF">PDF (Documento Oficial)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={() =>
+                setConfigReporte({
+                  fechaDesde: '',
+                  fechaHasta: '',
+                  tipoInformacion: 'TODOS',
+                  especie: '',
+                  estadoSalud: '',
+                  tipoIngreso: '',
+                  formato: 'CSV'
+                })
+              }
+              style={{
+                padding: '8px 14px',
+                background: '#f8f9fa',
+                color: '#7c8592',
+                border: '1px solid #e9eaed',
+                borderRadius: '7px',
+                fontWeight: '700',
+                fontSize: '0.82rem',
+                cursor: 'pointer'
+              }}
+            >
+              Limpiar Filtros
+            </button>
+            <button
+              type="submit"
+              disabled={descargandoConsolidado}
+              style={{
+                padding: '8px 18px',
+                background: '#4550c0',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '7px',
+                fontWeight: '700',
+                fontSize: '0.84rem',
+                cursor: 'pointer'
+              }}
+            >
+              {descargandoConsolidado
+                ? 'Generando reporte...'
+                : `⬇️ Generar y Descargar Reporte Consolidado (${configReporte.formato})`}
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* BANNER EN TIEMPO REAL DE NOTIFICACIÓN AL PERSONAL DEL REFUGIO */}
       {avisoReciente && (
@@ -574,16 +781,12 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                         📋 Ficha
                       </button>
 
-                      {puedeDescargarPdf && (
+                      {puedeExportarExpediente && (
                         <button
                           type="button"
-                          onClick={(e) => handleExportPdf(a, e)}
-                          disabled={descargandoId === a.id}
-                          title={
-                            esDirectora
-                              ? 'Exportar Ficha Técnica completa en PDF'
-                              : 'Exportar Ficha Técnica en PDF (omite datos personales de postulantes por privacidad)'
-                          }
+                          onClick={(e) => handleExportExpediente(a, 'PDF', e)}
+                          disabled={descargandoId === `${a.id}-PDF`}
+                          title="Exportar Expediente / Ficha Técnica en PDF (omite datos personales de postulantes por privacidad RF9)"
                           style={{
                             background: '#edeffb',
                             border: '1px solid #c5cbf5',
@@ -595,7 +798,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                             cursor: 'pointer'
                           }}
                         >
-                          {descargandoId === a.id ? '...' : '📄 PDF'}
+                          {descargandoId === `${a.id}-PDF` ? '...' : '📄 PDF'}
                         </button>
                       )}
 
@@ -767,27 +970,27 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                   </div>
                 </div>
 
-                {/* Sección de Postulantes / Adopciones con Privacidad por Rol */}
+                {/* Sección de Postulantes / Adopciones con Privacidad RF9 */}
                 <div style={{ marginBottom: '18px' }}>
                   <div style={{ fontSize: '0.76rem', fontWeight: '800', textTransform: 'uppercase', color: '#7c8592', marginBottom: '6px' }}>
-                    📋 Antecedentes de Postulación y Adopción
+                    📋 Trazabilidad de Adopciones y Devoluciones
                   </div>
-                  {!esDirectora ? (
-                    <div
-                      style={{
-                        background: '#fbeae8',
-                        border: '1px solid #f3c9c4',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        color: '#d1453b'
-                      }}
-                    >
-                      🔒 <strong>Restricción de Privacidad ({rolUsuario}):</strong> Los datos personales de postulantes o adoptantes se
-                      encuentran omitidos para tu rol, manteniendo únicamente los antecedentes del animal y clínicos.
-                    </div>
-                  ) : !fichaSeleccionada.adopciones || fichaSeleccionada.adopciones.length === 0 ? (
-                    <div style={{ fontSize: '0.82rem', color: '#7c8592', padding: '8px 0' }}>
+                  <div
+                    style={{
+                      background: '#fbeae8',
+                      border: '1px solid #f3c9c4',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      color: '#d1453b',
+                      marginBottom: '8px'
+                    }}
+                  >
+                    🔒 <strong>Política de Privacidad RF9:</strong> Al exportar expedientes o reportes (PDF/CSV), los datos personales de
+                    postulantes se omiten estrictamente en el documento generado.
+                  </div>
+                  {!fichaSeleccionada.adopciones || fichaSeleccionada.adopciones.length === 0 ? (
+                    <div style={{ fontSize: '0.82rem', color: '#7c8592', padding: '4px 0' }}>
                       No existen solicitudes de adopción asociadas a este animal.
                     </div>
                   ) : (
@@ -803,11 +1006,8 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                             fontSize: '0.8rem'
                           }}
                         >
-                          <strong>Postulante: {ad.postulante?.nombre}</strong> (RUT: {ad.postulante?.rut}) — Etapa:{' '}
-                          <strong>{ad.etapa}</strong>
-                          <div style={{ color: '#555e6d', marginTop: '2px' }}>
-                            Tel: {ad.postulante?.telefono || 'N/A'} · Email: {ad.postulante?.email || 'N/A'}
-                          </div>
+                          <strong>Solicitud #{ad.id}</strong> — Etapa: <strong>{ad.etapa}</strong> · Devolución:{' '}
+                          <strong>{ad.devolucion ? 'Sí' : 'No'}</strong>
                         </div>
                       ))}
                     </div>
@@ -815,32 +1015,57 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                 </div>
 
                 {/* Botones de Acción del Modal */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f0f1f3', paddingTop: '14px' }}>
-                  {puedeDescargarPdf ? (
-                    <button
-                      type="button"
-                      onClick={(e) => handleExportPdf(fichaSeleccionada, e)}
-                      disabled={descargandoId === fichaSeleccionada.id}
-                      style={{
-                        background: '#3f6c52',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '9px 16px',
-                        borderRadius: '8px',
-                        fontWeight: '700',
-                        fontSize: '0.84rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {descargandoId === fichaSeleccionada.id
-                        ? 'Generando PDF...'
-                        : esDirectora
-                        ? '📄 Descargar Ficha Técnica en PDF (Completa)'
-                        : '📄 Descargar Ficha Técnica en PDF (Sin Datos Personales)'}
-                    </button>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderTop: '1px solid #f0f1f3',
+                    paddingTop: '14px',
+                    flexWrap: 'wrap',
+                    gap: '8px'
+                  }}
+                >
+                  {puedeExportarExpediente ? (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={(e) => handleExportExpediente(fichaSeleccionada, 'PDF', e)}
+                        disabled={descargandoId === `${fichaSeleccionada.id}-PDF`}
+                        style={{
+                          background: '#3f6c52',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '9px 14px',
+                          borderRadius: '8px',
+                          fontWeight: '700',
+                          fontSize: '0.82rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {descargandoId === `${fichaSeleccionada.id}-PDF` ? 'Generando PDF...' : '📄 Exportar Expediente (PDF)'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleExportExpediente(fichaSeleccionada, 'CSV', e)}
+                        disabled={descargandoId === `${fichaSeleccionada.id}-CSV`}
+                        style={{
+                          background: '#4550c0',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '9px 14px',
+                          borderRadius: '8px',
+                          fontWeight: '700',
+                          fontSize: '0.82rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {descargandoId === `${fichaSeleccionada.id}-CSV` ? 'Generando CSV...' : '📊 Exportar Expediente (CSV)'}
+                      </button>
+                    </div>
                   ) : (
                     <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
-                      🔒 Descarga de PDF habilitada para Personal del Refugio y Directora
+                      🔒 Exportación de expedientes habilitada para Personal del Refugio y Directora
                     </span>
                   )}
 

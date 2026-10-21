@@ -48,9 +48,10 @@ const wrapText = (text = '', maxChars = 82) => {
 };
 
 /**
- * Construye un documento binario válido en formato PDF 1.4 (sin dependencias externas)
+ * Construye un documento binario válido en formato PDF 1.4 (sin dependencias externas).
+ * Cumple RF9: Omite estrictamente datos personales de postulantes/adoptantes en todo documento exportado.
  */
-const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, esDirectora, usuario, fechaGeneracion }) => {
+const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGeneracion }) => {
   const ops = [];
 
   // Encabezado institucional en verde salvia (#3f6c52 -> RGB 0.247, 0.424, 0.322)
@@ -59,7 +60,7 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, esDirectora, usu
 
   // Título blanco en encabezado
   ops.push('1 1 1 rg');
-  ops.push('BT /F2 17 Tf 40 812 Td (HUELLAS SIN HOGAR - FICHA TECNICA INDIVIDUAL) Tj ET');
+  ops.push('BT /F2 17 Tf 40 812 Td (HUELLAS SIN HOGAR - EXPEDIENTE Y FICHA TECNICA) Tj ET');
   ops.push(
     `BT /F1 9.5 Tf 40 794 Td (${escapePdfText(
       `Documento Oficial de Registro Clinico y Trazabilidad | ID Ficha: #${animal.id}`
@@ -170,44 +171,29 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, esDirectora, usu
     y -= 6;
   }
 
-  // SECCIÓN 4: DATOS DE POSTULANTES / ADOPTANTES (CON CONTROL ESTRICTO DE PRIVACIDAD POR ROL)
-  drawSectionHeader('4. ANTECEDENTES DE POSTULACION Y ADOPCION');
-  if (!esDirectora) {
-    // RESTRICCIÓN DE PRIVACIDAD OBLIGATORIA PARA PERSONAL DEL REFUGIO
-    ops.push('0.75 0.25 0.20 rg');
-    ops.push(
-      `BT /F2 9.2 Tf 48 ${y} Td ([PRIVACIDAD APLICADA - ROL ${escapePdfText(usuario?.rol || 'PERSONAL')}]) Tj ET`
-    );
-    y -= 14;
-    ops.push('0.25 0.28 0.32 rg');
-    ops.push(
-      `BT /F1 9 Tf 48 ${y} Td (Por politica de privacidad y proteccion de datos, la informacion personal de postulantes) Tj ET`
-    );
-    y -= 13;
-    ops.push(
-      `BT /F1 9 Tf 48 ${y} Td (y adoptantes ha sido OMITIDA en esta exportacion. Se mantienen solo antecedentes del animal y clinicos.) Tj ET`
-    );
-    y -= 18;
+  // SECCIÓN 4: TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (SIN DATOS PERSONALES POR PRIVACIDAD RF9)
+  drawSectionHeader('4. TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (PRIVACIDAD RF9)');
+  ops.push('0.75 0.25 0.20 rg');
+  ops.push(
+    `BT /F2 9 Tf 48 ${y} Td ([POLITICA DE PRIVACIDAD RF9: DATOS PERSONALES DE POSTULANTES OMITIDOS ESTRICTAMENTE]) Tj ET`
+  );
+  y -= 14;
+
+  const adopciones = animal.adopciones || [];
+  if (adopciones.length === 0) {
+    ops.push('0.45 0.49 0.54 rg');
+    ops.push(`BT /F1 9 Tf 48 ${y} Td (Sin procesos de adopcion o devolucion registrados para este animal.) Tj ET`);
+    y -= 16;
   } else {
-    const adopciones = animal.adopciones || [];
-    if (adopciones.length === 0) {
-      ops.push('0.45 0.49 0.54 rg');
-      ops.push(`BT /F1 9 Tf 48 ${y} Td (No existen postulaciones ni adopciones asociadas a este animal.) Tj ET`);
-      y -= 18;
-    } else {
-      for (const ad of adopciones.slice(0, 4)) {
-        if (y < 75) break;
-        const p = ad.postulante || {};
-        const fechaAd = ad.fecha ? new Date(ad.fecha).toLocaleDateString('es-CL') : 'N/A';
-        const lineaPostulante = `Postulante: ${p.nombre || 'N/A'} | RUT: ${p.rut || 'N/A'} | Tel: ${p.telefono || 'N/A'} | Email: ${p.email || 'N/A'}`;
-        const lineaEstado = `Etapa: ${ad.etapa} | Fecha: ${fechaAd} | Devolucion previa: ${ad.devolucion ? 'SI' : 'NO'}`;
-        ops.push('0.12 0.14 0.19 rg');
-        ops.push(`BT /F2 9 Tf 48 ${y} Td (${escapePdfText(lineaPostulante)}) Tj ET`);
-        y -= 12;
-        ops.push('0.35 0.39 0.44 rg');
-        ops.push(`BT /F1 8.8 Tf 48 ${y} Td (${escapePdfText(lineaEstado)}) Tj ET`);
-        y -= 15;
-      }
+    for (const ad of adopciones.slice(0, 4)) {
+      if (y < 65) break;
+      const fechaAd = ad.fecha ? new Date(ad.fecha).toLocaleDateString('es-CL') : 'N/A';
+      const lineaAnonima = `Solicitud #${ad.id} | Postulante: [DATOS PERSONALES OMITIDOS] | Etapa: ${ad.etapa} | Fecha: ${fechaAd} | Devolucion: ${
+        ad.devolucion ? 'SI' : 'NO'
+      }`;
+      ops.push('0.12 0.14 0.19 rg');
+      ops.push(`BT /F1 8.8 Tf 48 ${y} Td (${escapePdfText(lineaAnonima)}) Tj ET`);
+      y -= 13;
     }
   }
 
@@ -252,8 +238,144 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, esDirectora, usu
 };
 
 /**
+ * Construye un PDF de Reporte Consolidado de Gestión Operativa (RF9)
+ */
+const construirBufferReporteConsolidadoPDF = ({
+  resumen,
+  filtrosAplicados,
+  usuario,
+  fechaGeneracion
+}) => {
+  const ops = [];
+
+  ops.push('0.247 0.424 0.322 rg');
+  ops.push('0 765 595 77 re f');
+
+  ops.push('1 1 1 rg');
+  ops.push('BT /F2 15.5 Tf 40 812 Td (HUELLAS SIN HOGAR - REPORTE CONSOLIDADO DE GESTION) Tj ET');
+  ops.push(
+    `BT /F1 9 Tf 40 794 Td (${escapePdfText(
+      `Balance Operativo: Ingresos, Adopciones, Devoluciones, Censo e Insumos | Privacidad RF9 Activa`
+    )}) Tj ET`
+  );
+  ops.push(
+    `BT /F1 8.5 Tf 40 778 Td (${escapePdfText(
+      `Emitido el: ${fechaGeneracion} | Autorizado por: ${usuario?.nombre || 'Directora'} (Rol: ${usuario?.rol})`
+    )}) Tj ET`
+  );
+
+  let y = 736;
+
+  const drawHeader = (titulo) => {
+    ops.push('0.91 0.94 0.91 rg');
+    ops.push(`40 ${y - 5} 515 20 re f`);
+    ops.push('0.18 0.33 0.25 rg');
+    ops.push(`BT /F2 10 Tf 48 ${y} Td (${escapePdfText(titulo)}) Tj ET`);
+    y -= 20;
+  };
+
+  const drawLine = (label, value) => {
+    ops.push('0.30 0.34 0.39 rg');
+    ops.push(`BT /F2 9.2 Tf 48 ${y} Td (${escapePdfText(label)}) Tj ET`);
+    ops.push('0.12 0.14 0.19 rg');
+    ops.push(`BT /F1 9.2 Tf 230 ${y} Td (${escapePdfText(value)}) Tj ET`);
+    y -= 15;
+  };
+
+  drawHeader('PARAMETROS Y FILTROS CONFIGURADOS EN EL REPORTE');
+  drawLine(
+    'Rango de Fechas:',
+    `${filtrosAplicados.fechaDesde || 'Inicio historico'} a ${filtrosAplicados.fechaHasta || 'Fecha actual'}`
+  );
+  drawLine('Tipo de Informacion:', filtrosAplicados.tipoInformacion || 'TODOS');
+  drawLine(
+    'Filtros Aplicados:',
+    `Especie: ${filtrosAplicados.especie || 'Todas'} | Salud: ${filtrosAplicados.estadoSalud || 'Todos'} | Causal: ${
+      filtrosAplicados.tipoIngreso || 'Todas'
+    }`
+  );
+
+  y -= 6;
+  drawHeader('1. BALANCE DE INGRESOS DE ANIMALES');
+  drawLine('Total Ingresos en Periodo:', `${resumen.totalIngresos} animales registrados`);
+  drawLine(
+    'Desglose por Causal (RF8):',
+    `Rescate: ${resumen.ingresosRescate} | Abandono: ${resumen.ingresosAbandono} | Decomiso: ${resumen.ingresosDecomiso}`
+  );
+
+  y -= 6;
+  drawHeader('2. CENSO POBLACIONAL Y CAPACIDAD DE CANILES');
+  drawLine(
+    'Censo Activo Albergado:',
+    `${resumen.animalesActivos} activos (Perros: ${resumen.totalPerros} | Gatos: ${resumen.totalGatos}) | Bajas: ${resumen.animalesBaja}`
+  );
+  drawLine(
+    'Clasificacion Clinica:',
+    `Normal: ${resumen.saludNormal} | Condicion Especial: ${resumen.saludEspecial} | Critico: ${resumen.saludCritico}`
+  );
+  drawLine(
+    'Ocupacion de Caniles:',
+    `${resumen.ocupacionPct}% (Libres: ${resumen.canilesLibres} | Ocupados: ${resumen.canilesOcupados} | Cuarentena: ${resumen.canilesCuarentena})`
+  );
+
+  y -= 6;
+  drawHeader('3. BALANCE DE ADOPCIONES Y DEVOLUCIONES (DATOS PERSONALES OMITIDOS)');
+  drawLine(
+    'Procesos de Adopcion:',
+    `Total solicitudes: ${resumen.totalAdopciones} | Concretadas (Adoptado): ${resumen.adopcionesConcretadas}`
+  );
+  drawLine(
+    'Devoluciones Registradas:',
+    `${resumen.totalDevoluciones} casos con devolucion (${resumen.tasaDevolucion}% sobre solicitudes)`
+  );
+  drawLine('Privacidad de Postulantes:', 'OMITIDOS ESTRICTAMENTE (Nombre, RUT, Telefono y Correo excluidos por RF9)');
+
+  y -= 6;
+  drawHeader('4. ESTADO DE INSUMOS E INVENTARIO CRITICO');
+  drawLine(
+    'Balance de Insumos:',
+    `${resumen.totalInsumos} insumos activos | ${resumen.insumosCriticos} en estado de stock critico`
+  );
+
+  ops.push('0.75 0.78 0.82 RG 0.8 w 40 44 m 555 44 l S');
+  ops.push('0.45 0.49 0.54 rg');
+  ops.push(
+    `BT /F1 8 Tf 40 30 Td (${escapePdfText(
+      `Huellas Sin Hogar - Reporte Consolidado Auditado | Generado por: ${usuario?.email || 'directora'}`
+    )}) Tj ET`
+  );
+
+  const streamContent = ops.join('\n');
+  const streamByteLength = Buffer.byteLength(streamContent, 'latin1');
+
+  const objects = [
+    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>\nendobj\n',
+    '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n',
+    '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n',
+    `6 0 obj\n<< /Length ${streamByteLength} >>\nstream\n${streamContent}\nendstream\nendobj\n`
+  ];
+
+  let pdfStr = '%PDF-1.4\n';
+  const offsets = [0];
+  for (const obj of objects) {
+    offsets.push(Buffer.byteLength(pdfStr, 'latin1'));
+    pdfStr += obj;
+  }
+  const xrefOffset = Buffer.byteLength(pdfStr, 'latin1');
+  pdfStr += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (let i = 1; i <= objects.length; i++) {
+    pdfStr += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+  }
+  pdfStr += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+
+  return Buffer.from(pdfStr, 'latin1');
+};
+
+/**
  * Si existen postulantes en la BD pero aún no se han vinculado adopciones de ejemplo,
- * vincula las solicitudes base para permitir verificar la restricción de privacidad en PDF.
+ * vincula las solicitudes base para contar con trazabilidad de adopciones y devoluciones.
  */
 const asegurarAdopcionesIniciales = async () => {
   try {
@@ -291,12 +413,21 @@ const asegurarAdopcionesIniciales = async () => {
 };
 
 /**
- * Requerimiento 2.1: Exportar Ficha Técnica Individual en formato PDF
- * - Permitido para Personal del Refugio (VETERINARIA, ENCARGADA_ADOPCIONES) y Directora (DIRECTORA)
- * - Restricción de privacidad: Omite datos personales de postulantes/adoptantes si el rol no es DIRECTORA
- * - Postcondiciones: Registra en bitácora de auditoría y notifica al personal del refugio
+ * Escapa un valor para celda CSV
  */
-export const generarFichaAnimalPDF = async (animalId, user, ip) => {
+const escapeCsvCell = (val) => {
+  if (val === null || val === undefined) return '""';
+  const str = String(val).replace(/"/g, '""').replace(/[\r\n]+/g, ' ');
+  return `"${str}"`;
+};
+
+/**
+ * RF9: Exportar Expediente / Ficha Técnica Individual (en PDF o CSV)
+ * - Permitido para Personal del Refugio (VETERINARIA, ENCARGADA_ADOPCIONES) y Directora (DIRECTORA)
+ * - Restricción de privacidad RF9: Los documentos exportados omiten estrictamente los datos personales de postulantes
+ * - Postcondiciones: Registra en bitácora de auditoría, notifica al personal y entrega el archivo para descarga local
+ */
+export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
   await asegurarAdopcionesIniciales();
 
   const animal = await prisma.animal.findUnique({
@@ -309,8 +440,12 @@ export const generarFichaAnimalPDF = async (animalId, user, ip) => {
       },
       adopciones: {
         orderBy: { fecha: 'desc' },
-        include: {
-          postulante: true
+        select: {
+          id: true,
+          fecha: true,
+          etapa: true,
+          devolucion: true
+          // Se excluye `postulante` para omitir estrictamente datos personales en el documento exportado (RF9)
         }
       }
     }
@@ -320,98 +455,150 @@ export const generarFichaAnimalPDF = async (animalId, user, ip) => {
     throw new Error('Animal no encontrado');
   }
 
-  const esDirectora = user?.rol === 'DIRECTORA';
+  const formato = String(query.formato || 'PDF').toUpperCase() === 'CSV' ? 'CSV' : 'PDF';
   const matchCausal = (animal.nota || '').match(REGEX_TIPO_INGRESO);
   const tipoIngreso = matchCausal ? matchCausal[1] : 'Rescate';
   const notaClinica = (animal.nota || '').replace(REGEX_TIPO_INGRESO, '').trim() || 'Sin antecedentes clínicos registrados.';
-
-  // Si es personal del refugio (no Directora), eliminar cualquier dato personal antes de generar el PDF
-  const animalParaExportar = {
-    ...animal,
-    adopciones: esDirectora ? animal.adopciones : []
-  };
-
   const fechaGeneracion = new Date().toLocaleString('es-CL');
+  const safeName = animal.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_');
 
-  const pdfBuffer = construirBufferPDF({
-    animal: animalParaExportar,
-    tipoIngreso,
-    notaClinica,
-    esDirectora,
-    usuario: user,
-    fechaGeneracion
-  });
+  let bufferOrContent;
+  let filename;
+  let contentType;
 
-  const recursoExportado = `Ficha Técnica Individual #${animal.id} - ${animal.nombre} (${animal.especie})`;
+  if (formato === 'CSV') {
+    const filas = [];
+    const addRow = (cols) => filas.push(cols.map(escapeCsvCell).join(','));
+    addRow(['HUELLAS SIN HOGAR - EXPEDIENTE Y FICHA TÉCNICA INDIVIDUAL (RF9)']);
+    addRow(['ID Ficha', animal.id, 'Nombre', animal.nombre, 'Causal de Ingreso', tipoIngreso]);
+    addRow(['Especie', animal.especie, 'Sexo', animal.sexo, 'Edad Aproximada', animal.edad || 'Desconocida']);
+    addRow(['Raza', animal.raza || 'Desconocida', 'Peso (kg)', animal.peso ?? 0, 'Microchip', animal.chip || 'Sin chip']);
+    addRow(['Estado Salud', animal.estadoSalud, 'Esterilización', animal.esterilizacion || 'Desconocido', 'Comportamiento', animal.comportamiento || 'Por evaluar']);
+    addRow(['Ubicación / Canil', animal.canil ? `${animal.canil.codigo} (${animal.canil.nombre})` : 'Sin asignar', 'Fecha Ingreso', animal.creadoEn ? new Date(animal.creadoEn).toISOString().split('T')[0] : '']);
+    addRow(['Historial Médico / Notas Clínicas', notaClinica]);
+    filas.push('');
+    addRow(['TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (DATOS PERSONALES DE POSTULANTES OMITIDOS POR PRIVACIDAD RF9)']);
+    addRow(['ID Solicitud', 'Postulante', 'Etapa', 'Devolución Previa', 'Fecha']);
+    for (const ad of animal.adopciones || []) {
+      addRow([
+        ad.id,
+        '[DATOS PERSONALES OMITIDOS POR PRIVACIDAD]',
+        ad.etapa,
+        ad.devolucion ? 'SÍ' : 'NO',
+        ad.fecha ? new Date(ad.fecha).toISOString().split('T')[0] : ''
+      ]);
+    }
+    bufferOrContent = Buffer.from('\uFEFF' + filas.join('\r\n'), 'utf-8');
+    filename = `expediente_${safeName}_${animal.id}.csv`;
+    contentType = 'text/csv; charset=utf-8';
+  } else {
+    bufferOrContent = construirBufferPDF({
+      animal,
+      tipoIngreso,
+      notaClinica,
+      usuario: user,
+      fechaGeneracion
+    });
+    filename = `ficha_tecnica_${safeName}_${animal.id}.pdf`;
+    contentType = 'application/pdf';
+  }
 
-  // Postcondición 1: Registrar evento de exportación en la bitácora de auditoría
+  const recursoExportado = `Expediente / Ficha Técnica Individual #${animal.id} - ${animal.nombre} (${formato})`;
+
+  // Postcondición RF9: Registrar evento de exportación en la bitácora de auditoría
   await registrarAuditoria({
-    entidad: 'Reporte PDF (Ficha Animal)',
+    entidad: `Reporte ${formato} (Ficha Animal)`,
     entidadId: animal.id,
     accion: 'CREACION',
     valorAnterior: null,
     valorNuevo: {
-      evento: 'EXPORTACION_FICHA_PDF',
-      tipoReporte: 'PDF',
+      evento: 'EXPORTACION_EXPEDIENTE_ANIMAL',
+      tipoReporte: formato,
       recursoExportado,
       animalId: animal.id,
       animalNombre: animal.nombre,
       rolUsuario: user?.rol,
-      privacidadDatosPersonalesOmitidos: !esDirectora,
+      privacidadDatosPersonalesOmitidos: true,
       fechaExportacion: new Date().toISOString()
     },
     usuario: user,
     ip
   });
 
-  // Postcondición 2: Notificar al personal del refugio sobre la exportación realizada
+  // Notificar al personal del refugio sobre la exportación realizada
   const notificacion = await notificarPersonalRefugio({
-    tipo: 'EXPORTACION_PDF',
-    titulo: `Ficha PDF exportada: ${animal.nombre}`,
-    mensaje: `${user?.nombre || 'Usuario'} (${user?.rol}) descargó la Ficha Técnica en PDF de ${animal.nombre} (#${animal.id}). ${
-      !esDirectora ? 'Se aplicó filtro de privacidad (sin datos personales de postulantes).' : 'Incluye historial completo.'
-    }`,
+    tipo: `EXPORTACION_${formato}`,
+    titulo: `Expediente ${formato} exportado: ${animal.nombre}`,
+    mensaje: `${user?.nombre || 'Usuario'} (${user?.rol}) exportó el expediente clínico de ${animal.nombre} (#${animal.id}) en formato ${formato}. Datos personales de postulantes omitidos por privacidad.`,
     destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
     usuario: user,
     metadata: {
-      tipoReporte: 'PDF',
+      tipoReporte: formato,
       recursoExportado,
       animalId: animal.id,
-      privacidadAplicada: !esDirectora
+      privacidadAplicada: true
     }
   });
 
-  const safeName = animal.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '_');
   return {
-    buffer: pdfBuffer,
-    filename: `ficha_tecnica_${safeName}_${animal.id}.pdf`,
+    buffer: bufferOrContent,
+    filename,
+    contentType,
     notificacion
   };
 };
 
 /**
- * Escapa un valor para celda CSV
+ * RF9: Generar y Exportar Reportes Consolidados de Gestión Operativa
+ * (Balance de ingresos, adopciones, devoluciones, censo y estado de insumos)
+ * - Configurando rangos de fecha (fechaDesde, fechaHasta), tipos de información y filtros requeridos
+ * - Restricción: Solo si el usuario posee rol de DIRECTORA
+ * - Restricción de privacidad: Omite estrictamente los datos personales de postulantes
+ * - Postcondición: Registra la consulta en la bitácora de auditoría y entrega el archivo (CSV o PDF)
  */
-const escapeCsvCell = (val) => {
-  if (val === null || val === undefined) return '""';
-  const str = String(val).replace(/"/g, '""').replace(/[\r\n]+/g, ' ');
-  return `"${str}"`;
-};
-
-/**
- * Requerimiento 2.2: Exportar Balances Generales y Reportes Consolidados de Gestión en CSV
- * - Restringido EXCLUSIVAMENTE al rol DIRECTORA
- * - Postcondiciones: Registra en bitácora de auditoría y notifica al personal del refugio
- */
-export const generarReporteConsolidadoCSV = async (user, ip) => {
+export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
   if (user?.rol !== 'DIRECTORA') {
-    throw new Error('Acceso denegado: Únicamente el rol de Directora está autorizado para exportar reportes consolidados en CSV');
+    throw new Error('Acceso denegado: El sistema genera reportes consolidados solo si el usuario posee rol de Directora');
   }
 
   await asegurarAdopcionesIniciales();
 
-  const [animales, caniles, insumos, turnos, traslados, adopciones] = await Promise.all([
+  const {
+    fechaDesde = '',
+    fechaHasta = '',
+    tipoInformacion = 'TODOS', // 'TODOS' | 'INGRESOS' | 'ADOPCIONES' | 'DEVOLUCIONES' | 'CENSO' | 'INSUMOS'
+    especie = '',
+    estadoSalud = '',
+    tipoIngreso = '',
+    formato = 'CSV' // 'CSV' | 'PDF'
+  } = query;
+
+  // Filtro de rango de fechas para ingresos y adopciones/devoluciones
+  const dateFilter = {};
+  if (fechaDesde) {
+    const d = new Date(fechaDesde);
+    if (!Number.isNaN(d.getTime())) dateFilter.gte = d;
+  }
+  if (fechaHasta) {
+    const h = new Date(fechaHasta);
+    if (!Number.isNaN(h.getTime())) {
+      h.setHours(23, 59, 59, 999);
+      dateFilter.lte = h;
+    }
+  }
+  const hasDateFilter = Object.keys(dateFilter).length > 0;
+
+  const whereAnimal = {};
+  if (hasDateFilter) whereAnimal.creadoEn = dateFilter;
+  if (especie) whereAnimal.especie = { equals: especie, mode: 'insensitive' };
+  if (estadoSalud) whereAnimal.estadoSalud = estadoSalud;
+
+  const whereAdopcion = {};
+  if (hasDateFilter) whereAdopcion.fecha = dateFilter;
+
+  const [animalesFiltrados, caniles, insumos, turnos, traslados, adopciones] = await Promise.all([
     prisma.animal.findMany({
+      where: whereAnimal,
       include: {
         canil: true,
         creadoPor: { select: { nombre: true, rol: true } }
@@ -422,6 +609,7 @@ export const generarReporteConsolidadoCSV = async (user, ip) => {
     prisma.insumo.findMany({ where: { activo: true }, orderBy: { id: 'asc' } }),
     prisma.turno.findMany({ orderBy: { id: 'asc' } }),
     prisma.traslado.findMany({
+      where: hasDateFilter ? { fechaRegistro: dateFilter } : {},
       include: {
         animal: { select: { nombre: true } },
         responsable: { select: { nombre: true } },
@@ -430,13 +618,35 @@ export const generarReporteConsolidadoCSV = async (user, ip) => {
       orderBy: { fechaRegistro: 'desc' }
     }),
     prisma.adopcion.findMany({
+      where: whereAdopcion,
       include: {
-        animal: { select: { nombre: true, especie: true } },
-        postulante: true
+        animal: { select: { nombre: true, especie: true } }
+        // Se omite `postulante` para garantizar que ningún dato personal de postulantes sea incluido (RF9)
       },
       orderBy: { fecha: 'desc' }
     })
   ]);
+
+  // Filtrar por causal de ingreso (Rescate, Abandono, Decomiso) si fue especificado
+  const animales = tipoIngreso
+    ? animalesFiltrados.filter((a) => {
+        const m = (a.nota || '').match(REGEX_TIPO_INGRESO);
+        const causal = m ? m[1] : 'Rescate';
+        return causal.toLowerCase() === tipoIngreso.toLowerCase();
+      })
+    : animalesFiltrados;
+
+  // Cálculo de métricas de las 5 dimensiones de RF9: Ingresos, Adopciones, Devoluciones, Censo e Insumos
+  let ingresosRescate = 0;
+  let ingresosAbandono = 0;
+  let ingresosDecomiso = 0;
+  for (const a of animales) {
+    const m = (a.nota || '').match(REGEX_TIPO_INGRESO);
+    const causal = (m ? m[1] : 'Rescate').toLowerCase();
+    if (causal === 'abandono') ingresosAbandono++;
+    else if (causal === 'decomiso') ingresosDecomiso++;
+    else ingresosRescate++;
+  }
 
   const animalesActivos = animales.filter((a) => a.activo);
   const animalesBaja = animales.filter((a) => !a.activo);
@@ -457,170 +667,244 @@ export const generarReporteConsolidadoCSV = async (user, ip) => {
   const turnosCubiertos = turnos.filter((t) => t.cubierto).length;
   const turnosDescubiertos = turnos.filter((t) => !t.cubierto).length;
 
+  const devolucionesList = adopciones.filter((ad) => ad.devolucion);
+  const adopcionesConcretadas = adopciones.filter((ad) => ad.etapa.toLowerCase() === 'adoptado').length;
+  const tasaDevolucion =
+    adopciones.length > 0 ? Math.round((devolucionesList.length / adopciones.length) * 100) : 0;
+
+  const resumenConsolidado = {
+    totalIngresos: animales.length,
+    ingresosRescate,
+    ingresosAbandono,
+    ingresosDecomiso,
+    animalesActivos: animalesActivos.length,
+    animalesBaja: animalesBaja.length,
+    totalPerros,
+    totalGatos,
+    saludNormal,
+    saludEspecial,
+    saludCritico,
+    canilesLibres,
+    canilesOcupados,
+    canilesCuarentena,
+    ocupacionPct,
+    totalAdopciones: adopciones.length,
+    adopcionesConcretadas,
+    totalDevoluciones: devolucionesList.length,
+    tasaDevolucion,
+    totalInsumos: insumos.length,
+    insumosCriticos: insumosCriticos.length
+  };
+
+  const filtrosAplicados = {
+    fechaDesde: fechaDesde || null,
+    fechaHasta: fechaHasta || null,
+    tipoInformacion: tipoInformacion || 'TODOS',
+    especie: especie || null,
+    estadoSalud: estadoSalud || null,
+    tipoIngreso: tipoIngreso || null,
+    formato: String(formato || 'CSV').toUpperCase()
+  };
+
+  const sec = String(tipoInformacion || 'TODOS').toUpperCase();
+  const incluirIngresos = sec === 'TODOS' || sec === 'INGRESOS';
+  const incluirCenso = sec === 'TODOS' || sec === 'CENSO';
+  const incluirAdopciones = sec === 'TODOS' || sec === 'ADOPCIONES';
+  const incluirDevoluciones = sec === 'TODOS' || sec === 'DEVOLUCIONES';
+  const incluirInsumos = sec === 'TODOS' || sec === 'INSUMOS';
+
   const filas = [];
   const addRow = (cols) => filas.push(cols.map(escapeCsvCell).join(','));
 
-  // 1. BALANCE GENERAL DE GESTIÓN
-  addRow(['HUELLAS SIN HOGAR - BALANCE GENERAL Y REPORTE CONSOLIDADO DE GESTIÓN']);
+  // ENCABEZADO Y FILTROS CONFIGURADOS
+  addRow(['HUELLAS SIN HOGAR - REPORTE CONSOLIDADO DE GESTIÓN OPERATIVA (RF9)']);
   addRow(['Fecha de Exportación', new Date().toISOString(), 'Generado por', user.nombre, 'Rol', user.rol]);
+  addRow([
+    'Rango de Fechas',
+    `${fechaDesde || 'Inicio histórico'} a ${fechaHasta || 'Actualidad'}`,
+    'Tipo de Información',
+    sec,
+    'Filtros',
+    `Especie: ${especie || 'Todas'} | Salud: ${estadoSalud || 'Todos'} | Causal: ${tipoIngreso || 'Todas'}`
+  ]);
+  addRow(['Política de Privacidad RF9', 'Datos personales de postulantes omitidos estrictamente en este documento']);
   filas.push('');
 
-  addRow(['SECCIÓN 1: BALANCE GENERAL E INDICADORES OPERATIVOS']);
-  addRow(['Indicador', 'Valor', 'Detalle / Observación']);
-  addRow(['Animales Albergados (Activos)', animalesActivos.length, `Perros: ${totalPerros} | Gatos: ${totalGatos}`]);
-  addRow(['Animales en Baja Lógica', animalesBaja.length, 'Registros históricos inactivos']);
+  // RESUMEN EJECUTIVO DE LAS 5 DIMENSIONES DE RF9
+  addRow(['RESUMEN EJECUTIVO DE GESTIÓN OPERATIVA']);
+  addRow(['Dimensión Operativa', 'Resultado Principal', 'Desglose Detallado']);
   addRow([
-    'Estado Clínico de la Población',
-    `Normal: ${saludNormal} | Especial: ${saludEspecial} | Crítico: ${saludCritico}`,
-    'Distribución sanitaria actual'
+    '1. Balance de Ingresos',
+    `${animales.length} ingresos`,
+    `Rescate: ${ingresosRescate} | Abandono: ${ingresosAbandono} | Decomiso: ${ingresosDecomiso}`
   ]);
   addRow([
-    'Capacidad y Ocupación de Caniles',
-    `${ocupacionPct}%`,
-    `Total: ${caniles.length} | Libres: ${canilesLibres} | Ocupados: ${canilesOcupados} | Cuarentena: ${canilesCuarentena}`
+    '2. Censo y Capacidad',
+    `${animalesActivos.length} animales albergados`,
+    `Perros: ${totalPerros} | Gatos: ${totalGatos} | Ocupación Caniles: ${ocupacionPct}% (${canilesLibres} libres)`
   ]);
   addRow([
-    'Balance de Inventario e Insumos',
-    `${insumos.length} productos activos`,
-    `${insumosCriticos.length} insumos en stock crítico`
+    '3. Balance de Adopciones',
+    `${adopciones.length} procesos registrados`,
+    `Adoptados: ${adopcionesConcretadas} | En seguimiento/revisión: ${adopciones.length - adopcionesConcretadas}`
   ]);
   addRow([
-    'Cobertura de Turnos de Voluntariado',
-    `${turnosCubiertos} / ${turnos.length} cubiertos`,
-    `${turnosDescubiertos} turnos descubiertos`
+    '4. Balance de Devoluciones',
+    `${devolucionesList.length} devoluciones`,
+    `Tasa de devolución: ${tasaDevolucion}% sobre total de solicitudes`
   ]);
   addRow([
-    'Gestión de Adopciones y Traslados',
-    `${adopciones.length} solicitudes adopción`,
-    `${traslados.length} movimientos/traslados registrados`
+    '5. Estado de Insumos',
+    `${insumos.length} insumos activos`,
+    `${insumosCriticos.length} insumos en stock crítico | Turnos descubiertos: ${turnosDescubiertos}/${turnos.length}`
   ]);
   filas.push('');
 
-  // 2. DETALLE DE FICHAS TÉCNICAS DE ANIMALES
-  addRow(['SECCIÓN 2: NÓMINA CONSOLIDADA DE ANIMALES']);
-  addRow([
-    'ID',
-    'Nombre',
-    'Causal Ingreso',
-    'Especie',
-    'Sexo',
-    'Edad Aproximada',
-    'Raza',
-    'Peso (kg)',
-    'Microchip',
-    'Estado Salud',
-    'Esterilización',
-    'Comportamiento',
-    'Canil Asignado',
-    'Estado Registro',
-    'Fecha Ingreso',
-    'Registrado Por',
-    'Antecedentes Clínicos / Notas'
-  ]);
-
-  for (const a of animales) {
-    const matchCausal = (a.nota || '').match(REGEX_TIPO_INGRESO);
-    const causal = matchCausal ? matchCausal[1] : 'Rescate';
-    const notaLimpia = (a.nota || '').replace(REGEX_TIPO_INGRESO, '').trim();
+  // SECCIÓN DETALLADA: INGRESOS Y CENSO DE ANIMALES
+  if (incluirIngresos || incluirCenso) {
+    addRow(['DETALLE DE INGRESOS Y CENSO DE POBLACIÓN ANIMAL']);
     addRow([
-      a.id,
-      a.nombre,
-      causal,
-      a.especie,
-      a.sexo,
-      a.edad || 'Desconocida',
-      a.raza || 'Desconocida',
-      a.peso ?? 0,
-      a.chip || 'Sin chip',
-      a.estadoSalud,
-      a.esterilizacion || 'Desconocido',
-      a.comportamiento || 'Por evaluar',
-      a.canil ? `${a.canil.codigo} (${a.canil.nombre})` : 'Sin asignar',
-      a.activo ? 'ACTIVO' : 'BAJA_LOGICA',
-      a.creadoEn ? new Date(a.creadoEn).toISOString().split('T')[0] : '',
-      a.creadoPor?.nombre || 'Sistema',
-      notaLimpia
+      'ID',
+      'Nombre',
+      'Causal Ingreso',
+      'Especie',
+      'Sexo',
+      'Edad Aproximada',
+      'Raza',
+      'Peso (kg)',
+      'Microchip',
+      'Estado Salud',
+      'Esterilización',
+      'Comportamiento',
+      'Canil Asignado',
+      'Estado Censo',
+      'Fecha Ingreso',
+      'Registrado Por',
+      'Antecedentes Clínicos / Notas'
     ]);
-  }
-  filas.push('');
 
-  // 3. BALANCE DE INVENTARIO E INSUMOS
-  addRow(['SECCIÓN 3: BALANCE DE INVENTARIO E INSUMOS']);
-  addRow(['ID', 'Producto', 'Categoría', 'Stock Actual', 'Stock Mínimo', 'Estado Abastecimiento']);
-  for (const ins of insumos) {
-    addRow([
-      ins.id,
-      ins.nombre,
-      ins.categoria,
-      ins.stock,
-      ins.stockMinimo,
-      ins.stock <= ins.stockMinimo ? 'CRÍTICO' : 'NORMAL'
-    ]);
-  }
-  filas.push('');
-
-  // 4. BALANCE DE ADOPCIONES Y POSTULANTES
-  addRow(['SECCIÓN 4: CONSOLIDADO DE PROCESOS DE ADOPCIÓN']);
-  addRow(['ID Adopción', 'Animal', 'Especie', 'Postulante', 'RUT', 'Teléfono', 'Email', 'Etapa', 'Devolución Previa', 'Fecha']);
-  for (const ad of adopciones) {
-    addRow([
-      ad.id,
-      ad.animal?.nombre || '',
-      ad.animal?.especie || '',
-      ad.postulante?.nombre || '',
-      ad.postulante?.rut || '',
-      ad.postulante?.telefono || '',
-      ad.postulante?.email || '',
-      ad.etapa,
-      ad.devolucion ? 'SÍ' : 'NO',
-      ad.fecha ? new Date(ad.fecha).toISOString().split('T')[0] : ''
-    ]);
+    for (const a of animales) {
+      const matchCausal = (a.nota || '').match(REGEX_TIPO_INGRESO);
+      const causal = matchCausal ? matchCausal[1] : 'Rescate';
+      const notaLimpia = (a.nota || '').replace(REGEX_TIPO_INGRESO, '').trim();
+      addRow([
+        a.id,
+        a.nombre,
+        causal,
+        a.especie,
+        a.sexo,
+        a.edad || 'Desconocida',
+        a.raza || 'Desconocida',
+        a.peso ?? 0,
+        a.chip || 'Sin chip',
+        a.estadoSalud,
+        a.esterilizacion || 'Desconocido',
+        a.comportamiento || 'Por evaluar',
+        a.canil ? `${a.canil.codigo} (${a.canil.nombre})` : 'Sin asignar',
+        a.activo ? 'ALBERGADO_ACTIVO' : 'BAJA_LOGICA',
+        a.creadoEn ? new Date(a.creadoEn).toISOString().split('T')[0] : '',
+        a.creadoPor?.nombre || 'Sistema',
+        notaLimpia
+      ]);
+    }
+    filas.push('');
   }
 
-  // Prefijo BOM UTF-8 para correcta lectura de tildes y eñes en Excel
-  const csvContent = '\uFEFF' + filas.join('\r\n');
-  const recursoExportado = 'Balance General y Reporte Consolidado de Gestión (CSV)';
+  // SECCIÓN DETALLADA: ADOPCIONES Y DEVOLUCIONES (SIN DATOS PERSONALES DE POSTULANTES - RF9)
+  if (incluirAdopciones || incluirDevoluciones) {
+    const listaAdop = incluirDevoluciones && !incluirAdopciones ? devolucionesList : adopciones;
+    addRow(['CONSOLIDADO DE ADOPCIONES Y DEVOLUCIONES (DATOS PERSONALES DE POSTULANTES OMITIDOS POR PRIVACIDAD RF9)']);
+    addRow(['ID Solicitud', 'Animal', 'Especie', 'Postulante (Privacidad RF9)', 'Etapa del Proceso', 'Devolución Registrada', 'Fecha Solicitud']);
+    for (const ad of listaAdop) {
+      addRow([
+        ad.id,
+        ad.animal?.nombre || '',
+        ad.animal?.especie || '',
+        '[DATOS PERSONALES OMITIDOS POR PRIVACIDAD]',
+        ad.etapa,
+        ad.devolucion ? 'SÍ (DEVUELTO)' : 'NO',
+        ad.fecha ? new Date(ad.fecha).toISOString().split('T')[0] : ''
+      ]);
+    }
+    filas.push('');
+  }
 
-  // Postcondición 1: Registrar evento de exportación en la bitácora de auditoría
+  // SECCIÓN DETALLADA: ESTADO DE INSUMOS
+  if (incluirInsumos) {
+    addRow(['ESTADO DE INSUMOS E INVENTARIO DEL REFUGIO']);
+    addRow(['ID', 'Producto', 'Categoría', 'Stock Actual', 'Stock Mínimo', 'Estado Abastecimiento']);
+    for (const ins of insumos) {
+      addRow([
+        ins.id,
+        ins.nombre,
+        ins.categoria,
+        ins.stock,
+        ins.stockMinimo,
+        ins.stock <= ins.stockMinimo ? 'CRÍTICO' : 'NORMAL'
+      ]);
+    }
+    filas.push('');
+  }
+
+  const formatoSalida = String(formato || 'CSV').toUpperCase() === 'PDF' ? 'PDF' : 'CSV';
+  const fechaStr = new Date().toISOString().split('T')[0];
+  const recursoExportado = `Reporte Consolidado de Gestión Operativa (${sec}) [${formatoSalida}]`;
+
+  // Postcondición RF9: Registrar consulta/exportación en la bitácora de auditoría
   await registrarAuditoria({
-    entidad: 'Reporte Consolidado CSV',
+    entidad: `Reporte Consolidado ${formatoSalida}`,
     entidadId: null,
     accion: 'CREACION',
     valorAnterior: null,
     valorNuevo: {
-      evento: 'EXPORTACION_REPORTE_CONSOLIDADO_CSV',
-      tipoReporte: 'CSV',
+      evento: 'EXPORTACION_REPORTE_CONSOLIDADO',
+      tipoReporte: formatoSalida,
       recursoExportado,
       rolUsuario: user.rol,
-      resumenExportado: {
-        animalesActivos: animalesActivos.length,
-        ocupacionPorcentaje: ocupacionPct,
-        insumosCriticos: insumosCriticos.length,
-        adopcionesRegistradas: adopciones.length
-      },
+      filtrosConfigurados: filtrosAplicados,
+      privacidadDatosPostulantesOmitidos: true,
+      resumenExportado: resumenConsolidado,
       fechaExportacion: new Date().toISOString()
     },
     usuario: user,
     ip
   });
 
-  // Postcondición 2: Notificar al personal del refugio sobre la exportación realizada
+  // Notificar al personal del refugio sobre la exportación realizada
   const notificacion = await notificarPersonalRefugio({
-    tipo: 'EXPORTACION_CSV',
-    titulo: 'Reporte Consolidado de Gestión (CSV) exportado',
-    mensaje: `La Directora (${user.nombre}) generó y descargó el Balance General y Reporte Consolidado de Gestión en formato CSV.`,
+    tipo: `EXPORTACION_${formatoSalida}`,
+    titulo: `Reporte Consolidado (${formatoSalida}) generado`,
+    mensaje: `La Directora (${user.nombre}) exportó el Reporte Consolidado de Gestión (${sec}) en formato ${formatoSalida}. Datos de postulantes omitidos por privacidad.`,
     destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
     usuario: user,
     metadata: {
-      tipoReporte: 'CSV',
-      recursoExportado
+      tipoReporte: formatoSalida,
+      recursoExportado,
+      filtrosConfigurados: filtrosAplicados
     }
   });
 
-  const fechaStr = new Date().toISOString().split('T')[0];
+  if (formatoSalida === 'PDF') {
+    const pdfBuffer = construirBufferReporteConsolidadoPDF({
+      resumen: resumenConsolidado,
+      filtrosAplicados,
+      usuario: user,
+      fechaGeneracion: new Date().toLocaleString('es-CL')
+    });
+    return {
+      buffer: pdfBuffer,
+      filename: `reporte_consolidado_gestion_${fechaStr}.pdf`,
+      contentType: 'application/pdf',
+      notificacion
+    };
+  }
+
+  const csvContent = '\uFEFF' + filas.join('\r\n');
   return {
     csv: csvContent,
+    buffer: Buffer.from(csvContent, 'utf-8'),
     filename: `reporte_consolidado_gestion_${fechaStr}.csv`,
+    contentType: 'text/csv; charset=utf-8',
     notificacion
   };
 };
