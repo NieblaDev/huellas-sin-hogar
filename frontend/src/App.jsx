@@ -5,6 +5,7 @@ import AnimalFormModal from './components/AnimalFormModal';
 import CanilesModulo from './components/CanilesModulo';
 import DashboardModulo from './components/DashboardModulo';
 import AuditoriaModulo from './components/AuditoriaModulo';
+import SaludModulo from './components/SaludModulo';
 import { API_URL, getAuthHeaders } from './api/config';
 
 export default function App() {
@@ -121,6 +122,19 @@ export default function App() {
                 🐶 <span>Registro Animales</span>
               </button>
 
+              {/*Salud y Vacuncacion */}
+              <button
+                onClick={() => setActiveTab('salud')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
+                  background: activeTab === 'salud' ? '#eef3ec' : 'transparent',
+                  color: activeTab === 'salud' ? '#2f5540' : '#7c8592',
+                  border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
+                }}
+              >
+                💉 <span>Salud y Vacunación</span>
+              </button>
+
               {/* Auditoría y Trazabilidad (Requisito 3 - Restringido a Directora) */}
               {esDirectora && (
                 <button
@@ -177,6 +191,10 @@ export default function App() {
                 onOpenModal={() => setModalOpen(true)}
                 reloadKey={reloadKey}
               />
+            )}
+
+            {activeTab === 'salud' && (
+              <SaludModulo user={user} />
             )}
 
             {activeTab === 'auditoria' && esDirectora && (
