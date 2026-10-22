@@ -169,6 +169,7 @@ export const obtenerAlertasSanitarias = async () => {
   const limite15Dias = new Date();
   limite15Dias.setDate(ahora.getDate() + 15);
 
+  // 1. Consultar vacunas de animales con ficha activa
   const vacunas = await prisma.vacunaAnimal.findMany({
     where: { activo: true, animal: { activo: true } },
     include: {
@@ -177,24 +178,105 @@ export const obtenerAlertasSanitarias = async () => {
     orderBy: { fechaVencimiento: 'asc' }
   });
 
+  // 2. Consultar tratamientos activos de animales con ficha activa
+  const tratamientos = await prisma.tratamientoAnimal.findMany({
+    where: { activo: true, animal: { activo: true } },
+    include: {
+      animal: { select: { id: true, nombre: true, especie: true, canil: true } }
+    },
+    orderBy: { fechaFin: 'asc' }
+  });
+
   const vencidas = [];
   const proximas = [];
+  const refuerzoRequerido = [];
 
+  // Clasificar Vacunas
   for (const v of vacunas) {
     const fVenc = new Date(v.fechaVencimiento);
+    const esRefuerzo = (v.dosis || '').toLowerCase().includes('refuerzo') || (v.nombreVacuna || '').toLowerCase().includes('refuerzo');
+
     if (fVenc < ahora) {
-      vencidas.push({ ...v, estadoAlerta: 'VENCIDA' });
+      vencidas.push({
+        id: `vac-${v.id}`,
+        tipo: 'VACUNA',
+        titulo: v.nombreVacuna,
+        subtitulo: v.dosis,
+        fecha: v.fechaVencimiento,
+        animal: v.animal,
+        estadoAlerta: 'VENCIDO'
+      });
+      if (esRefuerzo) {
+        refuerzoRequerido.push({
+          id: `ref-${v.id}`,
+          tipo: 'VACUNA',
+          titulo: v.nombreVacuna,
+          subtitulo: `Refuerzo sanitario pendiente (${v.dosis})`,
+          fecha: v.fechaVencimiento,
+          animal: v.animal,
+          estadoAlerta: 'REFUERZO_REQUERIDO'
+        });
+      }
     } else if (fVenc <= limite15Dias) {
-      proximas.push({ ...v, estadoAlerta: 'PROXIMA_A_VENCER' });
+      if (esRefuerzo) {
+        refuerzoRequerido.push({
+          id: `ref-${v.id}`,
+          tipo: 'VACUNA',
+          titulo: v.nombreVacuna,
+          subtitulo: `Refuerzo programado (${v.dosis})`,
+          fecha: v.fechaVencimiento,
+          animal: v.animal,
+          estadoAlerta: 'REFUERZO_REQUERIDO'
+        });
+      } else {
+        proximas.push({
+          id: `vac-${v.id}`,
+          tipo: 'VACUNA',
+          titulo: v.nombreVacuna,
+          subtitulo: v.dosis,
+          fecha: v.fechaVencimiento,
+          animal: v.animal,
+          estadoAlerta: 'PROXIMO_A_VENCER'
+        });
+      }
+    }
+  }
+
+  // Clasificar Tratamientos Médicos
+  for (const t of tratamientos) {
+    const fFin = new Date(t.fechaFin);
+    if (fFin < ahora) {
+      vencidas.push({
+        id: `trat-${t.id}`,
+        tipo: 'TRATAMIENTO',
+        titulo: t.medicamento,
+        subtitulo: `Dosis: ${t.dosis} (cada ${t.frecuenciaHoras}h)`,
+        fecha: t.fechaFin,
+        animal: t.animal,
+        estadoAlerta: 'VENCIDO'
+      });
+    } else if (fFin <= limite15Dias) {
+      proximas.push({
+        id: `trat-${t.id}`,
+        tipo: 'TRATAMIENTO',
+        titulo: t.medicamento,
+        subtitulo: `Finaliza tratamiento (${t.dosis})`,
+        fecha: t.fechaFin,
+        animal: t.animal,
+        estadoAlerta: 'PROXIMO_A_VENCER'
+      });
     }
   }
 
   return {
     resumen: {
       vencidasCount: vencidas.length,
-      proximasCount: proximas.length
+      proximasCount: proximas.length,
+      refuerzoCount: refuerzoRequerido.length,
+      totalAlertas: vencidas.length + proximas.length + refuerzoRequerido.length
     },
     vencidas,
-    proximas
+    proximas,
+    refuerzoRequerido
   };
 };
