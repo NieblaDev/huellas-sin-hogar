@@ -60,6 +60,8 @@ model Usuario {
   trasladosSolicitados Traslado[] @relation("TrasladoSolicitante")
   trasladosAprobados   Traslado[] @relation("TrasladoAprobador")
   auditorias           Auditoria[]
+  solicitudesRegistradas SolicitudAdopcion[]
+  devolucionesRegistradas Devolucion[]
 
   @@map("usuarios")
 }
@@ -90,6 +92,7 @@ model Animal {
 
   traslados      Traslado[]
   adopciones     Adopcion[]
+  solicitudes    SolicitudAdopcion[]
 
   @@map("animales")
 }
@@ -150,6 +153,7 @@ model Postulante {
   id          Int        @id @default(autoincrement())
   nombre      String     @db.VarChar(100)
   rut         String     @unique @db.VarChar(20)
+  tipoIdentificacion TipoIdentificacion @default(RUT)
   telefono    String?    @db.VarChar(40)
   email       String?    @db.VarChar(120)
   direccion   String?    @db.VarChar(200)
@@ -157,6 +161,7 @@ model Postulante {
   creadoEn    DateTime   @default(now())
 
   adopciones  Adopcion[]
+  solicitudes SolicitudAdopcion[]
 
   @@map("postulantes")
 }
@@ -170,6 +175,9 @@ model Adopcion {
   fecha          DateTime    @default(now())
   etapa          String      @default("Solicitud recibida") @db.VarChar(60)
   devolucion     Boolean     @default(false)
+  solicitudId    Int?        @unique
+  solicitud      SolicitudAdopcion? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
+  registroDevolucion Devolucion?
 
   @@map("adopciones")
 }
@@ -213,4 +221,55 @@ model Auditoria {
   ipAddress      String?         @db.VarChar(50)
 
   @@map("auditorias")
+}
+
+enum TipoIdentificacion {
+  RUT
+  OTRO
+}
+
+enum EstadoSolicitud {
+  RECIBIDA
+  EN_EVALUACION
+  VISITA_AGENDADA
+  VISITA_REALIZADA
+  APROBADA
+  RECHAZADA
+  ENTREGADA
+  CANCELADA
+}
+
+model SolicitudAdopcion {
+  id              Int             @id @default(autoincrement())
+  postulanteId    Int
+  animalId        Int
+  registradoPorId Int
+  estado          EstadoSolicitud @default(RECIBIDA)
+  motivacion      String          @db.Text
+  datosPostulante Json
+  creadoEn        DateTime        @default(now())
+  actualizadoEn   DateTime        @updatedAt
+  postulante      Postulante      @relation(fields: [postulanteId], references: [id], onDelete: Restrict)
+  animal          Animal          @relation(fields: [animalId], references: [id], onDelete: Restrict)
+  registradoPor   Usuario         @relation(fields: [registradoPorId], references: [id], onDelete: Restrict)
+  adopcion        Adopcion?
+
+  // El SQL de migración impone además una sola solicitud activa por postulante.
+  @@index([estado, creadoEn])
+  @@index([animalId])
+  @@map("solicitudes_adopcion")
+}
+
+// RF1 consulta antecedentes. La operación de devolución corresponde al commit 4.
+model Devolucion {
+  id            Int      @id @default(autoincrement())
+  adopcionId    Int      @unique
+  fecha         DateTime
+  motivo        String   @db.Text
+  estadoAnimal  String   @db.Text
+  responsableId Int
+  adopcion      Adopcion @relation(fields: [adopcionId], references: [id], onDelete: Restrict)
+  responsable   Usuario  @relation(fields: [responsableId], references: [id], onDelete: Restrict)
+
+  @@map("devoluciones")
 }

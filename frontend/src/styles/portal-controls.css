@@ -1,0 +1,12 @@
+/* Controles del portal: misma tipografía y altura, incluidos los módulos existentes. */
+.portal-staff { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.portal-staff button, .portal-staff input, .portal-staff select, .portal-staff textarea { font-family: inherit; box-sizing: border-box; }
+.portal-staff button { min-height: 40px; line-height: 1.25; }
+.portal-staff input:not([type='checkbox']):not([type='radio']), .portal-staff select { min-height: 40px; }
+.portal-staff button:focus-visible, .portal-staff input:focus-visible, .portal-staff select:focus-visible, .portal-staff textarea:focus-visible { outline: 3px solid #3478c4; outline-offset: 2px; }
+@media (max-width: 760px) {
+  .portal-staff { flex-direction: column; }
+  .portal-staff > aside { position: static !important; width: 100% !important; min-height: auto !important; }
+  .portal-staff > aside nav { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .portal-staff > main { margin-left: 0 !important; min-width: 0; }
+}

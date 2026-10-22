@@ -5,6 +5,9 @@ import AnimalFormModal from './components/AnimalFormModal';
 import CanilesModulo from './components/CanilesModulo';
 import DashboardModulo from './components/DashboardModulo';
 import AuditoriaModulo from './components/AuditoriaModulo';
+import AdopcionesModulo from './components/adopciones/AdopcionesModulo';
+import { clearStoredSession, readStoredSession } from './utils/session';
+import './styles/portal-controls.css';
 import { API_URL, getAuthHeaders } from './api/config';
 
 export default function App() {
@@ -15,11 +18,20 @@ export default function App() {
   const [canilesList, setCanilesList] = useState([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    if (saved && token) {
-      setUser(JSON.parse(saved));
-    }
+    const session = readStoredSession(localStorage);
+    if (!session) return;
+    const controller = new AbortController();
+    // Verificar también la firma antes de restaurar una sesión de otro arranque.
+    fetch(`${API_URL}/animals`, {
+      headers: { Authorization: `Bearer ${session.token}` },
+      signal: controller.signal,
+      cache: 'no-store'
+    }).then(response => {
+      if (controller.signal.aborted || localStorage.getItem('token') !== session.token) return;
+      if (response.ok) setUser(session.user);
+      else if (response.status === 401 || response.status === 403) clearStoredSession(localStorage);
+    }).catch(() => { /* Si no hay conexión, mantener visible el formulario de acceso. */ });
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -47,9 +59,10 @@ export default function App() {
   };
 
   const esDirectora = user?.rol === 'DIRECTORA';
+  const puedeGestionarAdopciones = ['DIRECTORA', 'ENCARGADA_ADOPCIONES'].includes(user?.rol);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f3f4f6', display: 'flex' }}>
+    <div className="portal-staff" style={{ minHeight: '100vh', background: '#f3f4f6', display: 'flex' }}>
       {!user ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Login onLoginSuccess={setUser} />
@@ -121,6 +134,17 @@ export default function App() {
                 🐶 <span>Registro Animales</span>
               </button>
 
+              {puedeGestionarAdopciones && (
+                <button onClick={() => setActiveTab('adopciones')}
+                  aria-current={activeTab === 'adopciones' ? 'page' : undefined}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
+                    background: activeTab === 'adopciones' ? '#eef3ec' : 'transparent',
+                    color: activeTab === 'adopciones' ? '#2f5540' : '#7c8592',
+                    border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left' }}>
+                  🏡 <span>Adopciones</span>
+                </button>
+              )}
+
               {/* Auditoría y Trazabilidad (Requisito 3 - Restringido a Directora) */}
               {esDirectora && (
                 <button
@@ -177,6 +201,10 @@ export default function App() {
                 onOpenModal={() => setModalOpen(true)}
                 reloadKey={reloadKey}
               />
+            )}
+
+            {activeTab === 'adopciones' && puedeGestionarAdopciones && (
+              <AdopcionesModulo user={user} />
             )}
 
             {activeTab === 'auditoria' && esDirectora && (

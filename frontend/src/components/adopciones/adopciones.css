@@ -1,0 +1,33 @@
+.adopciones { max-width: 1100px; margin: 0 auto; padding: 24px; color: #1f2430; }
+.adopciones * { box-sizing: border-box; }
+.adopciones .adopciones-card { background: #fff; border: 1px solid #e9eaed; border-radius: 14px; padding: 24px; margin-top: 16px; }
+.adopciones h2 { font-size: 1.6rem; font-weight: 800; margin: 0; }
+.adopciones h3 { font-size: 1.1rem; font-weight: 800; margin-top: 0; }
+.adopciones-header p { font-size: .88rem; margin: 4px 0 0; }
+.adopciones p, .adopciones table, .adopciones dl { font-size: .88rem; line-height: 1.6; }
+.adopciones .adopciones-toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.adopciones .adopciones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px; }
+.adopciones label { display: flex; flex-direction: column; gap: 6px; font-size: .82rem; font-weight: 700; margin-bottom: 12px; }
+.adopciones input, .adopciones select, .adopciones textarea { font: inherit; padding: 10px; border: 1px solid #aeb7c1; border-radius: 7px; width: 100%; background: white; color: #1f2430; }
+.adopciones textarea { min-height: 90px; resize: vertical; }
+.adopciones button { font-family: inherit; font-size: .84rem; font-weight: 700; min-height: 40px; line-height: 1.25; border: 1px solid #c9d4ce; border-radius: 9px; background: #fff; padding: 10px 16px; cursor: pointer; color: #2f5540; }
+.adopciones .adopciones-filtros { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(170px, .45fr) auto; gap: 16px; align-items: end; }
+.adopciones .adopciones-filtros label { margin-bottom: 0; }
+.adopciones .adopciones-filtros input, .adopciones .adopciones-filtros select { height: 40px; }
+@media (max-width: 900px) { .adopciones .adopciones-filtros { grid-template-columns: 1fr; } }
+.adopciones button.primary { background: #3f6c52; color: #fff; border-color: #3f6c52; }
+.adopciones button:disabled { opacity: .55; cursor: not-allowed; }
+.adopciones :focus-visible { outline: 3px solid #3478c4; outline-offset: 2px; }
+.adopciones .adopciones-alert { border: 1px solid #e0c486; background: #fff7e5; color: #704d0e; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.adopciones .adopciones-error { border: 1px solid #efc2be; background: #fbeae8; color: #a02b24; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.adopciones .adopciones-success { background: #e8f0e8; padding: 12px; border-radius: 8px; color: #2f5540; }
+.adopciones .adopciones-scroll { overflow-x: auto; }
+.adopciones table { width: 100%; border-collapse: collapse; text-align: left; }
+.adopciones th, .adopciones td { padding: 12px 10px; border-bottom: 1px solid #e9eaed; }
+.adopciones dt { font-weight: 700; margin-top: 12px; }
+.adopciones dd { margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.adopciones fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.adopciones legend { font-weight: 700; margin-bottom: 16px; }
+.adopciones .adopciones-muted { color: #586270; }
+
+.adopciones label small { font-size: .78rem; font-weight: 400; color: #586270; line-height: 1.5; }
