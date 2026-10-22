@@ -117,51 +117,89 @@ export default function DashboardModulo({ user, onNavigate }) {
         </div>
       )}
 
-      {/* TARJETAS RESUMEN INTERACTIVAS (KPIs) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '26px' }}>
-        {/* KPI 1: Animales albergados */}
+      {/* TARJETAS RESUMEN INTERACTIVAS (KPIs DESTACADOS) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '26px' }}>
+        {/* KPI 1: Animales albergados (Destacado) */}
         <div
           onClick={() => onNavigate && onNavigate('animales')}
           style={{
-            background: '#fff', border: '1px solid #e9eaed', borderRadius: '16px', padding: '20px',
-            boxShadow: '0 1px 2px rgba(20,24,32,.04)', cursor: 'pointer', transition: 'transform 0.15s'
+            background: '#fff', border: '1.5px solid #3f6c52', borderRadius: '16px', padding: '20px',
+            boxShadow: '0 4px 14px rgba(63,108,82,0.08)', cursor: 'pointer', transition: 'transform 0.15s'
           }}
           onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
           onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', color: '#7c8592' }}>Animales Albergados</span>
+            <span style={{ fontSize: '0.74rem', fontWeight: '800', textTransform: 'uppercase', color: '#3f6c52', letterSpacing: '0.04em' }}>
+              🐾 Animales Albergados
+            </span>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#e8f0e8', color: '#3f6c52', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>🐾</div>
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: '800', color: '#1f2430' }}>{resumen.animalesAlbergados}</div>
-          <div style={{ fontSize: '0.78rem', color: '#7c8592', marginTop: '4px' }}>
-            Ver catálogo completo →
+          <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#1f2430', lineHeight: 1 }}>{resumen.animalesAlbergados}</div>
+          <div style={{ fontSize: '0.78rem', color: '#7c8592', marginTop: '8px' }}>
+            Total de residentes activos →
           </div>
         </div>
 
-        {/* KPI 2: Caniles libres y ocupación */}
+        {/* KPI 2: Caniles Ocupados (Destacado) */}
         <div
           onClick={() => onNavigate && onNavigate('caniles')}
           style={{
-            background: '#fff', border: '1px solid #e9eaed', borderRadius: '16px', padding: '20px',
-            boxShadow: '0 1px 2px rgba(20,24,32,.04)', cursor: 'pointer', transition: 'transform 0.15s'
+            background: '#fff', border: '1.5px solid #d1453b', borderRadius: '16px', padding: '20px',
+            boxShadow: '0 4px 14px rgba(209,69,59,0.08)', cursor: 'pointer', transition: 'transform 0.15s'
           }}
           onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
           onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', color: '#7c8592' }}>Caniles Libres</span>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#e8f0e8', color: '#3f6c52', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>🚪</div>
+            <span style={{ fontSize: '0.74rem', fontWeight: '800', textTransform: 'uppercase', color: '#d1453b', letterSpacing: '0.04em' }}>
+              🔒 Caniles Ocupados
+            </span>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fbeae8', color: '#d1453b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>🚪</div>
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: '800', color: resumen.alertaSobrecupo ? '#d1453b' : '#3f6c52' }}>
-            {resumen.canilesLibres} <span style={{ fontSize: '1rem', color: '#7c8592', fontWeight: '600' }}>/ {resumen.totalCaniles}</span>
+          <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#d1453b', lineHeight: 1 }}>
+            {resumen.canilesOcupados + (resumen.canilesCuarentena || 0)}
+            <span style={{ fontSize: '1.1rem', color: '#7c8592', fontWeight: '600' }}> / {resumen.totalCaniles}</span>
           </div>
-          <div style={{ fontSize: '0.78rem', color: resumen.alertaSobrecupo ? '#d1453b' : '#7c8592', marginTop: '4px' }}>
-            Ocupación al {resumen.ocupacionPorcentaje}% {resumen.alertaSobrecupo && '⚠️ SOBRECUPO'}
+          <div style={{ fontSize: '0.78rem', color: '#7c8592', marginTop: '8px' }}>
+            {resumen.canilesLibres} espacios libres disponibles
           </div>
         </div>
 
-        {/* KPI 3: Stock Crítico */}
+        {/* KPI 3: Porcentaje de Ocupación (Destacado) */}
+        <div
+          onClick={() => onNavigate && onNavigate('caniles')}
+          style={{
+            background: resumen.alertaSobrecupo ? '#fbeae8' : '#fff',
+            border: resumen.alertaSobrecupo ? '2px solid #d1453b' : '1.5px solid #3f6c52',
+            borderRadius: '16px', padding: '20px',
+            boxShadow: '0 4px 14px rgba(20,24,32,0.06)', cursor: 'pointer', transition: 'transform 0.15s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: '800', textTransform: 'uppercase', color: resumen.alertaSobrecupo ? '#d1453b' : '#3f6c52', letterSpacing: '0.04em' }}>
+              📈 Porcentaje de Ocupación
+            </span>
+            <div style={{
+              width: '38px', height: '38px', borderRadius: '10px',
+              background: resumen.alertaSobrecupo ? '#d1453b' : '#e8f0e8',
+              color: resumen.alertaSobrecupo ? '#fff' : '#3f6c52',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem'
+            }}>
+              %
+            </div>
+          </div>
+          <div style={{ fontSize: '2.4rem', fontWeight: '800', color: resumen.alertaSobrecupo ? '#d1453b' : '#1f2430', lineHeight: 1 }}>
+            {resumen.ocupacionPorcentaje}%
+          </div>
+          <div style={{ fontSize: '0.78rem', color: resumen.alertaSobrecupo ? '#d1453b' : '#7c8592', marginTop: '8px', fontWeight: resumen.alertaSobrecupo ? '700' : '400' }}>
+            {resumen.alertaSobrecupo ? '🚨 Sobrecupo crítico (>90%)' : 'Dentro del umbral operacional'}
+          </div>
+        </div>
+
+        {/* KPI 4: Stock Crítico */}
         <div
           style={{
             background: '#fff', border: '1px solid #e9eaed', borderRadius: '16px', padding: '20px',
@@ -172,15 +210,15 @@ export default function DashboardModulo({ user, onNavigate }) {
             <span style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', color: '#7c8592' }}>Stock Crítico</span>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fbe9e5', color: '#e0705c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>📦</div>
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: '800', color: resumen.stockCriticoCount > 0 ? '#d1453b' : '#1f2430' }}>
+          <div style={{ fontSize: '2rem', fontWeight: '800', color: resumen.stockCriticoCount > 0 ? '#d1453b' : '#1f2430', lineHeight: 1 }}>
             {resumen.stockCriticoCount}
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#7c8592', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.78rem', color: '#7c8592', marginTop: '8px' }}>
             {resumen.stockCriticoCount > 0 ? 'Artículos bajo mínimo' : 'Inventario abastecido'}
           </div>
         </div>
 
-        {/* KPI 4: Turnos descubiertos */}
+        {/* KPI 5: Turnos Descubiertos */}
         <div
           style={{
             background: '#fff', border: '1px solid #e9eaed', borderRadius: '16px', padding: '20px',
@@ -191,11 +229,11 @@ export default function DashboardModulo({ user, onNavigate }) {
             <span style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', color: '#7c8592' }}>Turnos Descubiertos</span>
             <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#faf1de', color: '#d99a3d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>👥</div>
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: '800', color: resumen.turnosDescubiertosCount > 0 ? '#d99a3d' : '#3f6c52' }}>
+          <div style={{ fontSize: '2rem', fontWeight: '800', color: resumen.turnosDescubiertosCount > 0 ? '#d99a3d' : '#3f6c52', lineHeight: 1 }}>
             {resumen.turnosDescubiertosCount}
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#7c8592', marginTop: '4px' }}>
-            Requieren voluntario asignado
+          <div style={{ fontSize: '0.78rem', color: '#7c8592', marginTop: '8px' }}>
+            Requieren asignación
           </div>
         </div>
       </div>
