@@ -137,12 +137,12 @@ export default function SaludModulo({ user }) {
         <button
           onClick={() => setTabSalud('alertas')}
           style={{
-            padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '700',
-            background: tabSalud === 'alertas' ? '#3f6c52' : '#eef0f2',
-            color: tabSalud === 'alertas' ? '#fff' : '#555e6d'
+           padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '700',
+           background: tabSalud === 'alertas' ? '#3f6c52' : '#eef0f2',
+           color: tabSalud === 'alertas' ? '#fff' : '#555e6d'
           }}
         >
-          🚨 Alertas y Pendientes ({alertas?.resumen ? (alertas.resumen.vencidasCount + alertas.resumen.proximasCount) : 0})
+          🚨 Alertas y Pendientes ({alertas?.resumen?.totalAlertas || 0})
         </button>
         <button
           onClick={() => { setTabSalud('historial'); if (selectedAnimalId) verHistorialAnimal(selectedAnimalId); }}
@@ -180,48 +180,64 @@ export default function SaludModulo({ user }) {
         )}
       </div>
 
-      {/* PESTAÑA 1: ALERTAS SANITARIAS */}
+      {/* PESTAÑA 1: ALERTAS SANITARIAS (3 CATEGORÍAS) */}
       {tabSalud === 'alertas' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-          {/* Vacunas Vencidas */}
-          <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #f3c9c4', padding: '20px' }}>
-            <h3 style={{ color: '#d1453b', margin: '0 0 12px', fontSize: '1.1rem' }}>
-              🔴 Vacunas Vencidas ({alertas?.vencidas?.length || 0})
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '18px' }}>
+          
+          {/* 1. Vencidos (Vacunas y Tratamientos) */}
+          <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #f3c9c4', padding: '18px' }}>
+            <h3 style={{ color: '#d1453b', margin: '0 0 12px', fontSize: '1.05rem' }}>
+              🔴 Vencidos ({alertas?.vencidas?.length || 0})
             </h3>
             {alertas?.vencidas?.length === 0 ? (
-              <p style={{ color: '#7c8592', fontSize: '0.85rem' }}>No hay vacunas vencidas actualmente.</p>
+              <p style={{ color: '#7c8592', fontSize: '0.85rem' }}>Sin registros vencidos.</p>
             ) : (
-              alertas?.vencidas?.map(v => (
-                <div key={v.id} style={{ padding: '12px', background: '#fdf3f2', borderRadius: '8px', marginBottom: '10px' }}>
-                  <div style={{ fontWeight: '800', color: '#1f2430' }}>{v.animal.nombre} ({v.animal.especie})</div>
-                  <div style={{ fontSize: '0.82rem', color: '#d1453b', marginTop: '2px' }}>Vacuna: {v.nombreVacuna} ({v.dosis})</div>
-                  <div style={{ fontSize: '0.74rem', color: '#7c8592', marginTop: '2px' }}>
-                    Venció el: {new Date(v.fechaVencimiento).toLocaleDateString()}
-                  </div>
+              alertas?.vencidas?.map(item => (
+                <div key={item.id} style={{ padding: '10px 12px', background: '#fdf3f2', borderRadius: '8px', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: '800', color: '#1f2430' }}>{item.animal.nombre} ({item.animal.especie})</div>
+                  <div style={{ fontSize: '0.82rem', color: '#d1453b', fontWeight: '600' }}>{item.tipo}: {item.titulo}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#7c8592' }}>{item.subtitulo} · Venció: {new Date(item.fecha).toLocaleDateString()}</div>
                 </div>
               ))
             )}
           </div>
 
-          {/* Próximos Vencimientos */}
-          <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #fae2b8', padding: '20px' }}>
-            <h3 style={{ color: '#d99a3d', margin: '0 0 12px', fontSize: '1.1rem' }}>
-              🟡 Refuerzos Próximos (&le; 15 días) ({alertas?.proximas?.length || 0})
+          {/* 2. Próximos a Vencer (<= 15 días) */}
+          <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #fae2b8', padding: '18px' }}>
+            <h3 style={{ color: '#d99a3d', margin: '0 0 12px', fontSize: '1.05rem' }}>
+              🟡 Próximos a Vencer (&le; 15d) ({alertas?.proximas?.length || 0})
             </h3>
             {alertas?.proximas?.length === 0 ? (
-              <p style={{ color: '#7c8592', fontSize: '0.85rem' }}>Al día. No hay refuerzos urgentes.</p>
+              <p style={{ color: '#7c8592', fontSize: '0.85rem' }}>Todo al día.</p>
             ) : (
-              alertas?.proximas?.map(v => (
-                <div key={v.id} style={{ padding: '12px', background: '#fffbf2', borderRadius: '8px', marginBottom: '10px' }}>
-                  <div style={{ fontWeight: '800', color: '#1f2430' }}>{v.animal.nombre} ({v.animal.especie})</div>
-                  <div style={{ fontSize: '0.82rem', color: '#d99a3d', marginTop: '2px' }}>Vacuna: {v.nombreVacuna} ({v.dosis})</div>
-                  <div style={{ fontSize: '0.74rem', color: '#7c8592', marginTop: '2px' }}>
-                    Vence el: {new Date(v.fechaVencimiento).toLocaleDateString()}
-                  </div>
+              alertas?.proximas?.map(item => (
+                <div key={item.id} style={{ padding: '10px 12px', background: '#fffbf2', borderRadius: '8px', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: '800', color: '#1f2430' }}>{item.animal.nombre} ({item.animal.especie})</div>
+                  <div style={{ fontSize: '0.82rem', color: '#d99a3d', fontWeight: '600' }}>{item.tipo}: {item.titulo}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#7c8592' }}>{item.subtitulo} · Vence: {new Date(item.fecha).toLocaleDateString()}</div>
                 </div>
               ))
             )}
           </div>
+
+          {/* 3. Refuerzo Requerido */}
+          <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #bfdbfe', padding: '18px' }}>
+            <h3 style={{ color: '#2563eb', margin: '0 0 12px', fontSize: '1.05rem' }}>
+              🔵 Refuerzo Requerido ({alertas?.refuerzoRequerido?.length || 0})
+            </h3>
+            {alertas?.refuerzoRequerido?.length === 0 ? (
+              <p style={{ color: '#7c8592', fontSize: '0.85rem' }}>Sin refuerzos pendientes.</p>
+            ) : (
+              alertas?.refuerzoRequerido?.map(item => (
+                <div key={item.id} style={{ padding: '10px 12px', background: '#eff6ff', borderRadius: '8px', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: '800', color: '#1f2430' }}>{item.animal.nombre} ({item.animal.especie})</div>
+                  <div style={{ fontSize: '0.82rem', color: '#2563eb', fontWeight: '600' }}>{item.titulo}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#7c8592' }}>{item.subtitulo} · Fecha límite: {new Date(item.fecha).toLocaleDateString()}</div>
+                </div>
+              ))
+            )}
+          </div>
+
         </div>
       )}
 
