@@ -60,6 +60,8 @@ model Usuario {
   trasladosSolicitados Traslado[] @relation("TrasladoSolicitante")
   trasladosAprobados   Traslado[] @relation("TrasladoAprobador")
   auditorias           Auditoria[]
+  indicacionesCreadas  IndicacionCuidado[]
+  cuidadosRealizados   BitacoraCuidado[]
 
   @@map("usuarios")
 }
@@ -90,6 +92,7 @@ model Animal {
 
   traslados      Traslado[]
   adopciones     Adopcion[]
+  indicacionesCuidado  IndicacionCuidado[]
 
   @@map("animales")
 }
@@ -213,4 +216,67 @@ model Auditoria {
   ipAddress      String?         @db.VarChar(50)
 
   @@map("auditorias")
+}
+
+// ============================================================
+// MÓDULO 2: NECESIDADES DIARIAS Y NOTAS DE CUIDADO
+// ============================================================
+
+enum ContextoCuidado {
+  EVALUACION_CLINICA
+  CIRUGIA
+  INGRESO_REFUGIO
+}
+
+enum CategoriaCuidado {
+  DIETA_ESPECIAL
+  MEDICACION_ORAL
+  RESTRICCION_FISICA
+  HIGIENE_CURACION
+  OBSERVACION_CONDUCTA
+}
+
+enum NivelCriticidad {
+  CRITICA
+  ALTA
+  MEDIA
+  BAJA
+}
+
+model IndicacionCuidado {
+  id              Int              @id @default(autoincrement())
+  animalId        Int
+  animal          Animal           @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  contexto        ContextoCuidado  @default(EVALUACION_CLINICA)
+  categoria       CategoriaCuidado
+  criticidad      NivelCriticidad  @default(MEDIA)
+  titulo          String           @db.VarChar(120)
+  instruccion     String           @db.Text
+  franjaHoraria   String           @db.VarChar(20) // "Mañana", "Tarde", "Ambas"
+  fechaInicio     DateTime         @default(now())
+  fechaFin        DateTime
+  publicadaTurno  Boolean          @default(true)
+
+  creadoPorId     Int
+  creadoPor       Usuario          @relation(fields: [creadoPorId], references: [id])
+  activo          Boolean          @default(true)
+  creadoEn        DateTime         @default(now())
+
+  bitacoras       BitacoraCuidado[]
+
+  @@map("indicaciones_cuidado")
+}
+
+model BitacoraCuidado {
+  id             Int               @id @default(autoincrement())
+  indicacionId   Int
+  indicacion     IndicacionCuidado @relation(fields: [indicacionId], references: [id], onDelete: Cascade)
+  voluntarioId   Int
+  voluntario     Usuario           @relation(fields: [voluntarioId], references: [id])
+  turnoId        Int?
+  fechaHora      DateTime          @default(now())
+  observaciones  String?           @db.Text
+  atencionEstado String            @default("COMPLETADO") @db.VarChar(40)
+
+  @@map("bitacoras_cuidado")
 }
