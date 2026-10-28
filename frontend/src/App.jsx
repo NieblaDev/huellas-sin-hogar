@@ -5,6 +5,7 @@ import AnimalFormModal from './components/AnimalFormModal';
 import CanilesModulo from './components/CanilesModulo';
 import DashboardModulo from './components/DashboardModulo';
 import AuditoriaModulo from './components/AuditoriaModulo';
+import CuidadosModulo from './components/CuidadosModulo';
 import { API_URL, getAuthHeaders } from './api/config';
 
 export default function App() {
@@ -121,6 +122,19 @@ export default function App() {
                 🐶 <span>Registro Animales</span>
               </button>
 
+              {/* Necesidades Diarias y Notas de Cuidado */}
+              <button
+                 onClick={() => setActiveTab('cuidados')}
+                 style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
+                 background: activeTab === 'cuidados' ? '#eef3ec' : 'transparent',
+                 color: activeTab === 'cuidados' ? '#2f5540' : '#7c8592',
+                 border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
+                }}
+              >
+                📋 <span>Rondas y Cuidados</span>
+              </button>
+
               {/* Auditoría y Trazabilidad (Requisito 3 - Restringido a Directora) */}
               {esDirectora && (
                 <button
@@ -177,6 +191,10 @@ export default function App() {
                 onOpenModal={() => setModalOpen(true)}
                 reloadKey={reloadKey}
               />
+            )}
+
+            {activeTab === 'cuidados' && (
+              <CuidadosModulo user={user} />
             )}
 
             {activeTab === 'auditoria' && esDirectora && (
