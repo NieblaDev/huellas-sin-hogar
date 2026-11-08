@@ -82,7 +82,7 @@ export default function App() {
             </div>
 
             <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {/* Inicio / Panel de Indicadores (Requisito 2) */}
+              {/* Inicio / Panel de Indicadores */}
               <button
                 onClick={() => setActiveTab('dashboard')}
                 style={{
@@ -92,10 +92,10 @@ export default function App() {
                   border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
                 }}
               >
-                📊 <span>Inicio (Indicadores)</span>
+                📊 <span>Inicio</span>
               </button>
 
-              {/* Caniles y Traslados (Requisito 1) */}
+              {/* Caniles y Traslados */}
               <button
                 onClick={() => setActiveTab('caniles')}
                 style={{
@@ -121,7 +121,7 @@ export default function App() {
                 🐶 <span>Registro Animales</span>
               </button>
 
-              {/* Auditoría y Trazabilidad (Requisito 3 - Restringido a Directora) */}
+              {/* Auditoría y Trazabilidad */}
               {esDirectora && (
                 <button
                   onClick={() => setActiveTab('auditoria')}
@@ -132,7 +132,7 @@ export default function App() {
                     border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
                   }}
                 >
-                  🛡️ <span>Auditoría (Directora)</span>
+                  🛡️ <span>Auditoría</span>
                 </button>
               )}
             </nav>
