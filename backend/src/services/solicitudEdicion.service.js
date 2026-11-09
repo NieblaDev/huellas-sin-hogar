@@ -12,7 +12,7 @@ export const modificarSolicitud = async (id, data, responsable, ip, eliminar = f
       if (!eliminar) {
         if (data.postulante.tipoIdentificacion !== anterior.datosPostulante.tipoIdentificacion || data.postulante.identificacion !== anterior.datosPostulante.identificacion) throw new AdopcionError(400, 'La identidad del postulante no se puede cambiar.');
         if (!anterior.postulante.activo) throw new AdopcionError(409, 'El postulante está dado de baja.');
-        const animal = await tx.animal.findFirst({ where: { id: data.animalId, activo: true, adopciones: { none: { devolucion: false, registroDevolucion: { is: null }, etapa: { in: ['Adoptado', 'Entregada', 'Seguimiento 15d', 'Seguimiento 30d'] } } } } });
+        const animal = await tx.animal.findFirst({ where: { id: data.animalId, activo: true, estadoAdopcion: 'EN_REFUGIO', adopciones: { none: { devolucion: false, registroDevolucion: { is: null }, etapa: { in: ['Adoptado', 'Entregada', 'Seguimiento 15d', 'Seguimiento 30d'] } } } } });
         if (!animal) throw new AdopcionError(409, 'El animal seleccionado ya no está disponible.');
         const { tipoIdentificacion, identificacion, ...contacto } = data.postulante;
         const postulante = await tx.postulante.update({ where: { id: anterior.postulanteId }, data: contacto });

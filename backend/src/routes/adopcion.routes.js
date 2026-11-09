@@ -1,3 +1,5 @@
+import { actualizarEtapaSchema } from '../schemas/adopcionEtapa.schema.js';
+import { registrarEtapa } from '../controllers/adopcionEtapa.controller.js';
 import { Router } from 'express';
 import { authenticateToken } from '../middlewares/auth.middleware.js';
 import { requireAdopcionStaff } from '../middlewares/adopcionStaff.middleware.js';
@@ -16,5 +18,7 @@ router.get('/solicitudes/:id', validate(solicitudIdSchema, 'params'), controller
 
 router.patch('/solicitudes/:id', validate(solicitudIdSchema, 'params'), validate(editarSolicitudSchema), controller.editarSolicitud);
 router.delete('/solicitudes/:id', validate(solicitudIdSchema, 'params'), validate(eliminarSolicitudSchema), controller.eliminarSolicitud);
+
+router.post('/solicitudes/:id/etapas', validate(solicitudIdSchema, 'params'), validate(actualizarEtapaSchema), registrarEtapa);
 
 export default router;

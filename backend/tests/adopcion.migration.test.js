@@ -20,12 +20,12 @@ test('incorpora RF1 a una base existente sin perder usuarios ni fichas', async (
   try {
     execFileSync('psql', [pgUrl.toString(), '-v', 'ON_ERROR_STOP=1', '-f', baselinePath], { env: { ...env, PGOPTIONS: `-c search_path=${schema}` }, stdio: 'pipe' });
     const usuario = await db.usuario.create({ data: { email: 'baseline@example.test', nombre: 'Staff existente', password: 'test', rol: 'DIRECTORA' } });
-    const animal = await db.animal.create({ data: { nombre: 'Ficha anterior', especie: 'Gato', sexo: 'Hembra', edad: '4 años', chip: 'CHIP-ORIGINAL', nota: 'Historial previo', creadoPorId: usuario.id } });
+    const [animal] = await db.$queryRaw`INSERT INTO animales (nombre, especie, sexo, edad, chip, nota, "creadoPorId") VALUES ('Ficha anterior', 'Gato', 'Hembra', '4 años', 'CHIP-ORIGINAL', 'Historial previo', ${usuario.id}) RETURNING *`;
     const [postulante] = await db.$queryRaw`INSERT INTO postulantes (nombre, rut) VALUES ('Postulante previo', '11.111.111-1') RETURNING id`;
     await db.$executeRaw`INSERT INTO adopciones ("animalId", "postulanteId", etapa, devolucion) VALUES (${animal.id}, ${postulante.id}, 'Devuelto', true)`;
     execFileSync(process.execPath, [prismaCli, 'migrate', 'resolve', '--applied', '20261020000000_baseline_pern', '--schema', schemaPath], { env, stdio: 'pipe' });
     execFileSync(process.execPath, [prismaCli, 'migrate', 'deploy', '--schema', schemaPath], { env, stdio: 'pipe' });
-    assert.deepEqual(await db.animal.findUnique({ where: { id: animal.id } }), animal);
+    assert.deepEqual(await db.animal.findUnique({ where: { id: animal.id } }), { ...animal, estadoAdopcion: 'EN_REFUGIO' });
     assert.deepEqual(await db.usuario.findUnique({ where: { id: usuario.id } }), usuario);
     assert.equal(await db.solicitudAdopcion.count(), 0);
     const previos = await db.postulante.findMany();

@@ -76,6 +76,7 @@ export const asignarCanil = async ({ canilId, animalId, motivo, estado = 'OCUPAD
     });
 
     if (!animal) throw new Error('El animal no existe');
+    if (animal.estadoAdopcion === 'ADOPTADO') throw new Error('El animal ya fue adoptado y no puede asignarse a un canil.');
 
     // Validar si el canil destino ya está ocupado por otro animal
     if (targetCanil.animalAlojado && targetCanil.animalAlojado.id !== animal.id) {

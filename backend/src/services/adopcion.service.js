@@ -11,7 +11,7 @@ export class AdopcionError extends Error {
 }
 
 const usuarioResumen = { id: true, nombre: true };
-const animalResumen = { id: true, nombre: true, especie: true, estadoSalud: true };
+const animalResumen = { id: true, nombre: true, especie: true, estadoSalud: true, estadoAdopcion: true };
 const solicitudInclude = { postulante: true, animal: { select: animalResumen }, registradoPor: { select: usuarioResumen } };
 const ETAPAS_CONCRETADAS = ['Adoptado', 'Entregada', 'Seguimiento 15d', 'Seguimiento 30d'];
 const ETAPAS_TERMINALES = [...ETAPAS_CONCRETADAS, 'Rechazada', 'Cancelada', 'Devuelto'];
@@ -65,7 +65,7 @@ export const crearSolicitud = async (data, responsable, ip) => {
   for (let intento = 0; intento < 3; intento += 1) {
     try {
       return await prisma.$transaction(async tx => {
-        const animal = await tx.animal.findFirst({ where: { id: data.animalId, activo: true }, select: { id: true } });
+        const animal = await tx.animal.findFirst({ where: { id: data.animalId, activo: true, estadoAdopcion: 'EN_REFUGIO' }, select: { id: true } });
         if (!animal) throw new AdopcionError(404, 'El animal seleccionado no existe o está dado de baja');
         if (await tx.adopcion.findFirst({ where: { animalId: data.animalId, ...adopcionVigente }, select: { id: true } })) {
           throw new AdopcionError(409, 'El animal ya tiene una adopción vigente');
@@ -128,11 +128,11 @@ export const listarSolicitudes = async ({ estado, search, pagina, limite }) => {
 };
 
 export const obtenerSolicitud = async id => {
-  const solicitud = await prisma.solicitudAdopcion.findUnique({ where: { id }, include: solicitudInclude });
+  const solicitud = await prisma.solicitudAdopcion.findUnique({ where: { id }, include: { ...solicitudInclude, etapas: { include: { responsable: { select: usuarioResumen } }, orderBy: [{ registradoEn: 'asc' }, { id: 'asc' }] }, adopcion: { include: { responsable: { select: usuarioResumen } } } } });
   if (!solicitud) throw new AdopcionError(404, 'Solicitud no encontrada');
   return { solicitud: presentarSolicitud(solicitud), antecedentes: await consultarAntecedentes(prisma, solicitud.postulante) };
 };
 
 export const listarAnimalesDisponibles = () => prisma.animal.findMany({
-  where: { activo: true, adopciones: { none: adopcionVigente } }, select: animalResumen, orderBy: { nombre: 'asc' }
+  where: { activo: true, estadoAdopcion: 'EN_REFUGIO', adopciones: { none: adopcionVigente } }, select: animalResumen, orderBy: { nombre: 'asc' }
 });
