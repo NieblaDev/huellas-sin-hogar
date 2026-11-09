@@ -116,6 +116,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <div>
                       <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#1f2430' }}>{a.nombre}</h3>
+                      {a.estadoAdopcion === 'ADOPTADO' && <span style={{ color: '#2f5540', fontSize: '.8rem', fontWeight: 700 }}>Adoptado</span>}
                       <span style={{ fontSize: '0.8rem', color: '#7c8592' }}>{a.especie} · {a.sexo} · {a.edad}</span>
                     </div>
                   </div>

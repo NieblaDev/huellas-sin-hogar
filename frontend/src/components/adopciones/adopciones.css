@@ -31,3 +31,18 @@
 .adopciones .adopciones-muted { color: #586270; }
 
 .adopciones label small { font-size: .78rem; font-weight: 400; color: #586270; line-height: 1.5; }
+
+.adopciones-etapas { border-top: 1px solid #e9eaed; margin-top: 24px; padding-top: 8px; }
+.adopciones-etapas caption { text-align: left; font-weight: 700; padding: 18px 0 6px; }
+
+.adopciones-progreso { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); list-style: none; padding: 0; margin: 20px 0 24px; gap: 10px; }
+.adopciones-progreso li { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px 10px; border: 1px solid #d9dfe3; border-radius: 10px; background: #f8f9fa; color: #586270; }
+.adopciones-progreso li.completado { background: #edf4ee; color: #2f5540; border-color: #bdd1c2; }
+.adopciones-progreso li.actual { outline: 2px solid #3f6c52; outline-offset: 1px; }
+.adopciones-progreso strong { font-size: .82rem; }
+.adopciones-progreso small { font-size: .76rem; }
+.adopciones-paso-numero { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid currentColor; border-radius: 50%; font-weight: 700; }
+.adopciones-progreso .completado .adopciones-paso-numero { background: #3f6c52; border-color: #3f6c52; color: white; }
+@media (max-width: 700px) { .adopciones-progreso { grid-template-columns: 1fr; } .adopciones-progreso li { display: grid; grid-template-columns: 28px 1fr; align-items: center; } .adopciones-progreso small { grid-column: 2; } }
+
+.adopciones-progreso li.cerrado { outline-color: #a02b24; border-color: #efc2be; background: #fbeae8; color: #a02b24; }

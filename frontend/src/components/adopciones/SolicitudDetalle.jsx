@@ -1,3 +1,5 @@
+import SolicitudEtapas from './SolicitudEtapas';
+import SolicitudProgreso from './SolicitudProgreso';
 import React, { useEffect, useState } from 'react';
 import SolicitudForm from './SolicitudForm';
 import { obtenerSolicitud, eliminarSolicitud } from '../../api/adopciones';
@@ -33,6 +35,7 @@ export default function SolicitudDetalle({ id }) {
   };
   return <article className="adopciones-card">
     <h3>Solicitud #{solicitud.id} · {ESTADOS[solicitud.estado]}</h3>
+    <SolicitudProgreso solicitud={solicitud} />
     {mensaje && <p role="status" className="adopciones-success">{mensaje}</p>}
     {errorAccion && <p role="alert" className="adopciones-error">{errorAccion}</p>}
     {solicitud.estado === 'RECIBIDA' && <div className="adopciones-toolbar">
@@ -59,6 +62,7 @@ export default function SolicitudDetalle({ id }) {
         <dt>Motivación y condiciones del hogar</dt><dd>{solicitud.motivacion}</dd>
       </dl></div>
     </div>
+    <SolicitudEtapas key={solicitud.actualizadoEn} solicitud={solicitud} onUpdated={texto => { setMensaje(texto); setRecarga(k => k + 1); }} />
     <h4>Antecedentes actuales del postulante</h4>
     <p>{antecedentes.solicitudesActivas.length} solicitud(es) activa(s), incluida esta si corresponde.</p>
     {antecedentes.devolucionesPrevias.length === 0 ? <p>Sin devoluciones registradas.</p> : <>

@@ -23,3 +23,5 @@ export const crearSolicitud = data => request('/solicitudes', { method: 'POST', 
 
 export const editarSolicitud = (id, data) => request(`/solicitudes/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 export const eliminarSolicitud = (id, actualizadoEn) => request(`/solicitudes/${id}`, { method: 'DELETE', body: JSON.stringify({ actualizadoEn }) });
+
+export const registrarEtapa = (id, data) => request(`/solicitudes/${id}/etapas`, { method: 'POST', body: JSON.stringify(data) });

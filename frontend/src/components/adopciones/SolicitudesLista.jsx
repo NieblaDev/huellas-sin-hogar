@@ -3,8 +3,8 @@ import { listarSolicitudes } from '../../api/adopciones';
 
 export const ESTADOS = {
   RECIBIDA: 'Recibida', EN_EVALUACION: 'En evaluación', VISITA_AGENDADA: 'Visita agendada',
-  VISITA_REALIZADA: 'Visita realizada', APROBADA: 'Aprobada', RECHAZADA: 'Rechazada',
-  ENTREGADA: 'Entregada', CANCELADA: 'Cancelada'
+  VISITA_REALIZADA: 'Visita realizada', APROBADA: 'Aprobada, pendiente de entrega', RECHAZADA: 'Solicitud rechazada',
+  ENTREGADA: 'Adopción exitosa', CANCELADA: 'Cancelada'
 };
 export const fechaLocal = fecha => new Date(fecha).toLocaleString('es-CL');
 
