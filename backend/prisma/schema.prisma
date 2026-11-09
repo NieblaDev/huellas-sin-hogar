@@ -62,6 +62,8 @@ model Usuario {
   auditorias           Auditoria[]
   solicitudesRegistradas SolicitudAdopcion[]
   devolucionesRegistradas Devolucion[]
+  etapasAdopcion EtapaSolicitudAdopcion[]
+  adopcionesConcretadas Adopcion[]
 
   @@map("usuarios")
 }
@@ -76,6 +78,7 @@ model Animal {
   peso           Float       @default(0)
   chip           String?     @unique @db.VarChar(50)
   estadoSalud    EstadoSalud @default(NORMAL)
+  estadoAdopcion EstadoAdopcion @default(EN_REFUGIO)
   nota           String?     @db.Text
   fotoUrl        String?     @db.Text
   esterilizacion String?     @default("NO") @db.VarChar(50)
@@ -178,6 +181,8 @@ model Adopcion {
   solicitudId    Int?        @unique
   solicitud      SolicitudAdopcion? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
   registroDevolucion Devolucion?
+  responsableId Int?
+  responsable Usuario? @relation(fields: [responsableId], references: [id], onDelete: Restrict)
 
   @@map("adopciones")
 }
@@ -253,6 +258,9 @@ model SolicitudAdopcion {
   animal          Animal          @relation(fields: [animalId], references: [id], onDelete: Restrict)
   registradoPor   Usuario         @relation(fields: [registradoPorId], references: [id], onDelete: Restrict)
   adopcion        Adopcion?
+  visitaOmitida    Boolean @default(false)
+  motivoOmisionVisita String? @db.Text
+  etapas          EtapaSolicitudAdopcion[]
 
   // El SQL de migración impone además una sola solicitud activa por postulante.
   @@index([estado, creadoEn])
@@ -272,4 +280,29 @@ model Devolucion {
   responsable   Usuario  @relation(fields: [responsableId], references: [id], onDelete: Restrict)
 
   @@map("devoluciones")
+}
+
+// Estado administrativo independiente del estado clínico y de la baja lógica.
+enum EstadoAdopcion {
+  EN_REFUGIO
+  ADOPTADO
+}
+
+model EtapaSolicitudAdopcion {
+  id Int @id @default(autoincrement())
+  solicitudId Int
+  accion String @db.VarChar(40)
+  estadoAnterior EstadoSolicitud
+  estadoNuevo EstadoSolicitud
+  fecha DateTime
+  observaciones String @db.Text
+  motivoOmision String? @db.Text
+  resultadoEvaluacion String? @db.VarChar(30)
+  responsableId Int
+  registradoEn DateTime @default(now())
+  solicitud SolicitudAdopcion @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
+  responsable Usuario @relation(fields: [responsableId], references: [id], onDelete: Restrict)
+
+  @@index([solicitudId, registradoEn])
+  @@map("etapas_solicitud_adopcion")
 }
