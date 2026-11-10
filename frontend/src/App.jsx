@@ -5,6 +5,7 @@ import AnimalFormModal from './components/AnimalFormModal';
 import CanilesModulo from './components/CanilesModulo';
 import DashboardModulo from './components/DashboardModulo';
 import AuditoriaModulo from './components/AuditoriaModulo';
+import SaludModulo from './components/SaludModulo';
 import AdopcionesModulo from './components/adopciones/AdopcionesModulo';
 import { clearStoredSession, readStoredSession } from './utils/session';
 import './styles/portal-controls.css';
@@ -134,6 +135,18 @@ export default function App() {
                 🐶 <span>Registro Animales</span>
               </button>
 
+              {/*Salud y Vacuncacion */}
+              <button
+                onClick={() => setActiveTab('salud')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
+                  background: activeTab === 'salud' ? '#eef3ec' : 'transparent',
+                  color: activeTab === 'salud' ? '#2f5540' : '#7c8592',
+                  border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
+                }}
+              >
+                💉 <span>Salud y Vacunación</span>
+              </button>
               {puedeGestionarAdopciones && (
                 <button onClick={() => setActiveTab('adopciones')}
                   aria-current={activeTab === 'adopciones' ? 'page' : undefined}
@@ -204,6 +217,8 @@ export default function App() {
               />
             )}
 
+            {activeTab === 'salud' && (
+              <SaludModulo user={user} />
             {activeTab === 'adopciones' && puedeGestionarAdopciones && (
               <AdopcionesModulo user={user} />
             )}

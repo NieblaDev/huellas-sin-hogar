@@ -60,6 +60,7 @@ model Usuario {
   trasladosSolicitados           Traslado[] @relation("TrasladoSolicitante")
   trasladosAprobados             Traslado[] @relation("TrasladoAprobador")
   auditorias                     Auditoria[]
+  atencionesClinicas             AtencionClinica[]
   solicitudesRegistradas         SolicitudAdopcion[]
   devolucionesRegistradas        Devolucion[]
   etapasAdopcion                 EtapaSolicitudAdopcion[]
@@ -97,6 +98,11 @@ model Animal {
 
   traslados      Traslado[]
   adopciones     Adopcion[]
+  vacunas            VacunaAnimal[]
+  atencionesClinicas AtencionClinica[]
+  tratamientos       TratamientoAnimal[]
+  procedimientos     ProcedimientoAnimal[]
+  cuarentenas        CuarentenaAnimal[]
   solicitudes    SolicitudAdopcion[]
   devoluciones   Devolucion[]
 
@@ -233,6 +239,22 @@ model Auditoria {
   @@map("auditorias")
 }
 
+enum TipoProcedimiento {
+  ESTERILIZACION
+  CIRUGIA_GENERAL
+  DESPARASITACION_INTERNA
+  DESPARASITACION_EXTERNA
+  LIMPIEZA_DENTAL
+  CURACION
+  REVISION_GENERAL
+}
+
+enum EstadoCuarentena {
+  ACTIVA
+  FINALIZADA
+  INTERRUMPIDA
+}
+
 enum TipoIdentificacion {
   RUT
   OTRO
@@ -247,53 +269,6 @@ enum EstadoSolicitud {
   RECHAZADA
   ENTREGADA
   CANCELADA
-}
-
-model SolicitudAdopcion {
-  id              Int             @id @default(autoincrement())
-  postulanteId    Int
-  animalId        Int
-  registradoPorId Int
-  estado          EstadoSolicitud @default(RECIBIDA)
-  motivacion      String          @db.Text
-  datosPostulante Json
-  creadoEn        DateTime        @default(now())
-  actualizadoEn   DateTime        @updatedAt
-  postulante      Postulante      @relation(fields: [postulanteId], references: [id], onDelete: Restrict)
-  animal          Animal          @relation(fields: [animalId], references: [id], onDelete: Restrict)
-  registradoPor   Usuario         @relation(fields: [registradoPorId], references: [id], onDelete: Restrict)
-  adopcion        Adopcion?
-  visitaOmitida    Boolean @default(false)
-  motivoOmisionVisita String? @db.Text
-  etapas          EtapaSolicitudAdopcion[]
-
-  // El SQL de migración impone además una sola solicitud activa por postulante.
-  @@index([estado, creadoEn])
-  @@index([animalId])
-  @@map("solicitudes_adopcion")
-}
-
-// Módulo de devoluciones y antecedentes (RF2)
-model Devolucion {
-  id                      Int         @id @default(autoincrement())
-  adopcionId              Int         @unique
-  animalId                Int?
-  postulanteId            Int?
-  fecha                   DateTime    @default(now())
-  motivo                  String      @db.Text
-  estadoAnimal            String      @db.Text // Estado de salud / condiciones en el reingreso del animal
-  observacionesPostulante String?     @db.Text // Registro para antecedentes / historial del postulante
-  responsableId           Int
-  creadoEn                DateTime    @default(now())
-
-  adopcion                Adopcion    @relation(fields: [adopcionId], references: [id], onDelete: Restrict)
-  animal                  Animal?     @relation(fields: [animalId], references: [id], onDelete: Restrict)
-  postulante              Postulante? @relation(fields: [postulanteId], references: [id], onDelete: Restrict)
-  responsable             Usuario     @relation(fields: [responsableId], references: [id], onDelete: Restrict)
-
-  @@index([postulanteId])
-  @@index([animalId])
-  @@map("devoluciones")
 }
 
 enum EstadoSeguimiento {
@@ -317,6 +292,136 @@ enum TipoSeguimiento {
   EXTRAORDINARIO
 }
 
+enum EstadoAdopcion {
+  EN_REFUGIO
+  ADOPTADO
+}
+
+model VacunaAnimal {
+  id               Int      @id @default(autoincrement())
+  animalId         Int
+  animal           Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  nombreVacuna     String   @db.VarChar(100)
+  dosis            String   @db.VarChar(50)
+  lote             String?  @db.VarChar(60)
+  fechaAplicacion  DateTime @default(now())
+  fechaVencimiento DateTime
+  veterinariaId    Int
+  observaciones    String?  @db.Text
+  activo           Boolean  @default(true)
+
+  @@map("vacunas_animales")
+}
+
+model AtencionClinica {
+  id            Int      @id @default(autoincrement())
+  animalId      Int
+  animal        Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  veterinariaId Int
+  veterinaria   Usuario  @relation(fields: [veterinariaId], references: [id])
+  motivo        String   @db.VarChar(150)
+  diagnostico   String   @db.Text
+  temperatura   Float?
+  pesoActual    Float?
+  fechaAtencion DateTime @default(now())
+
+  tratamientos    TratamientoAnimal[]
+  procedimientos ProcedimientoAnimal[]
+
+  @@map("atenciones_clinicas")
+}
+
+model TratamientoAnimal {
+  id                Int              @id @default(autoincrement())
+  animalId          Int
+  animal            Animal           @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  atencionClinicaId Int?
+  atencionClinica   AtencionClinica? @relation(fields: [atencionClinicaId], references: [id], onDelete: SetNull)
+  medicamento       String           @db.VarChar(100)
+  dosis             String           @db.VarChar(80)
+  frecuenciaHoras   Int
+  fechaInicio       DateTime         @default(now())
+  fechaFin          DateTime
+  activo            Boolean          @default(true)
+  indicacionesExtra String?          @db.Text
+
+  @@map("tratamientos_animales")
+}
+
+model ProcedimientoAnimal {
+  id                Int               @id @default(autoincrement())
+  animalId          Int
+  animal            Animal            @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  atencionClinicaId Int?
+  atencionClinica   AtencionClinica?  @relation(fields: [atencionClinicaId], references: [id], onDelete: SetNull)
+  tipo              TipoProcedimiento
+  descripcion       String            @db.Text
+  resultado         String?           @db.Text
+  fecha             DateTime          @default(now())
+
+  @@map("procedimientos_animales")
+}
+
+model CuarentenaAnimal {
+  id               Int              @id @default(autoincrement())
+  animalId         Int
+  animal           Animal           @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  motivo           String           @db.Text
+  canilAislamiento String?          @db.VarChar(50)
+  fechaInicio      DateTime         @default(now())
+  fechaFinEstimada DateTime
+  fechaFinReal     DateTime?
+  estado           EstadoCuarentena @default(ACTIVA)
+  observaciones    String?          @db.Text
+
+  @@map("cuarentenas_animales")
+}
+
+model SolicitudAdopcion {
+  id                  Int                    @id @default(autoincrement())
+  postulanteId        Int
+  animalId            Int
+  registradoPorId     Int
+  estado              EstadoSolicitud        @default(RECIBIDA)
+  motivacion          String                 @db.Text
+  datosPostulante     Json
+  creadoEn            DateTime               @default(now())
+  actualizadoEn       DateTime               @updatedAt
+  postulante          Postulante             @relation(fields: [postulanteId], references: [id], onDelete: Restrict)
+  animal              Animal                 @relation(fields: [animalId], references: [id], onDelete: Restrict)
+  registradoPor       Usuario                @relation(fields: [registradoPorId], references: [id], onDelete: Restrict)
+  adopcion            Adopcion?
+  visitaOmitida       Boolean                @default(false)
+  motivoOmisionVisita String?                @db.Text
+  etapas              EtapaSolicitudAdopcion[]
+
+  @@index([estado, creadoEn])
+  @@index([animalId])
+  @@map("solicitudes_adopcion")
+}
+
+model Devolucion {
+  id                      Int         @id @default(autoincrement())
+  adopcionId              Int         @unique
+  animalId                Int?
+  postulanteId            Int?
+  fecha                   DateTime    @default(now())
+  motivo                  String      @db.Text
+  estadoAnimal            String      @db.Text
+  observacionesPostulante String?     @db.Text
+  responsableId           Int
+  creadoEn                DateTime    @default(now())
+
+  adopcion                Adopcion    @relation(fields: [adopcionId], references: [id], onDelete: Restrict)
+  animal                  Animal?     @relation(fields: [animalId], references: [id], onDelete: Restrict)
+  postulante              Postulante? @relation(fields: [postulanteId], references: [id], onDelete: Restrict)
+  responsable             Usuario     @relation(fields: [responsableId], references: [id], onDelete: Restrict)
+
+  @@index([postulanteId])
+  @@index([animalId])
+  @@map("devoluciones")
+}
+
 model SeguimientoAdopcion {
   id                Int               @id @default(autoincrement())
   adopcionId        Int
@@ -337,8 +442,8 @@ model SeguimientoAdopcion {
   creadoEn          DateTime          @default(now())
   actualizadoEn     DateTime          @updatedAt
 
-  adopcion          Adopcion          @relation(fields: [adopcionId], references: [id], onDelete: Restrict)
-  responsable       Usuario?          @relation(fields: [responsableId], references: [id], onDelete: Restrict)
+  adopcion          Adopcion            @relation(fields: [adopcionId], references: [id], onDelete: Restrict)
+  responsable       Usuario?            @relation(fields: [responsableId], references: [id], onDelete: Restrict)
   intentos          IntentoSeguimiento[]
 
   @@index([adopcionId, fechaProgramada])
@@ -376,26 +481,21 @@ model ConfiguracionSistema {
   @@map("configuraciones_sistema")
 }
 
-// Estado administrativo independiente del estado clínico y de la baja lógica.
-enum EstadoAdopcion {
-  EN_REFUGIO
-  ADOPTADO
-}
-
 model EtapaSolicitudAdopcion {
-  id Int @id @default(autoincrement())
-  solicitudId Int
-  accion String @db.VarChar(40)
-  estadoAnterior EstadoSolicitud
-  estadoNuevo EstadoSolicitud
-  fecha DateTime
-  observaciones String @db.Text
-  motivoOmision String? @db.Text
-  resultadoEvaluacion String? @db.VarChar(30)
-  responsableId Int
-  registradoEn DateTime @default(now())
-  solicitud SolicitudAdopcion @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
-  responsable Usuario @relation(fields: [responsableId], references: [id], onDelete: Restrict)
+  id                  Int             @id @default(autoincrement())
+  solicitudId         Int
+  accion              String          @db.VarChar(40)
+  estadoAnterior      EstadoSolicitud
+  estadoNuevo         EstadoSolicitud
+  fecha               DateTime
+  observaciones       String          @db.Text
+  motivoOmision       String?         @db.Text
+  resultadoEvaluacion String?         @db.VarChar(30)
+  responsableId       Int
+  registradoEn        DateTime        @default(now())
+
+  solicitud           SolicitudAdopcion @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
+  responsable         Usuario           @relation(fields: [responsableId], references: [id], onDelete: Restrict)
 
   @@index([solicitudId, registradoEn])
   @@map("etapas_solicitud_adopcion")
