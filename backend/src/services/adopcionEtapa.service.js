@@ -64,6 +64,16 @@ export const actualizarEtapa = async (id, data, responsable, ip) => {
             solicitudId: id, animalId: anterior.animalId, postulanteId: anterior.postulanteId,
             fecha, responsableId: responsable.id, etapa: 'Adoptado'
           } });
+          const configMax = await tx.configuracionSistema.findUnique({ where: { clave: 'SEGUIMIENTO_MAX_INTENTOS' } });
+          const limiteIntentos = configMax ? parseInt(configMax.valor, 10) || 3 : 3;
+          const fecha15 = new Date(fecha.getTime() + 15 * 24 * 60 * 60 * 1000);
+          const fecha30 = new Date(fecha.getTime() + 30 * 24 * 60 * 60 * 1000);
+          await tx.seguimientoAdopcion.createMany({
+            data: [
+              { adopcionId: adopcion.id, tipoSeguimiento: 'SEGUIMIENTO_15_DIAS', diasProgramados: 15, fechaProgramada: fecha15, estado: 'PENDIENTE', limiteIntentos },
+              { adopcionId: adopcion.id, tipoSeguimiento: 'SEGUIMIENTO_30_DIAS', diasProgramados: 30, fechaProgramada: fecha30, estado: 'PENDIENTE', limiteIntentos }
+            ]
+          });
           const actualizado = await tx.animal.update({ where: { id: animal.id }, data: { estadoAdopcion: 'ADOPTADO', canilId: null } });
           await auditar('Animal', animal.id, animal, actualizado);
           if (animal.canilId) {
