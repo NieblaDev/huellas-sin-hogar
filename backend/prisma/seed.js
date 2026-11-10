@@ -139,20 +139,82 @@ async function main() {
     });
   }
 
-  // 5. Insumos con stocks críticos
+  // 5. Insumos con stocks críticos, unidades, vencimientos y clasificación de fármacos
+  const fechaHoy = new Date();
+  const fechaVencePronto = new Date(fechaHoy.getTime() + 15 * 24 * 3600 * 1000); // en 15 días (alerta)
+  const fechaVenceLejos = new Date(fechaHoy.getTime() + 180 * 24 * 3600 * 1000); // en 6 meses
+
   const insumos = [
-    { nombre: 'Alimento seco perros 15kg', categoria: 'Alimento', stock: 18, stockMinimo: 10 },
-    { nombre: 'Alimento húmedo gatos', categoria: 'Alimento', stock: 4, stockMinimo: 12 }, // Crítico
-    { nombre: 'Amoxicilina 250mg', categoria: 'Medicamento', stock: 25, stockMinimo: 15 },
-    { nombre: 'Ivermectina pipetas', categoria: 'Medicamento', stock: 2, stockMinimo: 8 }, // Crítico
-    { nombre: 'Desinfectante caniles 5L', categoria: 'Higiene', stock: 3, stockMinimo: 6 }, // Crítico
-    { nombre: 'Vendas elásticas', categoria: 'Higiene', stock: 15, stockMinimo: 5 }
+    { nombre: 'Alimento seco perros 15kg', categoria: 'Alimento', stock: 18, stockMinimo: 10, unidad: 'Sacos', esFarmaco: false, ubicacion: 'Bodega Central', fechaVencimiento: fechaVenceLejos, lote: 'LOT-ALM-2026' },
+    { nombre: 'Alimento húmedo gatos', categoria: 'Alimento', stock: 4, stockMinimo: 12, unidad: 'Latas', esFarmaco: false, ubicacion: 'Cocina Gatera', fechaVencimiento: fechaVencePronto, lote: 'LOT-FEL-991' }, // Crítico y por vencer
+    { nombre: 'Amoxicilina 250mg', categoria: 'Medicamento', stock: 25, stockMinimo: 15, unidad: 'Cajas', esFarmaco: true, ubicacion: 'Farmacia Clínica', fechaVencimiento: fechaVencePronto, lote: 'MED-AMX-044' }, // Fármaco por vencer
+    { nombre: 'Ivermectina pipetas', categoria: 'Medicamento', stock: 2, stockMinimo: 8, unidad: 'Pipetas', esFarmaco: true, ubicacion: 'Farmacia Clínica', fechaVencimiento: fechaVenceLejos, lote: 'MED-IVR-112' }, // Fármaco Crítico
+    { nombre: 'Desinfectante caniles 5L', categoria: 'Higiene', stock: 3, stockMinimo: 6, unidad: 'Bidones', esFarmaco: false, ubicacion: 'Patio Limpieza', fechaVencimiento: fechaVenceLejos, lote: 'HIG-DES-301' }, // Crítico
+    { nombre: 'Vendas elásticas', categoria: 'Higiene', stock: 15, stockMinimo: 5, unidad: 'Unidades', esFarmaco: false, ubicacion: 'Botiquín Primeros Auxilios', fechaVencimiento: fechaVenceLejos, lote: 'HIG-VEN-009' },
+    { nombre: 'Meloxicam Gotas 10ml', categoria: 'Medicamento', stock: 8, stockMinimo: 4, unidad: 'Frascos', esFarmaco: true, ubicacion: 'Farmacia Clínica', fechaVencimiento: fechaVenceLejos, lote: 'MED-MLX-770' }
   ];
 
+  const insumosCreados = [];
   for (const ins of insumos) {
-    const ex = await prisma.insumo.findFirst({ where: { nombre: ins.nombre } });
-    if (!ex) {
-      await prisma.insumo.create({ data: ins });
+    let item = await prisma.insumo.findFirst({ where: { nombre: ins.nombre } });
+    if (!item) {
+      item = await prisma.insumo.create({ data: ins });
+    } else {
+      item = await prisma.insumo.update({
+        where: { id: item.id },
+        data: {
+          unidad: ins.unidad,
+          esFarmaco: ins.esFarmaco,
+          ubicacion: ins.ubicacion,
+          fechaVencimiento: ins.fechaVencimiento,
+          lote: ins.lote
+        }
+      });
+    }
+    insumosCreados.push(item);
+  }
+
+  // 5.1 Movimientos clasificados de inventario iniciales
+  const primerInsumo = insumosCreados[0];
+  const amoxicilina = insumosCreados.find(i => i.nombre.includes('Amoxicilina'));
+  const canelaAnimal = await prisma.animal.findFirst({ where: { nombre: 'Canela' } });
+
+  if (primerInsumo) {
+    const movExistente = await prisma.movimientoInventario.findFirst({ where: { insumoId: primerInsumo.id } });
+    if (!movExistente) {
+      await prisma.movimientoInventario.create({
+        data: {
+          insumoId: primerInsumo.id,
+          tipo: 'ENTRADA',
+          subtipo: 'DONACION',
+          cantidad: 18,
+          stockAnterior: 0,
+          stockNuevo: 18,
+          motivo: 'Donación masiva de alimento por campaña solidaria comunitaria',
+          donanteOProveedor: 'Fundación Huellitas Amigas',
+          registradoPorId: directora.id
+        }
+      });
+    }
+  }
+
+  if (amoxicilina && canelaAnimal) {
+    const movMed = await prisma.movimientoInventario.findFirst({ where: { insumoId: amoxicilina.id, animalId: canelaAnimal.id } });
+    if (!movMed) {
+      await prisma.movimientoInventario.create({
+        data: {
+          insumoId: amoxicilina.id,
+          tipo: 'SALIDA',
+          subtipo: 'TRATAMIENTO_MEDICO',
+          cantidad: 2,
+          stockAnterior: 27,
+          stockNuevo: 25,
+          motivo: 'Antibiótico administrado para control infeccioso post-quirúrgico',
+          animalId: canelaAnimal.id,
+          lote: 'MED-AMX-044',
+          registradoPorId: veterinaria.id
+        }
+      });
     }
   }
 
@@ -171,21 +233,103 @@ async function main() {
     });
   }
 
-  // 7. Turnos (con turnos descubiertos para el indicador)
+  // 7. Turnos estructurados (con tareas críticas, planificación confirmada y turnos descubiertos)
   const turnos = [
-    { diaSemana: 'Lunes', franja: 'Mañana', area: 'Paseos', voluntario: 'Andrés Mendoza', cubierto: true },
-    { diaSemana: 'Lunes', franja: 'Tarde', area: 'Clínica', voluntario: 'Diego Rivera', cubierto: true },
-    { diaSemana: 'Martes', franja: 'Mañana', area: 'Limpieza', voluntario: 'María Portero', cubierto: true },
-    { diaSemana: 'Martes', franja: 'Tarde', area: 'Paseos', voluntario: null, cubierto: false }, // Descubierto
-    { diaSemana: 'Miércoles', franja: 'Mañana', area: 'Alimentación', voluntario: 'Sofía Valdés', cubierto: true },
-    { diaSemana: 'Miércoles', franja: 'Tarde', area: 'Clínica', voluntario: null, cubierto: false }, // Descubierto
-    { diaSemana: 'Jueves', franja: 'Mañana', area: 'Paseos', voluntario: null, cubierto: false }, // Descubierto
+    { diaSemana: 'Lunes', franja: 'Mañana', area: 'Paseos', voluntario: 'Andrés Mendoza', cubierto: true, esCritica: false, cupoMaximo: 2, estadoPlanificacion: 'CONFIRMADA', horaInicio: '08:00', horaFin: '13:00' },
+    { diaSemana: 'Lunes', franja: 'Tarde', area: 'Atención Veterinaria', voluntario: 'Andrés Mendoza (Avanzado)', cubierto: true, esCritica: true, cupoMaximo: 1, estadoPlanificacion: 'CONFIRMADA', horaInicio: '14:00', horaFin: '19:00' },
+    { diaSemana: 'Martes', franja: 'Mañana', area: 'Limpieza', voluntario: 'Lucas Silva', cubierto: true, esCritica: false, cupoMaximo: 3, estadoPlanificacion: 'CONFIRMADA', horaInicio: '08:00', horaFin: '13:00' },
+    { diaSemana: 'Martes', franja: 'Tarde', area: 'Paseos', voluntario: null, cubierto: false, esCritica: false, cupoMaximo: 2, estadoPlanificacion: 'CONFIRMADA', horaInicio: '14:00', horaFin: '19:00' }, // Descubierto
+    { diaSemana: 'Miércoles', franja: 'Mañana', area: 'Alimentación', voluntario: 'Lucas Silva', cubierto: true, esCritica: false, cupoMaximo: 2, estadoPlanificacion: 'CONFIRMADA', horaInicio: '08:00', horaFin: '13:00' },
+    { diaSemana: 'Miércoles', franja: 'Tarde', area: 'Atención Veterinaria', voluntario: null, cubierto: false, esCritica: true, cupoMaximo: 1, estadoPlanificacion: 'CONFIRMADA', horaInicio: '14:00', horaFin: '19:00' }, // Descubierto Crítico
+    { diaSemana: 'Jueves', franja: 'Mañana', area: 'Paseos', voluntario: null, cubierto: false, esCritica: false, cupoMaximo: 2, estadoPlanificacion: 'CONFIRMADA', horaInicio: '08:00', horaFin: '13:00' }, // Descubierto
+    { diaSemana: 'Viernes', franja: 'Mañana', area: 'Limpieza', voluntario: 'Lucas Silva', cubierto: true, esCritica: false, cupoMaximo: 2, estadoPlanificacion: 'CONFIRMADA', horaInicio: '08:00', horaFin: '13:00' },
+    { diaSemana: 'Sábado', franja: 'Mañana', area: 'Paseos y Socialización', voluntario: null, cubierto: false, esCritica: false, cupoMaximo: 4, estadoPlanificacion: 'CONFIRMADA', horaInicio: '09:00', horaFin: '14:00' }
   ];
 
+  const turnosCreados = [];
   for (const t of turnos) {
-    const ex = await prisma.turno.findFirst({ where: { diaSemana: t.diaSemana, franja: t.franja, area: t.area } });
+    let ex = await prisma.turno.findFirst({ where: { diaSemana: t.diaSemana, franja: t.franja, area: t.area } });
     if (!ex) {
-      await prisma.turno.create({ data: t });
+      ex = await prisma.turno.create({ data: t });
+    } else {
+      ex = await prisma.turno.update({
+        where: { id: ex.id },
+        data: {
+          esCritica: t.esCritica,
+          cupoMaximo: t.cupoMaximo,
+          estadoPlanificacion: t.estadoPlanificacion,
+          horaInicio: t.horaInicio,
+          horaFin: t.horaFin
+        }
+      });
+    }
+    turnosCreados.push(ex);
+  }
+
+  // 7.1 Inscripciones individuales previas obligatorias
+  const turnoLunesPaseos = turnosCreados.find(t => t.diaSemana === 'Lunes' && t.area === 'Paseos');
+  const turnoLunesVet = turnosCreados.find(t => t.diaSemana === 'Lunes' && t.area === 'Atención Veterinaria');
+  const turnoMartesLimp = turnosCreados.find(t => t.diaSemana === 'Martes' && t.area === 'Limpieza');
+
+  if (turnoLunesVet) {
+    const inscripcionVet = await prisma.inscripcionTurno.findFirst({ where: { turnoId: turnoLunesVet.id, usuarioId: voluntarioAvanzado.id } });
+    if (!inscripcionVet) {
+      await prisma.inscripcionTurno.create({
+        data: {
+          turnoId: turnoLunesVet.id,
+          usuarioId: voluntarioAvanzado.id,
+          estado: 'CONFIRMADA'
+        }
+      });
+    }
+  }
+
+  if (turnoMartesLimp) {
+    const inscripcionNov = await prisma.inscripcionTurno.findFirst({ where: { turnoId: turnoMartesLimp.id, usuarioId: voluntarioNovato.id } });
+    if (!inscripcionNov) {
+      await prisma.inscripcionTurno.create({
+        data: {
+          turnoId: turnoMartesLimp.id,
+          usuarioId: voluntarioNovato.id,
+          estado: 'CONFIRMADA',
+          asistenciaRegistrada: true
+        }
+      });
+
+      // 7.2 Bitácora de turno habilitada
+      const bitacoraExistente = await prisma.bitacoraTurno.findFirst({ where: { turnoId: turnoMartesLimp.id, usuarioId: voluntarioNovato.id } });
+      if (!bitacoraExistente) {
+        await prisma.bitacoraTurno.create({
+          data: {
+            turnoId: turnoMartesLimp.id,
+            usuarioId: voluntarioNovato.id,
+            tareasRealizadas: 'Limpieza y sanitización de caniles del sector A. Reposición de agua fresca y mantas limpias.',
+            incidentes: 'Sin novedades. Todos los animales se comportaron tranquilos.',
+            observaciones: 'Se utilizó desinfectante según protocolo del refugio.'
+          }
+        });
+      }
+    }
+  }
+
+  // 7.3 Permuta de ejemplo solicitada y pendiente de validación por ambas partes
+  if (turnoLunesPaseos && turnoMartesLimp) {
+    const permutaEx = await prisma.permutaTurno.findFirst({
+      where: { solicitanteId: voluntarioNovato.id, destinatarioId: voluntarioAvanzado.id }
+    });
+    if (!permutaEx) {
+      await prisma.permutaTurno.create({
+        data: {
+          solicitanteId: voluntarioNovato.id,
+          destinatarioId: voluntarioAvanzado.id,
+          turnoOrigenId: turnoMartesLimp.id,
+          turnoDestinoId: turnoLunesPaseos.id,
+          motivo: 'Compromiso académico en la universidad el martes en la mañana; solicito permuta con turno de lunes.',
+          aprobadoSolicitante: true,
+          aprobadoDestinatario: false, // Esperando aprobación de Andrés (destinatario)
+          estado: 'PENDIENTE'
+        }
+      });
     }
   }
 

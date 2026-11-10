@@ -76,6 +76,14 @@ export const getDashboardMetrics = async (user) => {
   // Filtrar insumos críticos reales (stock <= stockMinimo)
   const insumosAlerta = todosInsumos.filter(i => i.stock <= i.stockMinimo);
 
+  // Filtrar insumos con vencimiento próximo (<= 30 días o vencidos)
+  const hoyDashboard = new Date();
+  const insumosVencimiento = todosInsumos.filter(i => {
+    if (!i.fechaVencimiento) return false;
+    const diffDias = Math.ceil((new Date(i.fechaVencimiento).getTime() - hoyDashboard.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDias <= 30;
+  });
+
   // Porcentaje de ocupación
   const ocupacionPorcentaje = totalCaniles > 0
     ? Math.round(((canilesOcupados + canilesCuarentena) / totalCaniles) * 100)
@@ -101,6 +109,16 @@ export const getDashboardMetrics = async (user) => {
       titulo: `${insumosAlerta.length} Insumos en Stock Crítico`,
       mensaje: `Hay productos por debajo del stock mínimo (${insumosAlerta.map(i => i.nombre).slice(0, 3).join(', ')}...).`,
       icono: 'package'
+    });
+  }
+
+  if (insumosVencimiento.length > 0) {
+    alertasPrioritarias.push({
+      tipo: 'ALERTA',
+      categoria: 'INVENTARIO',
+      titulo: `${insumosVencimiento.length} Insumos próximos a vencer o vencidos`,
+      mensaje: `Requieren rotación o reposición urgente (${insumosVencimiento.map(i => i.nombre).slice(0, 3).join(', ')}...).`,
+      icono: 'clock'
     });
   }
 
@@ -138,6 +156,7 @@ export const getDashboardMetrics = async (user) => {
       ocupacionPorcentaje,
       alertaSobrecupo: ocupacionPorcentaje > 90,
       stockCriticoCount: insumosAlerta.length,
+      insumosVencimientoCount: insumosVencimiento.length,
       turnosDescubiertosCount: turnosDescubiertos.length,
       trasladosPendientesCount: trasladosPendientes.length
     },
@@ -148,6 +167,7 @@ export const getDashboardMetrics = async (user) => {
     alertasPrioritarias,
     listadosOperativos: {
       insumosBajoStock: insumosAlerta,
+      insumosPorVencer: insumosVencimiento,
       turnosSinCubrir: turnosDescubiertos
     }
   };
