@@ -5,6 +5,7 @@ import AnimalFormModal from './components/AnimalFormModal';
 import CanilesModulo from './components/CanilesModulo';
 import DashboardModulo from './components/DashboardModulo';
 import AuditoriaModulo from './components/AuditoriaModulo';
+import CuidadosModulo from './components/CuidadosModulo';
 import SaludModulo from './components/SaludModulo';
 import AdopcionesModulo from './components/adopciones/AdopcionesModulo';
 import { clearStoredSession, readStoredSession } from './utils/session';
@@ -135,6 +136,18 @@ export default function App() {
                 🐶 <span>Registro Animales</span>
               </button>
 
+              {/* Necesidades Diarias y Notas de Cuidado */}
+              <button
+                 onClick={() => setActiveTab('cuidados')}
+                 style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
+                 background: activeTab === 'cuidados' ? '#eef3ec' : 'transparent',
+                 color: activeTab === 'cuidados' ? '#2f5540' : '#7c8592',
+                 border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
+                }}
+              >
+                📋 <span>Rondas y Cuidados</span>
+              </button>
               {/*Salud y Vacuncacion */}
               <button
                 onClick={() => setActiveTab('salud')}
@@ -147,6 +160,7 @@ export default function App() {
               >
                 💉 <span>Salud y Vacunación</span>
               </button>
+              {/*Gestion de Adopciones */}
               {puedeGestionarAdopciones && (
                 <button onClick={() => setActiveTab('adopciones')}
                   aria-current={activeTab === 'adopciones' ? 'page' : undefined}
@@ -158,7 +172,6 @@ export default function App() {
                 </button>
               )}
 
-              {/* Auditoría y Trazabilidad (Requisito 3 - Restringido a Directora) */}
               {/* Auditoría y Trazabilidad */}
               {esDirectora && (
                 <button
@@ -217,6 +230,8 @@ export default function App() {
               />
             )}
 
+            {activeTab === 'cuidados' && (
+              <CuidadosModulo user={user} />
             {activeTab === 'salud' && (
               <SaludModulo user={user} />
             {activeTab === 'adopciones' && puedeGestionarAdopciones && (
