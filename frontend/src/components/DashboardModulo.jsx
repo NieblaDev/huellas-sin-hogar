@@ -253,10 +253,13 @@ export default function DashboardModulo({ user, onNavigate }) {
 
         {/* KPI 4: Stock Crítico */}
         <div
+          onClick={() => onNavigate && onNavigate('inventario')}
           style={{
             background: '#fff', border: '1.5px solid #e0705c', borderRadius: '16px', padding: '20px',
-            boxShadow: '0 4px 14px rgba(224,112,92,0.08)'
+            boxShadow: '0 4px 14px rgba(224,112,92,0.08)', cursor: 'pointer', transition: 'transform 0.15s'
           }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: '800', textTransform: 'uppercase', color: '#e0705c', letterSpacing: '0.04em' }}>Stock Crítico</span>
@@ -266,16 +269,19 @@ export default function DashboardModulo({ user, onNavigate }) {
             {resumen.stockCriticoCount}
           </div>
           <div style={{ fontSize: '0.78rem', color: '#7c8592', marginTop: '8px' }}>
-            {resumen.stockCriticoCount > 0 ? 'Artículos bajo mínimo' : 'Inventario abastecido'}
+            {resumen.stockCriticoCount > 0 ? 'Artículos bajo mínimo (Clic para ver)' : 'Inventario abastecido'}
           </div>
         </div>
 
         {/* KPI 5: Turnos Descubiertos */}
         <div
+          onClick={() => onNavigate && onNavigate('voluntarios')}
           style={{
             background: '#fff', border: '1.5px solid #d99a3d', borderRadius: '16px', padding: '20px',
-            boxShadow: '0 4px 14px rgba(217,154,61,0.08)'
+            boxShadow: '0 4px 14px rgba(217,154,61,0.08)', cursor: 'pointer', transition: 'transform 0.15s'
           }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: '800', textTransform: 'uppercase', color: '#b37416', letterSpacing: '0.04em' }}>Turnos Descubiertos</span>
@@ -285,7 +291,7 @@ export default function DashboardModulo({ user, onNavigate }) {
             {resumen.turnosDescubiertosCount}
           </div>
           <div style={{ fontSize: '0.78rem', color: '#7c8592', marginTop: '8px' }}>
-            Requieren asignación
+            {resumen.turnosDescubiertosCount > 0 ? 'Requieren asignación (Clic para ver)' : 'Todos los turnos cubiertos'}
           </div>
         </div>
       </div>

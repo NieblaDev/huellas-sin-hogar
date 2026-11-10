@@ -8,6 +8,8 @@ import AuditoriaModulo from './components/AuditoriaModulo';
 import CuidadosModulo from './components/CuidadosModulo';
 import SaludModulo from './components/SaludModulo';
 import AdopcionesModulo from './components/adopciones/AdopcionesModulo';
+import InventarioModulo from './components/InventarioModulo';
+import VoluntariosModulo from './components/VoluntariosModulo';
 import { clearStoredSession, readStoredSession } from './utils/session';
 import './styles/portal-controls.css';
 import { API_URL, getAuthHeaders } from './api/config';
@@ -63,6 +65,7 @@ export default function App() {
 
   const esDirectora = user?.rol === 'DIRECTORA';
   const puedeGestionarAdopciones = ['DIRECTORA', 'ENCARGADA_ADOPCIONES'].includes(user?.rol);
+  const puedeGestionarInventario = ['DIRECTORA', 'COORDINADOR', 'VETERINARIA', 'ENCARGADA_ADOPCIONES', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
 
   return (
     <div className="portal-staff" style={{ minHeight: '100vh', background: '#f3f4f6', display: 'flex' }}>
@@ -173,6 +176,36 @@ export default function App() {
                 </button>
               )}
 
+              {/* Inventario de Insumos */}
+              {puedeGestionarInventario && (
+                <button
+                  onClick={() => setActiveTab('inventario')}
+                  aria-current={activeTab === 'inventario' ? 'page' : undefined}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
+                    background: activeTab === 'inventario' ? '#eef3ec' : 'transparent',
+                    color: activeTab === 'inventario' ? '#2f5540' : '#7c8592',
+                    border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
+                  }}
+                >
+                  📦 <span>Inventario</span>
+                </button>
+              )}
+
+              {/* Voluntarios y Turnos */}
+              <button
+                onClick={() => setActiveTab('voluntarios')}
+                aria-current={activeTab === 'voluntarios' ? 'page' : undefined}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
+                  background: activeTab === 'voluntarios' ? '#eef3ec' : 'transparent',
+                  color: activeTab === 'voluntarios' ? '#2f5540' : '#7c8592',
+                  border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
+                }}
+              >
+                🤝 <span>Voluntarios y Turnos</span>
+              </button>
+
               {/* Auditoría y Trazabilidad */}
               {esDirectora && (
                 <button
@@ -248,6 +281,14 @@ export default function App() {
 
             {activeTab === 'adopciones' && puedeGestionarAdopciones && (
               <AdopcionesModulo user={user} />
+            )}
+
+            {activeTab === 'inventario' && puedeGestionarInventario && (
+              <InventarioModulo user={user} />
+            )}
+
+            {activeTab === 'voluntarios' && (
+              <VoluntariosModulo user={user} />
             )}
 
             {activeTab === 'auditoria' && esDirectora && (

@@ -11,8 +11,23 @@ enum Rol {
   DIRECTORA
   VETERINARIA
   ENCARGADA_ADOPCIONES
+  COORDINADOR
   VOLUNTARIO_AVANZADO
   VOLUNTARIO_NOVATO
+}
+
+enum TipoMovimientoInventario {
+  ENTRADA
+  SALIDA
+}
+
+enum SubtipoMovimientoInventario {
+  DONACION
+  COMPRA
+  CONSUMO
+  TRATAMIENTO_MEDICO
+  MERMA
+  AJUSTE
 }
 
 enum EstadoSalud {
@@ -148,6 +163,11 @@ model Usuario {
   adopcionesConcretadas          Adopcion[]
   seguimientosRegistrados        SeguimientoAdopcion[]
   intentosSeguimientoRegistrados IntentoSeguimiento[]
+  movimientosInventario          MovimientoInventario[]
+  inscripcionesTurnos            InscripcionTurno[]
+  permutasSolicitadas            PermutaTurno[]           @relation("PermutaSolicitante")
+  permutasRecibidas              PermutaTurno[]           @relation("PermutaDestinatario")
+  bitacorasTurnos                BitacoraTurno[]
 
   @@map("usuarios")
 }
@@ -186,6 +206,7 @@ model Animal {
   cuarentenas         CuarentenaAnimal[]
   solicitudes         SolicitudAdopcion[]
   devoluciones        Devolucion[]
+  movimientosInventario MovimientoInventario[]
 
   @@map("animales")
 }
@@ -276,27 +297,124 @@ model Adopcion {
 }
 
 model Insumo {
-  id          Int      @id @default(autoincrement())
-  nombre      String   @db.VarChar(100)
-  categoria   String   @db.VarChar(60)
-  stock       Int      @default(0)
-  stockMinimo Int      @default(5)
-  activo      Boolean  @default(true)
-  creadoEn    DateTime @default(now())
+  id               Int                    @id @default(autoincrement())
+  nombre           String                 @db.VarChar(100)
+  categoria        String                 @db.VarChar(60)
+  stock            Int                    @default(0)
+  stockMinimo      Int                    @default(5)
+  unidad           String                 @default("Unidades") @db.VarChar(40)
+  esFarmaco        Boolean                @default(false)
+  fechaVencimiento DateTime?
+  lote             String?                @db.VarChar(60)
+  ubicacion        String?                @db.VarChar(100)
+  activo           Boolean                @default(true)
+  creadoEn         DateTime               @default(now())
+  actualizadoEn    DateTime               @default(now()) @updatedAt
+
+  movimientos      MovimientoInventario[]
 
   @@map("insumos")
 }
 
+model MovimientoInventario {
+  id                Int                         @id @default(autoincrement())
+  insumoId          Int
+  insumo            Insumo                      @relation(fields: [insumoId], references: [id], onDelete: Restrict)
+  tipo              TipoMovimientoInventario
+  subtipo           SubtipoMovimientoInventario
+  cantidad          Int
+  stockAnterior     Int
+  stockNuevo        Int
+  motivo            String                      @db.Text
+  donanteOProveedor String?                     @db.VarChar(120)
+  animalId          Int?
+  animal            Animal?                     @relation(fields: [animalId], references: [id], onDelete: SetNull)
+  tratamientoId     Int?
+  tratamiento       TratamientoAnimal?          @relation(fields: [tratamientoId], references: [id], onDelete: SetNull)
+  lote              String?                     @db.VarChar(60)
+  fechaVencimiento  DateTime?
+  registradoPorId   Int
+  registradoPor     Usuario                     @relation(fields: [registradoPorId], references: [id], onDelete: Restrict)
+  fecha             DateTime                    @default(now())
+
+  @@index([insumoId, fecha])
+  @@map("movimientos_inventario")
+}
+
 model Turno {
-  id          Int       @id @default(autoincrement())
-  diaSemana   String    @db.VarChar(20)
-  franja      String    @db.VarChar(20)
-  area        String    @db.VarChar(60)
-  voluntario  String?   @db.VarChar(100)
-  cubierto    Boolean   @default(false)
-  fecha       DateTime?
+  id                  Int                @id @default(autoincrement())
+  diaSemana           String             @db.VarChar(20)
+  franja              String             @db.VarChar(30)
+  area                String             @db.VarChar(80)
+  voluntario          String?            @db.VarChar(100)
+  cubierto            Boolean            @default(false)
+  fecha               DateTime?
+  esCritica           Boolean            @default(false)
+  cupoMaximo          Int                @default(2)
+  estadoPlanificacion String             @default("BORRADOR") @db.VarChar(30)
+  horaInicio          String?            @db.VarChar(10)
+  horaFin             String?            @db.VarChar(10)
+  observaciones       String?            @db.Text
+
+  inscripciones       InscripcionTurno[]
+  bitacoras           BitacoraTurno[]
+  permutasOrigen      PermutaTurno[]     @relation("PermutaTurnoOrigen")
+  permutasDestino     PermutaTurno[]     @relation("PermutaTurnoDestino")
 
   @@map("turnos")
+}
+
+model InscripcionTurno {
+  id                   Int       @id @default(autoincrement())
+  turnoId              Int
+  turno                Turno     @relation(fields: [turnoId], references: [id], onDelete: Cascade)
+  usuarioId            Int
+  usuario              Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  estado               String    @default("CONFIRMADA") @db.VarChar(30)
+  inscritoEn           DateTime  @default(now())
+  inscritoPorId        Int?
+  asistenciaRegistrada Boolean   @default(false)
+
+  @@index([turnoId, usuarioId])
+  @@map("inscripciones_turnos")
+}
+
+model PermutaTurno {
+  id                    Int       @id @default(autoincrement())
+  solicitanteId         Int
+  solicitante           Usuario   @relation("PermutaSolicitante", fields: [solicitanteId], references: [id], onDelete: Restrict)
+  destinatarioId        Int
+  destinatario          Usuario   @relation("PermutaDestinatario", fields: [destinatarioId], references: [id], onDelete: Restrict)
+  turnoOrigenId         Int
+  turnoOrigen           Turno     @relation("PermutaTurnoOrigen", fields: [turnoOrigenId], references: [id], onDelete: Cascade)
+  turnoDestinoId        Int?
+  turnoDestino          Turno?    @relation("PermutaTurnoDestino", fields: [turnoDestinoId], references: [id], onDelete: Cascade)
+  motivo                String    @db.Text
+  aprobadoSolicitante   Boolean   @default(true)
+  aprobadoDestinatario  Boolean   @default(false)
+  estado                String    @default("PENDIENTE") @db.VarChar(30)
+  fechaSolicitud        DateTime  @default(now())
+  fechaResolucion       DateTime?
+  observacionResolucion String?   @db.Text
+
+  @@index([solicitanteId])
+  @@index([destinatarioId])
+  @@map("permutas_turnos")
+}
+
+model BitacoraTurno {
+  id               Int      @id @default(autoincrement())
+  turnoId          Int
+  turno            Turno    @relation(fields: [turnoId], references: [id], onDelete: Cascade)
+  usuarioId        Int
+  usuario          Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  tareasRealizadas String   @db.Text
+  incidentes       String?  @db.Text
+  observaciones    String?  @db.Text
+  fechaHora        DateTime @default(now())
+
+  @@index([turnoId, usuarioId])
+  @@map("bitacoras_turnos")
 }
 
 model Auditoria {
@@ -403,6 +521,7 @@ model TratamientoAnimal {
   fechaFin          DateTime
   activo            Boolean          @default(true)
   indicacionesExtra String?          @db.Text
+  movimientosInventario MovimientoInventario[]
 
   @@map("tratamientos_animales")
 }
