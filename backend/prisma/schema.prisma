@@ -56,14 +56,16 @@ model Usuario {
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  animalesRegistrados  Animal[]
-  trasladosSolicitados Traslado[] @relation("TrasladoSolicitante")
-  trasladosAprobados   Traslado[] @relation("TrasladoAprobador")
-  auditorias           Auditoria[]
-  solicitudesRegistradas SolicitudAdopcion[]
-  devolucionesRegistradas Devolucion[]
-  etapasAdopcion EtapaSolicitudAdopcion[]
-  adopcionesConcretadas Adopcion[]
+  animalesRegistrados            Animal[]
+  trasladosSolicitados           Traslado[] @relation("TrasladoSolicitante")
+  trasladosAprobados             Traslado[] @relation("TrasladoAprobador")
+  auditorias                     Auditoria[]
+  solicitudesRegistradas         SolicitudAdopcion[]
+  devolucionesRegistradas        Devolucion[]
+  etapasAdopcion                 EtapaSolicitudAdopcion[]
+  adopcionesConcretadas          Adopcion[]
+  seguimientosRegistrados        SeguimientoAdopcion[]
+  intentosSeguimientoRegistrados IntentoSeguimiento[]
 
   @@map("usuarios")
 }
@@ -96,6 +98,7 @@ model Animal {
   traslados      Traslado[]
   adopciones     Adopcion[]
   solicitudes    SolicitudAdopcion[]
+  devoluciones   Devolucion[]
 
   @@map("animales")
 }
@@ -163,26 +166,28 @@ model Postulante {
   activo      Boolean    @default(true) // Baja lógica
   creadoEn    DateTime   @default(now())
 
-  adopciones  Adopcion[]
-  solicitudes SolicitudAdopcion[]
+  adopciones   Adopcion[]
+  solicitudes  SolicitudAdopcion[]
+  devoluciones Devolucion[]
 
   @@map("postulantes")
 }
 
 model Adopcion {
-  id             Int         @id @default(autoincrement())
-  animalId       Int
-  animal         Animal      @relation(fields: [animalId], references: [id], onDelete: Cascade)
-  postulanteId   Int
-  postulante     Postulante  @relation(fields: [postulanteId], references: [id], onDelete: Cascade)
-  fecha          DateTime    @default(now())
-  etapa          String      @default("Solicitud recibida") @db.VarChar(60)
-  devolucion     Boolean     @default(false)
-  solicitudId    Int?        @unique
-  solicitud      SolicitudAdopcion? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
+  id                 Int         @id @default(autoincrement())
+  animalId           Int
+  animal             Animal      @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  postulanteId       Int
+  postulante         Postulante  @relation(fields: [postulanteId], references: [id], onDelete: Cascade)
+  fecha              DateTime    @default(now())
+  etapa              String      @default("Solicitud recibida") @db.VarChar(60)
+  devolucion         Boolean     @default(false)
+  solicitudId        Int?        @unique
+  solicitud          SolicitudAdopcion? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
   registroDevolucion Devolucion?
-  responsableId Int?
-  responsable Usuario? @relation(fields: [responsableId], references: [id], onDelete: Restrict)
+  seguimientos       SeguimientoAdopcion[]
+  responsableId      Int?
+  responsable        Usuario? @relation(fields: [responsableId], references: [id], onDelete: Restrict)
 
   @@map("adopciones")
 }
@@ -268,18 +273,107 @@ model SolicitudAdopcion {
   @@map("solicitudes_adopcion")
 }
 
-// RF1 consulta antecedentes. La operación de devolución corresponde al commit 4.
+// Módulo de devoluciones y antecedentes (RF2)
 model Devolucion {
-  id            Int      @id @default(autoincrement())
-  adopcionId    Int      @unique
-  fecha         DateTime
-  motivo        String   @db.Text
-  estadoAnimal  String   @db.Text
-  responsableId Int
-  adopcion      Adopcion @relation(fields: [adopcionId], references: [id], onDelete: Restrict)
-  responsable   Usuario  @relation(fields: [responsableId], references: [id], onDelete: Restrict)
+  id                      Int         @id @default(autoincrement())
+  adopcionId              Int         @unique
+  animalId                Int?
+  postulanteId            Int?
+  fecha                   DateTime    @default(now())
+  motivo                  String      @db.Text
+  estadoAnimal            String      @db.Text // Estado de salud / condiciones en el reingreso del animal
+  observacionesPostulante String?     @db.Text // Registro para antecedentes / historial del postulante
+  responsableId           Int
+  creadoEn                DateTime    @default(now())
 
+  adopcion                Adopcion    @relation(fields: [adopcionId], references: [id], onDelete: Restrict)
+  animal                  Animal?     @relation(fields: [animalId], references: [id], onDelete: Restrict)
+  postulante              Postulante? @relation(fields: [postulanteId], references: [id], onDelete: Restrict)
+  responsable             Usuario     @relation(fields: [responsableId], references: [id], onDelete: Restrict)
+
+  @@index([postulanteId])
+  @@index([animalId])
   @@map("devoluciones")
+}
+
+enum EstadoSeguimiento {
+  PENDIENTE
+  REPROGRAMADO
+  COMPLETADO
+  SIN_CONTACTO
+}
+
+enum CanalContacto {
+  LLAMADA_TELEFONICA
+  WHATSAPP
+  CORREO_ELECTRONICO
+  VISITA_DOMICILIARIA
+  OTRO
+}
+
+enum TipoSeguimiento {
+  SEGUIMIENTO_15_DIAS
+  SEGUIMIENTO_30_DIAS
+  EXTRAORDINARIO
+}
+
+model SeguimientoAdopcion {
+  id                Int               @id @default(autoincrement())
+  adopcionId        Int
+  tipoSeguimiento   TipoSeguimiento   @default(SEGUIMIENTO_15_DIAS)
+  diasProgramados   Int               @default(15)
+  fechaProgramada   DateTime
+  fechaEjecucion    DateTime?
+  canalContacto     CanalContacto?
+  estadoAnimal      String?           @db.Text
+  resultado         String?           @db.VarChar(100)
+  observaciones     String?           @db.Text
+  intentosFallidos  Int               @default(0)
+  limiteIntentos    Int               @default(3)
+  estado            EstadoSeguimiento @default(PENDIENTE)
+  alertaSinContacto Boolean           @default(false)
+  fechaAlerta       DateTime?
+  responsableId     Int?
+  creadoEn          DateTime          @default(now())
+  actualizadoEn     DateTime          @updatedAt
+
+  adopcion          Adopcion          @relation(fields: [adopcionId], references: [id], onDelete: Restrict)
+  responsable       Usuario?          @relation(fields: [responsableId], references: [id], onDelete: Restrict)
+  intentos          IntentoSeguimiento[]
+
+  @@index([adopcionId, fechaProgramada])
+  @@index([estado, fechaProgramada])
+  @@map("seguimientos_adopcion")
+}
+
+model IntentoSeguimiento {
+  id                Int                 @id @default(autoincrement())
+  seguimientoId     Int
+  numeroIntento     Int
+  fecha             DateTime            @default(now())
+  canalContacto     CanalContacto
+  contactado        Boolean             @default(false)
+  resultado         String?             @db.VarChar(100)
+  observaciones     String?             @db.Text
+  fechaReprogramada DateTime?
+  responsableId     Int
+  creadoEn          DateTime            @default(now())
+
+  seguimiento       SeguimientoAdopcion @relation(fields: [seguimientoId], references: [id], onDelete: Cascade)
+  responsable       Usuario             @relation(fields: [responsableId], references: [id], onDelete: Restrict)
+
+  @@index([seguimientoId, fecha])
+  @@map("intentos_seguimiento")
+}
+
+model ConfiguracionSistema {
+  id            Int      @id @default(autoincrement())
+  clave         String   @unique @db.VarChar(60)
+  valor         String   @db.VarChar(255)
+  descripcion   String?  @db.Text
+  actualizadoEn DateTime @updatedAt
+
+  @@map("configuraciones_sistema")
 }
 
 // Estado administrativo independiente del estado clínico y de la baja lógica.
