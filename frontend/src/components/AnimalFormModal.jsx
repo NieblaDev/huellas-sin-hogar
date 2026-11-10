@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { API_URL, getAuthHeaders } from '../api/config';
+import React, { useState, useEffect } from 'react';
+import { API_URL } from '../api/config';
 
 const INITIAL_FORM = {
   nombre: '',
@@ -14,73 +14,106 @@ const INITIAL_FORM = {
   comportamiento: '',
   estadoSalud: 'NORMAL',
   nota: '',
-  fotoUrl: '',
   canilId: ''
 };
 
+const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/jpg'];
+const MAX_IMAGEN_MB = 10;
+
 export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = [] }) {
   const [formData, setFormData] = useState(INITIAL_FORM);
+  const [fotoArchivo, setFotoArchivo] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState('');
   const [error, setError] = useState(null);
   const [guardando, setGuardando] = useState(false);
 
+  // Libera la URL temporal de la vista previa al cambiar o quitar la foto
+  useEffect(() => {
+    return () => {
+      if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+    };
+  }, [fotoPreview]);
+
   if (!isOpen) return null;
 
+  const quitarFoto = () => {
+    setFotoArchivo(null);
+    setFotoPreview('');
+  };
+
   const handlePhoto = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => setFormData((prev) => ({ ...prev, fotoUrl: reader.result }));
-      reader.readAsDataURL(file);
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!TIPOS_IMAGEN.includes(file.type)) {
+      setError('La fotografía debe estar en formato JPG o PNG.');
+      return;
     }
+    if (file.size > MAX_IMAGEN_MB * 1024 * 1024) {
+      setError(`La fotografía es demasiado pesada. El tamaño máximo es ${MAX_IMAGEN_MB} MB.`);
+      return;
+    }
+
+    setError(null);
+    setFotoArchivo(file);
+    setFotoPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
 
-    // Validación estricta en cliente acorde a Regla 1
     if (!formData.nombre.trim()) {
-      setError('El nombre o identificador inicial del animal es obligatorio.');
+      setError('Ingresa un nombre o identificador para el animal.');
       return;
     }
-    if (!['perro', 'gato'].includes((formData.especie || '').toLowerCase())) {
-      setError("Validación estricta: Solo se permite el ingreso si la especie es canina ('perro') o felina ('gato').");
-      return;
-    }
-    if (!['macho', 'hembra'].includes((formData.sexo || '').toLowerCase())) {
-      setError("Validación estricta: El sexo del animal debe estar definido ('macho' o 'hembra').");
+    if (
+      !['perro', 'gato'].includes((formData.especie || '').toLowerCase()) ||
+      !['macho', 'hembra'].includes((formData.sexo || '').toLowerCase())
+    ) {
+      setError('Debes especificar la especie (canina o felina) y el sexo del animal para completar el ingreso.');
       return;
     }
 
     setGuardando(true);
     try {
-      // Regla 2: Antecedentes desconocidos se envían como null/opcionales sin bloquear el guardado
-      const body = {
-        nombre: formData.nombre.trim(),
-        tipoIngreso: formData.tipoIngreso || 'Rescate',
-        especie: formData.especie,
-        sexo: formData.sexo,
-        edad: formData.edad.trim() || null,
-        raza: formData.raza.trim() || null,
-        peso: formData.peso !== '' ? parseFloat(formData.peso) : null,
-        chip: formData.chip.trim() || null,
-        esterilizacion: formData.esterilizacion || null,
-        comportamiento: formData.comportamiento.trim() || null,
-        estadoSalud: formData.estadoSalud || 'NORMAL',
-        nota: formData.nota.trim() || null,
-        fotoUrl: formData.fotoUrl || null,
-        canilId: formData.canilId ? parseInt(formData.canilId, 10) : null
-      };
+      // Los datos desconocidos simplemente no se envían: el sistema completa valores por defecto
+      const body = new FormData();
+      body.append('nombre', formData.nombre.trim());
+      body.append('tipoIngreso', formData.tipoIngreso || 'Rescate');
+      body.append('especie', formData.especie);
+      body.append('sexo', formData.sexo);
+      body.append('estadoSalud', formData.estadoSalud || 'NORMAL');
 
+      const opcionales = {
+        edad: formData.edad.trim(),
+        raza: formData.raza.trim(),
+        peso: formData.peso !== '' ? String(formData.peso) : '',
+        chip: formData.chip.trim(),
+        esterilizacion: formData.esterilizacion || '',
+        comportamiento: formData.comportamiento.trim(),
+        nota: formData.nota.trim(),
+        canilId: formData.canilId ? String(formData.canilId) : ''
+      };
+      Object.entries(opcionales).forEach(([campo, valor]) => {
+        if (valor !== '') body.append(campo, valor);
+      });
+
+      if (fotoArchivo) body.append('foto', fotoArchivo);
+
+      // Nota: no se fija 'Content-Type' manualmente; el navegador agrega
+      // 'multipart/form-data' junto con el "boundary" que Multer necesita.
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/animals`, {
         method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(body)
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const msgDetalle = data.detalles?.map((d) => d.mensaje).join(' | ');
-        throw new Error(msgDetalle || data.error || 'Error al registrar el ingreso del animal');
+        const msgDetalle = data.detalles?.map((d) => d.mensaje).join(' · ');
+        throw new Error(msgDetalle || data.error || 'No pudimos registrar el ingreso. Inténtalo nuevamente.');
       }
 
       if (data.notificacion) {
@@ -88,6 +121,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
       }
 
       setFormData(INITIAL_FORM);
+      quitarFoto();
       onSuccess();
       onClose();
     } catch (err) {
@@ -173,8 +207,8 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
           >
             <div
               style={{
-                width: '54px',
-                height: '54px',
+                width: '72px',
+                height: '72px',
                 borderRadius: '10px',
                 background: '#e8f0e8',
                 display: 'flex',
@@ -184,22 +218,31 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 flexShrink: 0
               }}
             >
-              {formData.fotoUrl ? (
-                <img src={formData.fotoUrl} alt="Vista previa" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {fotoPreview ? (
+                <img src={fotoPreview} alt="Vista previa de la fotografía" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
-                <span style={{ fontSize: '1.5rem' }}>📷</span>
+                <span style={{ fontSize: '1.6rem' }}>📷</span>
               )}
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#1f2430', marginBottom: '4px' }}>
-                Fotografía del Animal (Opcional)
+                Fotografía del animal (opcional)
               </label>
-              <input type="file" accept="image/*" onChange={handlePhoto} style={{ fontSize: '0.78rem', width: '100%' }} />
+              <input
+                type="file"
+                name="foto"
+                accept="image/jpeg,image/png,image/jpg"
+                onChange={handlePhoto}
+                style={{ fontSize: '0.78rem', width: '100%' }}
+              />
+              <span style={{ display: 'block', fontSize: '0.7rem', color: '#a3aab5', marginTop: '3px' }}>
+                {fotoArchivo ? fotoArchivo.name : 'Formatos JPG o PNG, hasta 10 MB.'}
+              </span>
             </div>
-            {formData.fotoUrl && (
+            {fotoPreview && (
               <button
                 type="button"
-                onClick={() => setFormData((prev) => ({ ...prev, fotoUrl: '' }))}
+                onClick={quitarFoto}
                 style={{
                   background: '#fbeae8',
                   color: '#d1453b',
@@ -271,12 +314,12 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
               >
                 <option value="Perro">Perro (Canina)</option>
                 <option value="Gato">Gato (Felina)</option>
-                <option value="">— Sin definir (No permitido) —</option>
+                <option value="">— Selecciona la especie —</option>
               </select>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: '#2f5540', marginBottom: '4px' }}>
-                Sexo Definido *
+                Sexo *
               </label>
               <select
                 value={formData.sexo}
@@ -285,7 +328,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
               >
                 <option value="Macho">Macho</option>
                 <option value="Hembra">Hembra</option>
-                <option value="">— Indefinido (No permitido) —</option>
+                <option value="">— Selecciona el sexo —</option>
               </select>
             </div>
           </div>

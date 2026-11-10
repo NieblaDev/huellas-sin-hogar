@@ -6,19 +6,19 @@ export const createAnimalSchema = z.object({
     .trim()
     .min(1, 'El nombre debe tener al menos 1 carácter'),
 
-  // Regla 1: Validación estricta — solo especie canina ('perro') o felina ('gato')
+  // Especie canina ('perro') o felina ('gato') obligatoria
   especie: z
     .preprocess((val) => (typeof val === 'string' ? val.trim() : ''), z.string())
     .refine((val) => ['perro', 'gato'].includes(val.toLowerCase()), {
-      message: "Validación estricta: Solo se permite el ingreso si la especie es canina ('perro') o felina ('gato')"
+      message: 'Debes especificar la especie (canina o felina) y el sexo del animal para completar el ingreso.'
     })
     .transform((val) => (val.toLowerCase() === 'perro' ? 'Perro' : 'Gato')),
 
-  // Regla 1: Validación estricta — sexo definido obligatoriamente ('macho' o 'hembra')
+  // Sexo definido obligatoriamente ('macho' o 'hembra')
   sexo: z
     .preprocess((val) => (typeof val === 'string' ? val.trim() : ''), z.string())
     .refine((val) => ['macho', 'hembra'].includes(val.toLowerCase()), {
-      message: "Validación estricta: El sexo del animal debe estar definido ('macho' o 'hembra')"
+      message: 'Debes especificar la especie (canina o felina) y el sexo del animal para completar el ingreso.'
     })
     .transform((val) => (val.toLowerCase() === 'macho' ? 'Macho' : 'Hembra')),
 

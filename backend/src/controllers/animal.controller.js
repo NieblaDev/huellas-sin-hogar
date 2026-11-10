@@ -1,6 +1,7 @@
 import * as animalService from '../services/animal.service.js';
 import * as exportService from '../services/export.service.js';
 import { obtenerNotificacionesPersonal } from '../services/notification.service.js';
+import { buildPublicUrl } from '../middlewares/upload.middleware.js';
 
 export const getAnimals = async (req, res) => {
   try {
@@ -24,7 +25,12 @@ export const getAnimalById = async (req, res) => {
 export const createAnimal = async (req, res) => {
   try {
     const ip = req.ip || req.connection?.remoteAddress;
-    const newAnimal = await animalService.createAnimal(req.body, req.user, ip);
+    const data = { ...req.body };
+    // Fotografía subida con Multer: se guarda su URL pública en la ficha del animal
+    if (req.file) {
+      data.fotoUrl = buildPublicUrl(req, req.file.filename);
+    }
+    const newAnimal = await animalService.createAnimal(data, req.user, ip);
     res.status(201).json(newAnimal);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -35,7 +41,17 @@ export const updateAnimal = async (req, res) => {
   try {
     const ip = req.ip || req.connection?.remoteAddress;
     const { id } = req.params;
-    const updated = await animalService.updateAnimal(id, req.body, req.user, ip);
+    const data = { ...req.body };
+
+    // En envíos multipart/form-data todos los campos llegan como texto
+    if (typeof data.peso === 'string') data.peso = data.peso.trim() === '' ? 0 : Number(data.peso) || 0;
+    if (typeof data.canilId === 'string') data.canilId = data.canilId.trim() === '' ? null : Number(data.canilId);
+
+    if (req.file) {
+      data.fotoUrl = buildPublicUrl(req, req.file.filename);
+    }
+
+    const updated = await animalService.updateAnimal(id, data, req.user, ip);
     res.json(updated);
   } catch (error) {
     res.status(400).json({ error: error.message });

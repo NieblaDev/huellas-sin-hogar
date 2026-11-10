@@ -171,11 +171,11 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
     y -= 6;
   }
 
-  // SECCIÓN 4: TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (SIN DATOS PERSONALES POR PRIVACIDAD RF9)
-  drawSectionHeader('4. TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (PRIVACIDAD RF9)');
+  // SECCIÓN 4: TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (PROTECCIÓN DE DATOS PERSONALES)
+  drawSectionHeader('4. TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES');
   ops.push('0.75 0.25 0.20 rg');
   ops.push(
-    `BT /F2 9 Tf 48 ${y} Td ([POLITICA DE PRIVACIDAD RF9: DATOS PERSONALES DE POSTULANTES OMITIDOS ESTRICTAMENTE]) Tj ET`
+    `BT /F2 8.5 Tf 48 ${y} Td (Por seguridad y proteccion de datos personales, la informacion de contacto de los postulantes no se incluye.) Tj ET`
   );
   y -= 14;
 
@@ -188,7 +188,7 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
     for (const ad of adopciones.slice(0, 4)) {
       if (y < 65) break;
       const fechaAd = ad.fecha ? new Date(ad.fecha).toLocaleDateString('es-CL') : 'N/A';
-      const lineaAnonima = `Solicitud #${ad.id} | Postulante: [DATOS PERSONALES OMITIDOS] | Etapa: ${ad.etapa} | Fecha: ${fechaAd} | Devolucion: ${
+      const lineaAnonima = `Solicitud #${ad.id} | Postulante: [Informacion de contacto protegida] | Etapa: ${ad.etapa} | Fecha: ${fechaAd} | Devolucion: ${
         ad.devolucion ? 'SI' : 'NO'
       }`;
       ops.push('0.12 0.14 0.19 rg');
@@ -238,7 +238,7 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
 };
 
 /**
- * Construye un PDF de Reporte Consolidado de Gestión Operativa (RF9)
+ * Construye un PDF de Reporte Consolidado de Gestión Operativa
  */
 const construirBufferReporteConsolidadoPDF = ({
   resumen,
@@ -255,7 +255,7 @@ const construirBufferReporteConsolidadoPDF = ({
   ops.push('BT /F2 15.5 Tf 40 812 Td (HUELLAS SIN HOGAR - REPORTE CONSOLIDADO DE GESTION) Tj ET');
   ops.push(
     `BT /F1 9 Tf 40 794 Td (${escapePdfText(
-      `Balance Operativo: Ingresos, Adopciones, Devoluciones, Censo e Insumos | Privacidad RF9 Activa`
+      `Balance Operativo: Ingresos, Adopciones, Devoluciones, Censo e Insumos | Proteccion de Datos Personales`
     )}) Tj ET`
   );
   ops.push(
@@ -299,7 +299,7 @@ const construirBufferReporteConsolidadoPDF = ({
   drawHeader('1. BALANCE DE INGRESOS DE ANIMALES');
   drawLine('Total Ingresos en Periodo:', `${resumen.totalIngresos} animales registrados`);
   drawLine(
-    'Desglose por Causal (RF8):',
+    'Desglose por Causal de Ingreso:',
     `Rescate: ${resumen.ingresosRescate} | Abandono: ${resumen.ingresosAbandono} | Decomiso: ${resumen.ingresosDecomiso}`
   );
 
@@ -319,7 +319,7 @@ const construirBufferReporteConsolidadoPDF = ({
   );
 
   y -= 6;
-  drawHeader('3. BALANCE DE ADOPCIONES Y DEVOLUCIONES (DATOS PERSONALES OMITIDOS)');
+  drawHeader('3. BALANCE DE ADOPCIONES Y DEVOLUCIONES (DATOS PERSONALES PROTEGIDOS)');
   drawLine(
     'Procesos de Adopcion:',
     `Total solicitudes: ${resumen.totalAdopciones} | Concretadas (Adoptado): ${resumen.adopcionesConcretadas}`
@@ -328,7 +328,7 @@ const construirBufferReporteConsolidadoPDF = ({
     'Devoluciones Registradas:',
     `${resumen.totalDevoluciones} casos con devolucion (${resumen.tasaDevolucion}% sobre solicitudes)`
   );
-  drawLine('Privacidad de Postulantes:', 'OMITIDOS ESTRICTAMENTE (Nombre, RUT, Telefono y Correo excluidos por RF9)');
+  drawLine('Proteccion de Datos:', 'Informacion de contacto de postulantes omitida por seguridad y privacidad');
 
   y -= 6;
   drawHeader('4. ESTADO DE INSUMOS E INVENTARIO CRITICO');
@@ -469,7 +469,7 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
   if (formato === 'CSV') {
     const filas = [];
     const addRow = (cols) => filas.push(cols.map(escapeCsvCell).join(','));
-    addRow(['HUELLAS SIN HOGAR - EXPEDIENTE Y FICHA TÉCNICA INDIVIDUAL (RF9)']);
+    addRow(['HUELLAS SIN HOGAR - EXPEDIENTE Y FICHA TÉCNICA INDIVIDUAL']);
     addRow(['ID Ficha', animal.id, 'Nombre', animal.nombre, 'Causal de Ingreso', tipoIngreso]);
     addRow(['Especie', animal.especie, 'Sexo', animal.sexo, 'Edad Aproximada', animal.edad || 'Desconocida']);
     addRow(['Raza', animal.raza || 'Desconocida', 'Peso (kg)', animal.peso ?? 0, 'Microchip', animal.chip || 'Sin chip']);
@@ -477,12 +477,12 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
     addRow(['Ubicación / Canil', animal.canil ? `${animal.canil.codigo} (${animal.canil.nombre})` : 'Sin asignar', 'Fecha Ingreso', animal.creadoEn ? new Date(animal.creadoEn).toISOString().split('T')[0] : '']);
     addRow(['Historial Médico / Notas Clínicas', notaClinica]);
     filas.push('');
-    addRow(['TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (DATOS PERSONALES DE POSTULANTES OMITIDOS POR PRIVACIDAD RF9)']);
+    addRow(['TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (INFORMACIÓN DE CONTACTO DE POSTULANTES PROTEGIDA)']);
     addRow(['ID Solicitud', 'Postulante', 'Etapa', 'Devolución Previa', 'Fecha']);
     for (const ad of animal.adopciones || []) {
       addRow([
         ad.id,
-        '[DATOS PERSONALES OMITIDOS POR PRIVACIDAD]',
+        'Información de contacto no incluida por protección de datos',
         ad.etapa,
         ad.devolucion ? 'SÍ' : 'NO',
         ad.fecha ? new Date(ad.fecha).toISOString().split('T')[0] : ''
@@ -505,7 +505,7 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
 
   const recursoExportado = `Expediente / Ficha Técnica Individual #${animal.id} - ${animal.nombre} (${formato})`;
 
-  // Postcondición RF9: Registrar evento de exportación en la bitácora de auditoría
+  // Registrar evento de exportación en la bitácora de auditoría
   await registrarAuditoria({
     entidad: `Reporte ${formato} (Ficha Animal)`,
     entidadId: animal.id,
@@ -528,8 +528,8 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
   // Notificar al personal del refugio sobre la exportación realizada
   const notificacion = await notificarPersonalRefugio({
     tipo: `EXPORTACION_${formato}`,
-    titulo: `Expediente ${formato} exportado: ${animal.nombre}`,
-    mensaje: `${user?.nombre || 'Usuario'} (${user?.rol}) exportó el expediente clínico de ${animal.nombre} (#${animal.id}) en formato ${formato}. Datos personales de postulantes omitidos por privacidad.`,
+    titulo: `Ficha técnica (${formato}) descargada: ${animal.nombre}`,
+    mensaje: `${user?.nombre || 'Usuario'} (${user?.rol}) descargó la ficha clínica de ${animal.nombre} (#${animal.id}) en formato ${formato}. Por protección de datos, la información de contacto de los postulantes no se incluye.`,
     destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
     usuario: user,
     metadata: {
@@ -549,16 +549,12 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
 };
 
 /**
- * RF9: Generar y Exportar Reportes Consolidados de Gestión Operativa
+ * Generar y Exportar Reportes Consolidados de Gestión Operativa
  * (Balance de ingresos, adopciones, devoluciones, censo y estado de insumos)
- * - Configurando rangos de fecha (fechaDesde, fechaHasta), tipos de información y filtros requeridos
- * - Restricción: Solo si el usuario posee rol de DIRECTORA
- * - Restricción de privacidad: Omite estrictamente los datos personales de postulantes
- * - Postcondición: Registra la consulta en la bitácora de auditoría y entrega el archivo (CSV o PDF)
  */
 export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
   if (user?.rol !== 'DIRECTORA') {
-    throw new Error('Acceso denegado: El sistema genera reportes consolidados solo si el usuario posee rol de Directora');
+    throw new Error('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.');
   }
 
   await asegurarAdopcionesIniciales();
@@ -621,7 +617,7 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
       where: whereAdopcion,
       include: {
         animal: { select: { nombre: true, especie: true } }
-        // Se omite `postulante` para garantizar que ningún dato personal de postulantes sea incluido (RF9)
+        // Se omite `postulante` para garantizar que ningún dato personal de postulantes sea incluido
       },
       orderBy: { fecha: 'desc' }
     })
@@ -636,7 +632,7 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
       })
     : animalesFiltrados;
 
-  // Cálculo de métricas de las 5 dimensiones de RF9: Ingresos, Adopciones, Devoluciones, Censo e Insumos
+  // Cálculo de métricas operativas: Ingresos, Adopciones, Devoluciones, Censo e Insumos
   let ingresosRescate = 0;
   let ingresosAbandono = 0;
   let ingresosDecomiso = 0;
@@ -717,7 +713,7 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
   const addRow = (cols) => filas.push(cols.map(escapeCsvCell).join(','));
 
   // ENCABEZADO Y FILTROS CONFIGURADOS
-  addRow(['HUELLAS SIN HOGAR - REPORTE CONSOLIDADO DE GESTIÓN OPERATIVA (RF9)']);
+  addRow(['HUELLAS SIN HOGAR - REPORTE CONSOLIDADO DE GESTIÓN OPERATIVA']);
   addRow(['Fecha de Exportación', new Date().toISOString(), 'Generado por', user.nombre, 'Rol', user.rol]);
   addRow([
     'Rango de Fechas',
@@ -727,10 +723,13 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
     'Filtros',
     `Especie: ${especie || 'Todas'} | Salud: ${estadoSalud || 'Todos'} | Causal: ${tipoIngreso || 'Todas'}`
   ]);
-  addRow(['Política de Privacidad RF9', 'Datos personales de postulantes omitidos estrictamente en este documento']);
+  addRow([
+    'Protección de Datos Personales',
+    'Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en los documentos exportados.'
+  ]);
   filas.push('');
 
-  // RESUMEN EJECUTIVO DE LAS 5 DIMENSIONES DE RF9
+  // RESUMEN EJECUTIVO DE GESTIÓN OPERATIVA
   addRow(['RESUMEN EJECUTIVO DE GESTIÓN OPERATIVA']);
   addRow(['Dimensión Operativa', 'Resultado Principal', 'Desglose Detallado']);
   addRow([
@@ -810,17 +809,17 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
     filas.push('');
   }
 
-  // SECCIÓN DETALLADA: ADOPCIONES Y DEVOLUCIONES (SIN DATOS PERSONALES DE POSTULANTES - RF9)
+  // SECCIÓN DETALLADA: ADOPCIONES Y DEVOLUCIONES (SIN DATOS PERSONALES DE POSTULANTES)
   if (incluirAdopciones || incluirDevoluciones) {
     const listaAdop = incluirDevoluciones && !incluirAdopciones ? devolucionesList : adopciones;
-    addRow(['CONSOLIDADO DE ADOPCIONES Y DEVOLUCIONES (DATOS PERSONALES DE POSTULANTES OMITIDOS POR PRIVACIDAD RF9)']);
-    addRow(['ID Solicitud', 'Animal', 'Especie', 'Postulante (Privacidad RF9)', 'Etapa del Proceso', 'Devolución Registrada', 'Fecha Solicitud']);
+    addRow(['CONSOLIDADO DE ADOPCIONES Y DEVOLUCIONES (SIN DATOS PERSONALES DE POSTULANTES)']);
+    addRow(['ID Solicitud', 'Animal', 'Especie', 'Postulante', 'Etapa del Proceso', 'Devolución Registrada', 'Fecha Solicitud']);
     for (const ad of listaAdop) {
       addRow([
         ad.id,
         ad.animal?.nombre || '',
         ad.animal?.especie || '',
-        '[DATOS PERSONALES OMITIDOS POR PRIVACIDAD]',
+        'Información de contacto no incluida por protección de datos',
         ad.etapa,
         ad.devolucion ? 'SÍ (DEVUELTO)' : 'NO',
         ad.fecha ? new Date(ad.fecha).toISOString().split('T')[0] : ''
@@ -850,7 +849,7 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
   const fechaStr = new Date().toISOString().split('T')[0];
   const recursoExportado = `Reporte Consolidado de Gestión Operativa (${sec}) [${formatoSalida}]`;
 
-  // Postcondición RF9: Registrar consulta/exportación en la bitácora de auditoría
+  // Registrar consulta/exportación en la bitácora de auditoría
   await registrarAuditoria({
     entidad: `Reporte Consolidado ${formatoSalida}`,
     entidadId: null,
@@ -874,7 +873,7 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
   const notificacion = await notificarPersonalRefugio({
     tipo: `EXPORTACION_${formatoSalida}`,
     titulo: `Reporte Consolidado (${formatoSalida}) generado`,
-    mensaje: `La Directora (${user.nombre}) exportó el Reporte Consolidado de Gestión (${sec}) en formato ${formatoSalida}. Datos de postulantes omitidos por privacidad.`,
+    mensaje: `La Dirección (${user.nombre}) exportó el Reporte Consolidado de Gestión (${sec}) en formato ${formatoSalida}. Por protección de datos, la información de contacto de los postulantes no se incluye.`,
     destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
     usuario: user,
     metadata: {

@@ -232,8 +232,12 @@ export default function App() {
 
             {activeTab === 'cuidados' && (
               <CuidadosModulo user={user} />
+            )}
+
             {activeTab === 'salud' && (
               <SaludModulo user={user} />
+            )}
+
             {activeTab === 'adopciones' && puedeGestionarAdopciones && (
               <AdopcionesModulo user={user} />
             )}

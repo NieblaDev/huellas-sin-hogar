@@ -89,14 +89,14 @@ export const createAnimal = async (data, user, ip) => {
     ...animalData
   } = data;
 
-  // Defensa adicional en servicio: especie ('Perro'|'Gato') y sexo ('Macho'|'Hembra') obligatorios
+  // Validación en servicio: especie ('Perro'|'Gato') y sexo ('Macho'|'Hembra') obligatorios
   const especieNorm = (animalData.especie || '').trim().toLowerCase();
   if (!['perro', 'gato'].includes(especieNorm)) {
-    throw new Error("Validación estricta: Solo se permite el ingreso si la especie es canina ('perro') o felina ('gato')");
+    throw new Error('Debes especificar la especie (canina o felina) y el sexo del animal para completar el ingreso.');
   }
   const sexoNorm = (animalData.sexo || '').trim().toLowerCase();
   if (!['macho', 'hembra'].includes(sexoNorm)) {
-    throw new Error("Validación estricta: El sexo del animal debe estar definido ('macho' o 'hembra')");
+    throw new Error('Debes especificar la especie (canina o felina) y el sexo del animal para completar el ingreso.');
   }
 
   const especieFinal = especieNorm === 'perro' ? 'Perro' : 'Gato';

@@ -7,17 +7,17 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
   const [search, setSearch] = useState('');
   const [especie, setEspecie] = useState('');
 
-  // Notificaciones del personal del refugio (RF8 y RF9)
+  // Notificaciones del personal del refugio
   const [notificaciones, setNotificaciones] = useState([]);
   const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
   const [avisoReciente, setAvisoReciente] = useState(null);
 
-  // Modal de Ficha Técnica Individual y Exportación de Expediente (RF8 y RF9)
+  // Modal de Ficha Técnica Individual y Exportación de Expediente
   const [fichaSeleccionada, setFichaSeleccionada] = useState(null);
   const [cargandoFicha, setCargandoFicha] = useState(false);
   const [descargandoId, setDescargandoId] = useState(null);
 
-  // Módulo / Panel de Configuración de Reportes Consolidados (RF9)
+  // Panel de Configuración de Reportes Consolidados
   const [mostrarConfigReporte, setMostrarConfigReporte] = useState(false);
   const [descargandoConsolidado, setDescargandoConsolidado] = useState(false);
   const [configReporte, setConfigReporte] = useState({
@@ -104,7 +104,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
   const handleExportExpediente = async (animal, formato = 'PDF', e) => {
     if (e) e.stopPropagation();
     if (!puedeExportarExpediente) {
-      alert('Acceso restringido: Solo el Personal del Refugio y la Directora están autorizados para exportar expedientes.');
+      alert('La descarga de fichas está disponible solo para el personal del refugio y la Dirección.');
       return;
     }
 
@@ -117,7 +117,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `No se pudo exportar el expediente en ${formato}`);
+        throw new Error(errData.error || `No pudimos generar la ficha en ${formato}. Inténtalo nuevamente.`);
       }
 
       const notifHeader = res.headers.get('X-Notification-Message');
@@ -135,7 +135,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
 
       const msgNotif = notifHeader
         ? decodeURIComponent(notifHeader)
-        : `Expediente ${formato} de ${animal.nombre} exportado (datos personales de postulantes omitidos por privacidad).`;
+        : `La ficha de ${animal.nombre} (${formato}) se descargó correctamente.`;
       setAvisoReciente(msgNotif);
       setTimeout(() => setAvisoReciente(null), 6500);
       fetchNotificaciones();
@@ -149,7 +149,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
   const handleExportConsolidado = async (e) => {
     if (e) e.preventDefault();
     if (!esDirectora) {
-      alert('Acceso denegado: El sistema genera reportes consolidados solo si el usuario posee rol de Directora.');
+      alert('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.');
       return;
     }
 
@@ -171,7 +171,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'No se pudo exportar el reporte consolidado');
+        throw new Error(errData.error || 'No pudimos generar el reporte. Inténtalo nuevamente en unos minutos.');
       }
 
       const notifHeader = res.headers.get('X-Notification-Message');
@@ -189,7 +189,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
 
       const msgNotif = notifHeader
         ? decodeURIComponent(notifHeader)
-        : `Reporte consolidado (${configReporte.formato}) descargado. Registrado en bitácora de auditoría.`;
+        : `Tu reporte (${configReporte.formato}) se descargó correctamente.`;
       setAvisoReciente(msgNotif);
       setTimeout(() => setAvisoReciente(null), 6500);
       fetchNotificaciones();
@@ -202,14 +202,14 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
 
   const handleDelete = async (id, nombre, e) => {
     e.stopPropagation();
-    if (!window.confirm(`¿Estás seguro de que deseas dar de baja lógica a ${nombre}? Se guardará en la auditoría del refugio.`)) return;
+    if (!window.confirm(`¿Deseas dar de baja a ${nombre}? Su ficha dejará de mostrarse en el catálogo, pero su historial se conservará.`)) return;
 
     try {
       const res = await fetch(`${API_URL}/animals/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
-      if (!res.ok) throw new Error('Error al dar de baja');
+      if (!res.ok) throw new Error('No pudimos dar de baja al animal. Inténtalo nuevamente.');
       setAnimales(animales.filter((a) => a.id !== id));
     } catch (err) {
       alert(err.message);
@@ -242,7 +242,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
             Registro de Ingreso, Fichas Técnicas y Reportes
           </h2>
           <p style={{ color: '#7c8592', fontSize: '0.88rem', margin: '4px 0 0' }}>
-            RF8: Ingreso por rescate, abandono o decomiso · RF9: Exportación de expedientes y reportes consolidados (PDF / CSV)
+            Registra a los perros y gatos que llegan al refugio y descarga sus fichas o reportes de gestión en PDF o CSV.
           </p>
         </div>
 
@@ -279,7 +279,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
             </span>
           </button>
 
-          {/* RF9: Botón Módulo de Reportes Consolidados (Exclusivo Directora) */}
+          {/* Botón Módulo de Reportes Consolidados (Exclusivo Directora) */}
           {esDirectora ? (
             <button
               type="button"
@@ -301,9 +301,9 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
             <button
               type="button"
               onClick={() =>
-                alert('Restricción RF9: El sistema genera reportes consolidados solo si el usuario posee rol de Directora.')
+                alert('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.')
               }
-              title="Restringido: Solo el rol Directora puede generar reportes consolidados de gestión"
+              title="Disponible solo para la Dirección del refugio"
               style={{
                 background: '#f0f1f3',
                 color: '#7c8592',
@@ -315,11 +315,11 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                 cursor: 'not-allowed'
               }}
             >
-              🔒 Reportes Consolidados (Solo Directora)
+              🔒 Reportes de gestión (Dirección)
             </button>
           )}
 
-          {/* RF8: Botón Registrar Ingreso Animal */}
+          {/* Botón Registrar Ingreso Animal */}
           <button
             type="button"
             onClick={onOpenModal}
@@ -339,7 +339,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
         </div>
       </div>
 
-      {/* MÓDULO DE CONFIGURACIÓN Y EXPORTACIÓN DE REPORTES CONSOLIDADOS (RF9 - SOLO DIRECTORA) */}
+      {/* MÓDULO DE CONFIGURACIÓN Y EXPORTACIÓN DE REPORTES CONSOLIDADOS (SOLO DIRECTORA) */}
       {esDirectora && mostrarConfigReporte && (
         <form
           onSubmit={handleExportConsolidado}
@@ -355,10 +355,10 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <div>
               <strong style={{ fontSize: '1rem', color: '#1f2430', display: 'block' }}>
-                📊 Módulo de Reportes Consolidados de Gestión Operativa (RF9)
+                📊 Reportes de gestión del refugio
               </strong>
               <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
-                Configura rangos de fecha, tipo de información (ingresos, adopciones, devoluciones, censo e insumos), filtros y formato digital.
+                Elige el período, el tipo de información (ingresos, adopciones, devoluciones, censo o insumos), los filtros y el formato de descarga.
               </span>
             </div>
             <span
@@ -371,8 +371,9 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                 borderRadius: '6px',
                 border: '1px solid #f3c9c4'
               }}
+              title="Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en los documentos exportados."
             >
-              🔒 Privacidad RF9: Omite estrictamente datos personales de postulantes
+              🔒 Sin datos personales de postulantes
             </span>
           </div>
 
@@ -538,7 +539,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
         >
           <div>
             <strong style={{ color: '#2f5540', fontSize: '0.86rem', display: 'block' }}>
-              🔔 Notificación disparada al Personal del Refugio
+              🔔 Se avisó al equipo del refugio
             </strong>
             <span style={{ color: '#1f2430', fontSize: '0.82rem' }}>{avisoReciente}</span>
           </div>
@@ -566,7 +567,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <strong style={{ fontSize: '0.92rem', color: '#1f2430' }}>
-              📬 Bandeja de Notificaciones del Personal del Refugio (Ingresos y Exportaciones)
+              📬 Novedades del equipo: ingresos y descargas recientes
             </strong>
             <button
               type="button"
@@ -787,7 +788,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                           type="button"
                           onClick={(e) => handleExportExpediente(a, 'PDF', e)}
                           disabled={descargandoId === `${a.id}-PDF`}
-                          title="Exportar Expediente / Ficha Técnica en PDF (omite datos personales de postulantes por privacidad RF9)"
+                          title="Descargar la ficha técnica en PDF (sin datos de contacto de postulantes)"
                           style={{
                             background: '#edeffb',
                             border: '1px solid #c5cbf5',
@@ -938,7 +939,8 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                     <strong style={{ color: '#7c8592' }}>Microchip:</strong> {fichaSeleccionada.chip || 'Sin microchip'}
                   </div>
                   <div>
-                    <strong style={{ color: '#7c8592' }}>Estado de Salud:</strong> {fichaSeleccionada.estadoSalud}
+                    <strong style={{ color: '#7c8592' }}>Estado de Salud:</strong>{' '}
+                    {(badgeMap[fichaSeleccionada.estadoSalud] || {}).label || fichaSeleccionada.estadoSalud}
                   </div>
                   <div>
                     <strong style={{ color: '#7c8592' }}>Esterilización:</strong> {fichaSeleccionada.esterilizacion || 'Desconocido'}
@@ -971,7 +973,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                   </div>
                 </div>
 
-                {/* Sección de Postulantes / Adopciones con Privacidad RF9 */}
+                {/* Sección de Postulantes / Adopciones con Protección de Datos */}
                 <div style={{ marginBottom: '18px' }}>
                   <div style={{ fontSize: '0.76rem', fontWeight: '800', textTransform: 'uppercase', color: '#7c8592', marginBottom: '6px' }}>
                     📋 Trazabilidad de Adopciones y Devoluciones
@@ -987,8 +989,8 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                       marginBottom: '8px'
                     }}
                   >
-                    🔒 <strong>Política de Privacidad RF9:</strong> Al exportar expedientes o reportes (PDF/CSV), los datos personales de
-                    postulantes se omiten estrictamente en el documento generado.
+                    🔒 Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en
+                    los documentos exportados.
                   </div>
                   {!fichaSeleccionada.adopciones || fichaSeleccionada.adopciones.length === 0 ? (
                     <div style={{ fontSize: '0.82rem', color: '#7c8592', padding: '4px 0' }}>
@@ -1044,7 +1046,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                           cursor: 'pointer'
                         }}
                       >
-                        {descargandoId === `${fichaSeleccionada.id}-PDF` ? 'Generando PDF...' : '📄 Exportar Expediente (PDF)'}
+                        {descargandoId === `${fichaSeleccionada.id}-PDF` ? 'Generando PDF...' : '📄 Descargar ficha (PDF)'}
                       </button>
                       <button
                         type="button"
@@ -1061,12 +1063,12 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                           cursor: 'pointer'
                         }}
                       >
-                        {descargandoId === `${fichaSeleccionada.id}-CSV` ? 'Generando CSV...' : '📊 Exportar Expediente (CSV)'}
+                        {descargandoId === `${fichaSeleccionada.id}-CSV` ? 'Generando CSV...' : '📊 Descargar ficha (CSV)'}
                       </button>
                     </div>
                   ) : (
                     <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
-                      🔒 Exportación de expedientes habilitada para Personal del Refugio y Directora
+                      🔒 La descarga de fichas está disponible para el personal del refugio y la Dirección.
                     </span>
                   )}
 

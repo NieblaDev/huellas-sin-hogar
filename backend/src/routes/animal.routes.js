@@ -12,6 +12,7 @@ import {
 import { validate } from '../middlewares/validate.middleware.js';
 import { authenticateToken, requireRole } from '../middlewares/auth.middleware.js';
 import { createAnimalSchema } from '../schemas/animal.schema.js';
+import { uploadSingle } from '../middlewares/upload.middleware.js';
 
 const router = Router();
 
@@ -39,6 +40,7 @@ router.post(
   '/',
   authenticateToken,
   requireRole(...ROLES_INGRESO_Y_CONSULTA),
+  uploadSingle('foto'),
   validate(createAnimalSchema, 'body'),
   createAnimal
 );
@@ -48,7 +50,7 @@ router.get('/:id/export-pdf', authenticateToken, requireRole(...ROLES_EXPORTAR_P
 
 // Consulta de Ficha Técnica Individual, actualización y baja lógica
 router.get('/:id', authenticateToken, getAnimalById);
-router.put('/:id', authenticateToken, updateAnimal);
+router.put('/:id', authenticateToken, uploadSingle('foto'), updateAnimal);
 router.delete('/:id', authenticateToken, deleteAnimal);
 
 export default router;
