@@ -11,7 +11,7 @@ import {
 } from '../controllers/animal.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { authenticateToken, requireRole } from '../middlewares/auth.middleware.js';
-import { createAnimalSchema } from '../schemas/animal.schema.js';
+import { createAnimalSchema, updateAnimalSchema } from '../schemas/animal.schema.js';
 import { uploadSingle } from '../middlewares/upload.middleware.js';
 
 const router = Router();
@@ -25,16 +25,16 @@ const ROLES_INGRESO_Y_CONSULTA = [
   'VOLUNTARIO_NOVATO'
 ];
 
-// Roles de Personal del Refugio y Directora habilitados para exportar Ficha Técnica PDF
+// Roles de Personal del Refugio y Directora habilitados para exportar Ficha del Animal PDF
 const ROLES_EXPORTAR_PDF = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'];
 
 // Bandeja de notificaciones internas para el personal del refugio
 router.get('/notificaciones', authenticateToken, requireRole(...ROLES_INGRESO_Y_CONSULTA), getNotifications);
 
-// Requerimiento 2.2: Exportación de reporte consolidado y balance general en CSV — EXCLUSIVO DIRECTORA
+// Exportación de reporte consolidado y balance general en CSV/PDF — EXCLUSIVO DIRECTORA
 router.get('/reportes/export-csv', authenticateToken, requireRole('DIRECTORA'), exportConsolidatedCsv);
 
-// Catálogo general y Requerimiento 1: Registro de ingreso de animales y creación de ficha técnica
+// Catálogo general y Registro de ingreso de animales y creación de Ficha del Animal
 router.get('/', authenticateToken, getAnimals);
 router.post(
   '/',
@@ -45,12 +45,27 @@ router.post(
   createAnimal
 );
 
-// Requerimiento 2.1: Exportación de Ficha Técnica Individual en PDF — Personal del Refugio y Directora
+// Exportación de Ficha del Animal en PDF/CSV — Personal del Refugio y Directora
 router.get('/:id/export-pdf', authenticateToken, requireRole(...ROLES_EXPORTAR_PDF), exportAnimalPdf);
 
-// Consulta de Ficha Técnica Individual, actualización y baja lógica
+// Consulta de Ficha del Animal, edición (PUT / PATCH con soporte de foto Multer) y baja lógica
 router.get('/:id', authenticateToken, getAnimalById);
-router.put('/:id', authenticateToken, uploadSingle('foto'), updateAnimal);
+router.put(
+  '/:id',
+  authenticateToken,
+  requireRole(...ROLES_INGRESO_Y_CONSULTA),
+  uploadSingle('foto'),
+  validate(updateAnimalSchema, 'body'),
+  updateAnimal
+);
+router.patch(
+  '/:id',
+  authenticateToken,
+  requireRole(...ROLES_INGRESO_Y_CONSULTA),
+  uploadSingle('foto'),
+  validate(updateAnimalSchema, 'body'),
+  updateAnimal
+);
 router.delete('/:id', authenticateToken, deleteAnimal);
 
 export default router;

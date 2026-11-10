@@ -1,8 +1,233 @@
+import fs from 'fs';
+import path from 'path';
+import zlib from 'zlib';
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
 import { notificarPersonalRefugio } from './notification.service.js';
+import { uploadsPath } from '../middlewares/upload.middleware.js';
 
 const REGEX_TIPO_INGRESO = /^\[Ingreso por (Rescate|Abandono|Decomiso)\]\s*/i;
+
+/**
+ * predictor Paeth estándar de la especificación PNG (RFC 2083)
+ */
+const paethPredictor = (a, b, c) => {
+  const p = a + b - c;
+  const pa = Math.abs(p - a);
+  const pb = Math.abs(p - b);
+  const pc = Math.abs(p - c);
+  if (pa <= pb && pa <= pc) return a;
+  if (pb <= pc) return b;
+  return c;
+};
+
+/**
+ * Obtiene y decodifica la fotografía del animal desde `uploads/` (o data URI)
+ * para incrustarla como XObject de imagen en el documento PDF 1.4.
+ * Si el animal no tiene foto o el archivo físico no existe, retorna `null` de forma segura.
+ */
+const extraerImagenPDFXObject = (fotoUrl) => {
+  try {
+    if (!fotoUrl || typeof fotoUrl !== 'string') return null;
+
+    let imgBuffer = null;
+
+    if (fotoUrl.startsWith('data:image/')) {
+      const commaIdx = fotoUrl.indexOf(',');
+      if (commaIdx !== -1) {
+        imgBuffer = Buffer.from(fotoUrl.slice(commaIdx + 1), 'base64');
+      }
+    } else {
+      let filename = '';
+      if (fotoUrl.includes('/uploads/')) {
+        filename = decodeURIComponent(fotoUrl.split('/uploads/').pop().split('?')[0]);
+      } else if (!fotoUrl.startsWith('http://') && !fotoUrl.startsWith('https://')) {
+        filename = decodeURIComponent(fotoUrl.split('?')[0]);
+      }
+
+      const cleanBase = path.basename(filename);
+      if (cleanBase) {
+        const localFilePath = path.join(uploadsPath, cleanBase);
+        if (fs.existsSync(localFilePath)) {
+          imgBuffer = fs.readFileSync(localFilePath);
+        }
+      }
+    }
+
+    if (!imgBuffer || imgBuffer.length < 24) return null;
+
+    // 1. Formato JPEG (SOI 0xFFD8) -> soportado nativamente por PDF con /DCTDecode
+    if (imgBuffer[0] === 0xff && imgBuffer[1] === 0xd8) {
+      let pos = 2;
+      while (pos + 9 < imgBuffer.length) {
+        if (imgBuffer[pos] !== 0xff) {
+          pos++;
+          continue;
+        }
+        const marker = imgBuffer[pos + 1];
+        if (marker === 0xff) {
+          pos++;
+          continue;
+        }
+        if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) {
+          pos += 2;
+          continue;
+        }
+        const segLen = imgBuffer.readUInt16BE(pos + 2);
+        if (marker === 0xc0 || marker === 0xc1 || marker === 0xc2 || marker === 0xc3) {
+          const height = imgBuffer.readUInt16BE(pos + 5);
+          const width = imgBuffer.readUInt16BE(pos + 7);
+          const channels = imgBuffer[pos + 9];
+          if (width > 0 && height > 0) {
+            const colorSpace =
+              channels === 1 ? '/DeviceGray' : channels === 4 ? '/DeviceCMYK' : '/DeviceRGB';
+            return {
+              width,
+              height,
+              colorSpace,
+              filter: '/DCTDecode',
+              bitsPerComponent: 8,
+              streamBuffer: imgBuffer
+            };
+          }
+        }
+        if (segLen < 2) break;
+        pos += 2 + segLen;
+      }
+      return null;
+    }
+
+    // 2. Formato PNG (89 50 4E 47 0D 0A 1A 0A) -> decodificar scanlines y comprimir con /FlateDecode
+    if (
+      imgBuffer[0] === 0x89 &&
+      imgBuffer[1] === 0x50 &&
+      imgBuffer[2] === 0x4e &&
+      imgBuffer[3] === 0x47
+    ) {
+      const width = imgBuffer.readUInt32BE(16);
+      const height = imgBuffer.readUInt32BE(20);
+      const bitDepth = imgBuffer[24];
+      const colorType = imgBuffer[25];
+      const interlace = imgBuffer[28];
+
+      if (width <= 0 || height <= 0 || bitDepth !== 8 || interlace !== 0) {
+        return null;
+      }
+
+      const idatChunks = [];
+      let palette = null;
+      let trns = null;
+      let offset = 8;
+
+      while (offset + 8 <= imgBuffer.length) {
+        const length = imgBuffer.readUInt32BE(offset);
+        const type = imgBuffer.toString('ascii', offset + 4, offset + 8);
+        const dataStart = offset + 8;
+        const dataEnd = dataStart + length;
+        if (dataEnd > imgBuffer.length) break;
+
+        if (type === 'PLTE') {
+          palette = imgBuffer.subarray(dataStart, dataEnd);
+        } else if (type === 'tRNS') {
+          trns = imgBuffer.subarray(dataStart, dataEnd);
+        } else if (type === 'IDAT') {
+          idatChunks.push(imgBuffer.subarray(dataStart, dataEnd));
+        } else if (type === 'IEND') {
+          break;
+        }
+        offset = dataEnd + 4;
+      }
+
+      if (idatChunks.length === 0) return null;
+
+      const samplesPerPixel =
+        colorType === 6 ? 4 : colorType === 2 ? 3 : colorType === 4 ? 2 : 1;
+      const bpp = samplesPerPixel;
+      const rowBytes = width * samplesPerPixel;
+      const rawData = zlib.inflateSync(Buffer.concat(idatChunks));
+
+      if (rawData.length < height * (1 + rowBytes)) return null;
+
+      const prevRow = Buffer.alloc(rowBytes);
+      const currRow = Buffer.alloc(rowBytes);
+      const rgbBuffer = Buffer.alloc(width * height * 3);
+
+      for (let y = 0; y < height; y++) {
+        const rowStart = y * (1 + rowBytes);
+        const filterType = rawData[rowStart];
+
+        for (let x = 0; x < rowBytes; x++) {
+          const rawByte = rawData[rowStart + 1 + x];
+          const left = x >= bpp ? currRow[x - bpp] : 0;
+          const up = prevRow[x];
+          const upLeft = x >= bpp ? prevRow[x - bpp] : 0;
+
+          if (filterType === 0) currRow[x] = rawByte;
+          else if (filterType === 1) currRow[x] = (rawByte + left) & 0xff;
+          else if (filterType === 2) currRow[x] = (rawByte + up) & 0xff;
+          else if (filterType === 3) currRow[x] = (rawByte + ((left + up) >> 1)) & 0xff;
+          else if (filterType === 4) currRow[x] = (rawByte + paethPredictor(left, up, upLeft)) & 0xff;
+          else currRow[x] = rawByte;
+        }
+
+        currRow.copy(prevRow);
+
+        for (let px = 0; px < width; px++) {
+          const outIdx = (y * width + px) * 3;
+          if (colorType === 2) {
+            rgbBuffer[outIdx] = currRow[px * 3];
+            rgbBuffer[outIdx + 1] = currRow[px * 3 + 1];
+            rgbBuffer[outIdx + 2] = currRow[px * 3 + 2];
+          } else if (colorType === 6) {
+            const r = currRow[px * 4];
+            const g = currRow[px * 4 + 1];
+            const b = currRow[px * 4 + 2];
+            const a = currRow[px * 4 + 3] / 255;
+            rgbBuffer[outIdx] = Math.round(r * a + 255 * (1 - a));
+            rgbBuffer[outIdx + 1] = Math.round(g * a + 255 * (1 - a));
+            rgbBuffer[outIdx + 2] = Math.round(b * a + 255 * (1 - a));
+          } else if (colorType === 0) {
+            const gray = currRow[px];
+            rgbBuffer[outIdx] = gray;
+            rgbBuffer[outIdx + 1] = gray;
+            rgbBuffer[outIdx + 2] = gray;
+          } else if (colorType === 4) {
+            const gray = currRow[px * 2];
+            const a = currRow[px * 2 + 1] / 255;
+            const blended = Math.round(gray * a + 255 * (1 - a));
+            rgbBuffer[outIdx] = blended;
+            rgbBuffer[outIdx + 1] = blended;
+            rgbBuffer[outIdx + 2] = blended;
+          } else if (colorType === 3 && palette) {
+            const idx = currRow[px];
+            const r = palette[idx * 3] ?? 255;
+            const g = palette[idx * 3 + 1] ?? 255;
+            const b = palette[idx * 3 + 2] ?? 255;
+            const a = trns && idx < trns.length ? trns[idx] / 255 : 1;
+            rgbBuffer[outIdx] = Math.round(r * a + 255 * (1 - a));
+            rgbBuffer[outIdx + 1] = Math.round(g * a + 255 * (1 - a));
+            rgbBuffer[outIdx + 2] = Math.round(b * a + 255 * (1 - a));
+          }
+        }
+      }
+
+      const compressed = zlib.deflateSync(rgbBuffer);
+      return {
+        width,
+        height,
+        colorSpace: '/DeviceRGB',
+        filter: '/FlateDecode',
+        bitsPerComponent: 8,
+        streamBuffer: compressed
+      };
+    }
+
+    return null;
+  } catch (err) {
+    // Nunca fallar la generación del PDF si la imagen está corrupta o inaccesible
+    return null;
+  }
+};
 
 /**
  * Escapa texto para sintaxis PDF literal string (...) y normaliza caracteres fuera de Latin-1
@@ -48,11 +273,12 @@ const wrapText = (text = '', maxChars = 82) => {
 };
 
 /**
- * Construye un documento binario válido en formato PDF 1.4 (sin dependencias externas).
- * Cumple RF9: Omite estrictamente datos personales de postulantes/adoptantes en todo documento exportado.
+ * Construye un documento binario válido en formato PDF 1.4 incluyendo la fotografía del animal
+ * con dimensiones proporcionales (o un recuadro placeholder seguro si no tiene foto registrada).
  */
 const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGeneracion }) => {
   const ops = [];
+  const imagenPDF = extraerImagenPDFXObject(animal.fotoUrl);
 
   // Encabezado institucional en verde salvia (#3f6c52 -> RGB 0.247, 0.424, 0.322)
   ops.push('0.247 0.424 0.322 rg');
@@ -60,7 +286,7 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
 
   // Título blanco en encabezado
   ops.push('1 1 1 rg');
-  ops.push('BT /F2 17 Tf 40 812 Td (HUELLAS SIN HOGAR - EXPEDIENTE Y FICHA TECNICA) Tj ET');
+  ops.push('BT /F2 17 Tf 40 812 Td (HUELLAS SIN HOGAR - EXPEDIENTE Y FICHA DEL ANIMAL) Tj ET');
   ops.push(
     `BT /F1 9.5 Tf 40 794 Td (${escapePdfText(
       `Documento Oficial de Registro Clinico y Trazabilidad | ID Ficha: #${animal.id}`
@@ -80,6 +306,22 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
     ops.push('0.18 0.33 0.25 rg');
     ops.push(`BT /F2 10.5 Tf 48 ${y} Td (${escapePdfText(titulo)}) Tj ET`);
     y -= 22;
+  };
+
+  // Fila compacta a la izquierda para convivir con el recuadro de fotografía a la derecha
+  const drawLeftCompactRow = (label1, val1, label2, val2) => {
+    ops.push('0.35 0.39 0.44 rg');
+    ops.push(`BT /F2 9.2 Tf 45 ${y} Td (${escapePdfText(label1)}) Tj ET`);
+    ops.push('0.12 0.14 0.19 rg');
+    ops.push(`BT /F1 9.2 Tf 132 ${y} Td (${escapePdfText(String(val1).slice(0, 22))}) Tj ET`);
+
+    if (label2) {
+      ops.push('0.35 0.39 0.44 rg');
+      ops.push(`BT /F2 9.2 Tf 245 ${y} Td (${escapePdfText(label2)}) Tj ET`);
+      ops.push('0.12 0.14 0.19 rg');
+      ops.push(`BT /F1 9.2 Tf 325 ${y} Td (${escapePdfText(String(val2).slice(0, 18))}) Tj ET`);
+    }
+    y -= 16;
   };
 
   const drawKeyValueRow = (label1, val1, label2, val2) => {
@@ -111,31 +353,67 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
     y -= 4;
   };
 
-  // SECCIÓN 1: ANTECEDENTES GENERALES DEL ANIMAL
+  // SECCIÓN 1: ANTECEDENTES GENERALES DEL ANIMAL + FOTOGRAFÍA DESTACADA
   drawSectionHeader('1. IDENTIFICACION Y ANTECEDENTES DEL ANIMAL');
-  drawKeyValueRow('Nombre:', animal.nombre || 'Sin nombre', 'Causal de Ingreso:', tipoIngreso || 'Rescate');
-  drawKeyValueRow('Especie:', animal.especie || 'No especificada', 'Sexo:', animal.sexo || 'No especificado');
-  drawKeyValueRow('Edad Aproximada:', animal.edad || 'Desconocida', 'Raza:', animal.raza || 'Desconocida');
-  drawKeyValueRow(
-    'Peso Registrado:',
-    animal.peso && animal.peso > 0 ? `${animal.peso} kg` : 'No registrado (0 kg)',
+
+  // Recuadro destacado para la Fotografía del Animal (x=428, y=614, ancho=127, alto=102)
+  const photoBoxX = 428;
+  const photoBoxY = 614;
+  const photoBoxW = 127;
+  const photoBoxH = 102;
+
+  ops.push('0.96 0.98 0.96 rg');
+  ops.push(`${photoBoxX} ${photoBoxY} ${photoBoxW} ${photoBoxH} re f`);
+  ops.push('0.76 0.84 0.78 RG 1 w');
+  ops.push(`${photoBoxX} ${photoBoxY} ${photoBoxW} ${photoBoxH} re S`);
+
+  if (imagenPDF) {
+    const innerPad = 6;
+    const maxW = photoBoxW - innerPad * 2;
+    const maxH = photoBoxH - 20;
+    const ratio = Math.min(maxW / imagenPDF.width, maxH / imagenPDF.height);
+    const drawW = Number((imagenPDF.width * ratio).toFixed(2));
+    const drawH = Number((imagenPDF.height * ratio).toFixed(2));
+    const drawX = Number((photoBoxX + (photoBoxW - drawW) / 2).toFixed(2));
+    const drawY = Number((photoBoxY + 14 + (maxH - drawH) / 2).toFixed(2));
+
+    ops.push('q');
+    ops.push(`${drawW} 0 0 ${drawH} ${drawX} ${drawY} cm`);
+    ops.push('/Im1 Do');
+    ops.push('Q');
+
+    ops.push('0.24 0.42 0.32 rg');
+    ops.push(`BT /F2 7.5 Tf ${photoBoxX + 20} ${photoBoxY + 4} Td (Fotografia del Animal) Tj ET`);
+  } else {
+    ops.push('0.50 0.55 0.60 rg');
+    ops.push(`BT /F2 8.2 Tf ${photoBoxX + 14} ${photoBoxY + 56} Td (Sin fotografia registrada) Tj ET`);
+    ops.push(`BT /F1 7.2 Tf ${photoBoxX + 22} ${photoBoxY + 42} Td (Espacio reservado para) Tj ET`);
+    ops.push(`BT /F1 7.2 Tf ${photoBoxX + 25} ${photoBoxY + 31} Td (imagen del ejemplar) Tj ET`);
+  }
+
+  drawLeftCompactRow('Nombre:', animal.nombre || 'Sin nombre', 'Causal:', tipoIngreso || 'Rescate');
+  drawLeftCompactRow('Especie:', animal.especie || 'No especificada', 'Sexo:', animal.sexo || 'No especificado');
+  drawLeftCompactRow('Edad Aprox.:', animal.edad || 'Desconocida', 'Raza:', animal.raza || 'Desconocida');
+  drawLeftCompactRow(
+    'Peso:',
+    animal.peso && animal.peso > 0 ? `${animal.peso} kg` : 'No registrado',
     'Microchip:',
-    animal.chip || 'Sin microchip registrado'
+    animal.chip || 'Sin chip'
   );
-  drawKeyValueRow(
-    'Estado en Refugio:',
-    animal.activo ? 'Activo (Albergado)' : 'Baja logica',
-    'Fecha de Ingreso:',
+  drawLeftCompactRow(
+    'Estado Censo:',
+    animal.activo ? 'Activo (Albergado)' : 'Baja',
+    'Ingreso:',
     animal.creadoEn ? new Date(animal.creadoEn).toLocaleDateString('es-CL') : 'N/A'
   );
-  drawKeyValueRow(
-    'Ubicacion / Canil:',
-    animal.canil ? `${animal.canil.nombre} (${animal.canil.codigo} - ${animal.canil.sector})` : 'Sin canil asignado',
-    'Fotografia en Ficha:',
-    animal.fotoUrl ? 'Si (Registrada en sistema)' : 'No disponible'
+  drawLeftCompactRow(
+    'Ubicacion:',
+    animal.canil ? `${animal.canil.nombre} (${animal.canil.codigo})` : 'Sin canil asignado',
+    'Adopcion:',
+    animal.estadoAdopcion === 'ADOPTADO' ? 'Adoptado' : 'En refugio'
   );
 
-  y -= 6;
+  y = Math.min(y, photoBoxY - 12);
 
   // SECCIÓN 2: ANTECEDENTES CLÍNICOS Y CONDUCTUALES
   drawSectionHeader('2. ESTADO CLINICO, ESTERILIZACION Y CONDUCTA');
@@ -206,35 +484,59 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
     )}) Tj ET`
   );
 
-  const streamContent = ops.join('\n');
-  const streamByteLength = Buffer.byteLength(streamContent, 'latin1');
+  const streamContent = Buffer.from(ops.join('\n'), 'latin1');
 
-  const objects = [
-    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
-    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
-    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>\nendobj\n',
-    '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n',
-    '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n',
-    `6 0 obj\n<< /Length ${streamByteLength} >>\nstream\n${streamContent}\nendstream\nendobj\n`
+  const xObjectResource = imagenPDF ? ' /XObject << /Im1 7 0 R >>' : '';
+  const objectBuffers = [
+    Buffer.from('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n', 'latin1'),
+    Buffer.from('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n', 'latin1'),
+    Buffer.from(
+      `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >>${xObjectResource} >> /Contents 6 0 R >>\nendobj\n`,
+      'latin1'
+    ),
+    Buffer.from(
+      '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n',
+      'latin1'
+    ),
+    Buffer.from(
+      '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n',
+      'latin1'
+    ),
+    Buffer.concat([
+      Buffer.from(`6 0 obj\n<< /Length ${streamContent.length} >>\nstream\n`, 'latin1'),
+      streamContent,
+      Buffer.from('\nendstream\nendobj\n', 'latin1')
+    ])
   ];
 
-  let pdfStr = '%PDF-1.4\n';
+  if (imagenPDF) {
+    const imgHeader = Buffer.from(
+      `7 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imagenPDF.width} /Height ${imagenPDF.height} /ColorSpace ${imagenPDF.colorSpace} /BitsPerComponent ${imagenPDF.bitsPerComponent} /Filter ${imagenPDF.filter} /Length ${imagenPDF.streamBuffer.length} >>\nstream\n`,
+      'latin1'
+    );
+    const imgFooter = Buffer.from('\nendstream\nendobj\n', 'latin1');
+    objectBuffers.push(Buffer.concat([imgHeader, imagenPDF.streamBuffer, imgFooter]));
+  }
+
+  const chunks = [Buffer.from('%PDF-1.4\n', 'latin1')];
+  let currentOffset = chunks[0].length;
   const offsets = [0];
 
-  for (const obj of objects) {
-    offsets.push(Buffer.byteLength(pdfStr, 'latin1'));
-    pdfStr += obj;
+  for (const objBuf of objectBuffers) {
+    offsets.push(currentOffset);
+    chunks.push(objBuf);
+    currentOffset += objBuf.length;
   }
 
-  const xrefOffset = Buffer.byteLength(pdfStr, 'latin1');
-  pdfStr += `xref\n0 ${objects.length + 1}\n`;
-  pdfStr += '0000000000 65535 f \n';
-  for (let i = 1; i <= objects.length; i++) {
-    pdfStr += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+  const xrefOffset = currentOffset;
+  let trailerStr = `xref\n0 ${objectBuffers.length + 1}\n0000000000 65535 f \n`;
+  for (let i = 1; i <= objectBuffers.length; i++) {
+    trailerStr += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
   }
-  pdfStr += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  trailerStr += `trailer\n<< /Size ${objectBuffers.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  chunks.push(Buffer.from(trailerStr, 'latin1'));
 
-  return Buffer.from(pdfStr, 'latin1');
+  return Buffer.concat(chunks);
 };
 
 /**
@@ -422,7 +724,7 @@ const escapeCsvCell = (val) => {
 };
 
 /**
- * RF9: Exportar Expediente / Ficha Técnica Individual (en PDF o CSV)
+ * RF9: Exportar Expediente / Ficha del Animal Individual (en PDF o CSV)
  * - Permitido para Personal del Refugio (VETERINARIA, ENCARGADA_ADOPCIONES) y Directora (DIRECTORA)
  * - Restricción de privacidad RF9: Los documentos exportados omiten estrictamente los datos personales de postulantes
  * - Postcondiciones: Registra en bitácora de auditoría, notifica al personal y entrega el archivo para descarga local
@@ -469,12 +771,13 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
   if (formato === 'CSV') {
     const filas = [];
     const addRow = (cols) => filas.push(cols.map(escapeCsvCell).join(','));
-    addRow(['HUELLAS SIN HOGAR - EXPEDIENTE Y FICHA TÉCNICA INDIVIDUAL']);
+    addRow(['HUELLAS SIN HOGAR - EXPEDIENTE Y FICHA DEL ANIMAL']);
     addRow(['ID Ficha', animal.id, 'Nombre', animal.nombre, 'Causal de Ingreso', tipoIngreso]);
     addRow(['Especie', animal.especie, 'Sexo', animal.sexo, 'Edad Aproximada', animal.edad || 'Desconocida']);
     addRow(['Raza', animal.raza || 'Desconocida', 'Peso (kg)', animal.peso ?? 0, 'Microchip', animal.chip || 'Sin chip']);
     addRow(['Estado Salud', animal.estadoSalud, 'Esterilización', animal.esterilizacion || 'Desconocido', 'Comportamiento', animal.comportamiento || 'Por evaluar']);
     addRow(['Ubicación / Canil', animal.canil ? `${animal.canil.codigo} (${animal.canil.nombre})` : 'Sin asignar', 'Fecha Ingreso', animal.creadoEn ? new Date(animal.creadoEn).toISOString().split('T')[0] : '']);
+    addRow(['Fotografía Registrada', animal.fotoUrl || 'Sin fotografía registrada']);
     addRow(['Historial Médico / Notas Clínicas', notaClinica]);
     filas.push('');
     addRow(['TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (INFORMACIÓN DE CONTACTO DE POSTULANTES PROTEGIDA)']);
@@ -489,7 +792,7 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
       ]);
     }
     bufferOrContent = Buffer.from('\uFEFF' + filas.join('\r\n'), 'utf-8');
-    filename = `expediente_${safeName}_${animal.id}.csv`;
+    filename = `ficha_animal_${safeName}_${animal.id}.csv`;
     contentType = 'text/csv; charset=utf-8';
   } else {
     bufferOrContent = construirBufferPDF({
@@ -499,15 +802,15 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
       usuario: user,
       fechaGeneracion
     });
-    filename = `ficha_tecnica_${safeName}_${animal.id}.pdf`;
+    filename = `ficha_animal_${safeName}_${animal.id}.pdf`;
     contentType = 'application/pdf';
   }
 
-  const recursoExportado = `Expediente / Ficha Técnica Individual #${animal.id} - ${animal.nombre} (${formato})`;
+  const recursoExportado = `Ficha del Animal #${animal.id} - ${animal.nombre} (${formato})`;
 
   // Registrar evento de exportación en la bitácora de auditoría
   await registrarAuditoria({
-    entidad: `Reporte ${formato} (Ficha Animal)`,
+    entidad: `Reporte ${formato} (Ficha del Animal)`,
     entidadId: animal.id,
     accion: 'CREACION',
     valorAnterior: null,
@@ -528,8 +831,8 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
   // Notificar al personal del refugio sobre la exportación realizada
   const notificacion = await notificarPersonalRefugio({
     tipo: `EXPORTACION_${formato}`,
-    titulo: `Ficha técnica (${formato}) descargada: ${animal.nombre}`,
-    mensaje: `${user?.nombre || 'Usuario'} (${user?.rol}) descargó la ficha clínica de ${animal.nombre} (#${animal.id}) en formato ${formato}. Por protección de datos, la información de contacto de los postulantes no se incluye.`,
+    titulo: `Ficha del animal (${formato}) descargada: ${animal.nombre}`,
+    mensaje: `${user?.nombre || 'Usuario'} (${user?.rol}) descargó la ficha del animal ${animal.nombre} (#${animal.id}) en formato ${formato}. Por protección de datos, la información de contacto de los postulantes no se incluye.`,
     destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
     usuario: user,
     metadata: {

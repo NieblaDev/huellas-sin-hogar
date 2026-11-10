@@ -103,7 +103,7 @@ export const obtenerNotificacionesPersonal = async (limit = 15) => {
         id: `aud-${aud.id}`,
         tipo: 'INGRESO_ANIMAL',
         titulo: `Nuevo ingreso registrado: ${info.nombre || `Animal #${aud.entidadId}`}`,
-        mensaje: `${aud.usuarioNombre || 'Voluntario/Personal'} registró el ingreso de ${info.nombre || 'un animal'} (${info.especie || 'Especie'}, ${info.sexo || 'Sexo'})${info.tipoIngreso ? ` por ${info.tipoIngreso}` : ''}. Ficha técnica disponible.`,
+        mensaje: `${aud.usuarioNombre || 'Voluntario/Personal'} registró el ingreso de ${info.nombre || 'un animal'} (${info.especie || 'Especie'}, ${info.sexo || 'Sexo'})${info.tipoIngreso ? ` por ${info.tipoIngreso}` : ''}. Ficha del animal disponible.`,
         destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
         emitidoPor: {
           id: aud.usuarioId,

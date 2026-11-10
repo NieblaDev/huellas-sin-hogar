@@ -18,7 +18,7 @@ export const getAnimalById = async (req, res) => {
     const ficha = await animalService.getAnimalById(id, req.user);
     res.json(ficha);
   } catch (error) {
-    res.status(404).json({ error: error.message || 'Error al consultar la ficha técnica del animal' });
+    res.status(404).json({ error: error.message || 'Error al consultar la ficha del animal' });
   }
 };
 
@@ -43,12 +43,14 @@ export const updateAnimal = async (req, res) => {
     const { id } = req.params;
     const data = { ...req.body };
 
-    // En envíos multipart/form-data todos los campos llegan como texto
+    // En envíos multipart/form-data los campos numéricos llegan como texto si no pasaron por el transform
     if (typeof data.peso === 'string') data.peso = data.peso.trim() === '' ? 0 : Number(data.peso) || 0;
     if (typeof data.canilId === 'string') data.canilId = data.canilId.trim() === '' ? null : Number(data.canilId);
 
     if (req.file) {
       data.fotoUrl = buildPublicUrl(req, req.file.filename);
+    } else if (data.eliminarFoto === true || data.eliminarFoto === 'true') {
+      data.fotoUrl = null;
     }
 
     const updated = await animalService.updateAnimal(id, data, req.user, ip);

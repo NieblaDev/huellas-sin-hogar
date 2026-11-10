@@ -183,11 +183,11 @@ export const createAnimal = async (data, user, ip) => {
     ip
   });
 
-  // Postcondición Requerimiento 1: Disparar notificación al personal del refugio
+  // Disparar notificación al personal del refugio
   const notificacion = await notificarPersonalRefugio({
     tipo: 'INGRESO_ANIMAL',
     titulo: `Nuevo ingreso por ${causalIngreso}: ${newAnimal.nombre} (${especieFinal})`,
-    mensaje: `${user?.nombre || 'Miembro del equipo'} (${user?.rol || 'Staff'}) registró la ficha técnica de ${newAnimal.nombre} (${especieFinal}, ${sexoFinal}) ingresado por ${causalIngreso}. Estado inicial: ${newAnimal.estadoSalud}.`,
+    mensaje: `${user?.nombre || 'Miembro del equipo'} (${user?.rol || 'Staff'}) registró la ficha del animal ${newAnimal.nombre} (${especieFinal}, ${sexoFinal}) ingresado por ${causalIngreso}. Estado inicial: ${newAnimal.estadoSalud}.`,
     destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
     usuario: user,
     metadata: {
@@ -213,24 +213,158 @@ export const updateAnimal = async (id, data, user, ip) => {
   });
   if (!actual) throw new Error('Animal no encontrado');
 
+  const matchActual = (actual.nota || '').match(REGEX_TIPO_INGRESO);
+  const causalActual = matchActual ? matchActual[1] : 'Rescate';
+  const notaBaseActual = (actual.nota || '').replace(REGEX_TIPO_INGRESO, '').trim();
+
+  const causalNueva =
+    data.tipoIngreso && ['Rescate', 'Abandono', 'Decomiso'].includes(data.tipoIngreso)
+      ? data.tipoIngreso
+      : causalActual;
+
+  const updatePayload = {};
+
+  if (data.nombre !== undefined && String(data.nombre).trim() !== '') {
+    updatePayload.nombre = String(data.nombre).trim();
+  }
+  if (data.especie !== undefined && String(data.especie).trim() !== '') {
+    const esp = String(data.especie).trim().toLowerCase();
+    if (!['perro', 'gato'].includes(esp)) {
+      throw new Error('Debes especificar la especie (canina o felina) y el sexo del animal.');
+    }
+    updatePayload.especie = esp === 'perro' ? 'Perro' : 'Gato';
+  }
+  if (data.sexo !== undefined && String(data.sexo).trim() !== '') {
+    const sx = String(data.sexo).trim().toLowerCase();
+    if (!['macho', 'hembra'].includes(sx)) {
+      throw new Error('Debes especificar la especie (canina o felina) y el sexo del animal.');
+    }
+    updatePayload.sexo = sx === 'macho' ? 'Macho' : 'Hembra';
+  }
+  if (data.edad !== undefined) {
+    updatePayload.edad = data.edad && String(data.edad).trim() !== '' ? String(data.edad).trim() : 'Desconocida';
+  }
+  if (data.raza !== undefined) {
+    updatePayload.raza = data.raza && String(data.raza).trim() !== '' ? String(data.raza).trim() : 'Desconocida';
+  }
+  if (data.peso !== undefined) {
+    updatePayload.peso = data.peso === null || data.peso === '' ? 0 : Number(data.peso) || 0;
+  }
+  if (data.chip !== undefined) {
+    updatePayload.chip = data.chip && String(data.chip).trim() !== '' ? String(data.chip).trim() : null;
+  }
+  if (data.estadoSalud !== undefined && data.estadoSalud !== '') {
+    updatePayload.estadoSalud = data.estadoSalud;
+  }
+  if (data.estadoAdopcion !== undefined && data.estadoAdopcion !== '') {
+    updatePayload.estadoAdopcion = data.estadoAdopcion;
+  }
+  if (data.esterilizacion !== undefined) {
+    updatePayload.esterilizacion =
+      data.esterilizacion && String(data.esterilizacion).trim() !== ''
+        ? String(data.esterilizacion).trim()
+        : 'Desconocido';
+  }
+  if (data.comportamiento !== undefined) {
+    updatePayload.comportamiento =
+      data.comportamiento && String(data.comportamiento).trim() !== ''
+        ? String(data.comportamiento).trim()
+        : 'Por evaluar';
+  }
+  if (data.fotoUrl !== undefined) {
+    updatePayload.fotoUrl = data.fotoUrl;
+  }
+
+  // Reconstruir campo nota preservando o actualizando la causal de ingreso
+  if (data.nota !== undefined || data.historialMedico !== undefined || data.tipoIngreso !== undefined) {
+    const textoClinico =
+      data.nota !== undefined
+        ? String(data.nota || '').replace(REGEX_TIPO_INGRESO, '').trim()
+        : data.historialMedico !== undefined
+          ? String(data.historialMedico || '').replace(REGEX_TIPO_INGRESO, '').trim()
+          : notaBaseActual;
+
+    const cuerpoNota = textoClinico || 'Sin antecedentes clínicos registrados al ingreso.';
+    updatePayload.nota = `[Ingreso por ${causalNueva}] ${cuerpoNota}`;
+  }
+
+  // Gestión de cambio de canil si se envía canilId
+  let canilAnteriorId = actual.canilId;
+  let nuevoCanilId = actual.canilId;
+  let cambioCanil = false;
+
+  if (data.canilId !== undefined) {
+    nuevoCanilId = data.canilId === null || data.canilId === '' ? null : Number(data.canilId);
+    if (nuevoCanilId !== actual.canilId) {
+      cambioCanil = true;
+      if (nuevoCanilId !== null) {
+        const canilDestino = await prisma.canil.findUnique({
+          where: { id: nuevoCanilId },
+          include: { animalAlojado: true }
+        });
+        if (!canilDestino) throw new Error('El canil seleccionado no existe.');
+        if (canilDestino.animalAlojado && canilDestino.animalAlojado.id !== actual.id) {
+          throw new Error(`El canil ${canilDestino.nombre} ya se encuentra ocupado.`);
+        }
+      }
+      updatePayload.canilId = nuevoCanilId;
+    }
+  }
+
   const actualizado = await prisma.animal.update({
     where: { id: Number(id) },
-    data,
-    include: { canil: true }
+    data: updatePayload,
+    include: {
+      canil: true,
+      creadoPor: { select: { id: true, nombre: true, rol: true } }
+    }
   });
+
+  if (cambioCanil) {
+    if (canilAnteriorId) {
+      await prisma.canil.update({
+        where: { id: canilAnteriorId },
+        data: { estado: 'LIBRE' }
+      });
+    }
+    if (nuevoCanilId) {
+      await prisma.canil.update({
+        where: { id: nuevoCanilId },
+        data: { estado: 'OCUPADO' }
+      });
+    }
+  }
+
+  const fichaActualizada = enriquecerFichaAnimal(actualizado);
 
   // Trazabilidad / Auditoría automática de modificación
   await registrarAuditoria({
     entidad: 'Animal',
     entidadId: actualizado.id,
     accion: 'MODIFICACION',
-    valorAnterior: actual,
-    valorNuevo: actualizado,
+    valorAnterior: enriquecerFichaAnimal(actual),
+    valorNuevo: fichaActualizada,
     usuario: user,
     ip
   });
 
-  return enriquecerFichaAnimal(actualizado);
+  const notificacion = await notificarPersonalRefugio({
+    tipo: 'ACTUALIZACION_ANIMAL',
+    titulo: `Ficha del animal actualizada: ${actualizado.nombre}`,
+    mensaje: `${user?.nombre || 'Miembro del equipo'} (${user?.rol || 'Staff'}) actualizó la ficha del animal ${actualizado.nombre} (#${actualizado.id}).`,
+    destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
+    usuario: user,
+    metadata: {
+      animalId: actualizado.id,
+      nombre: actualizado.nombre,
+      estadoSalud: actualizado.estadoSalud
+    }
+  });
+
+  return {
+    ...fichaActualizada,
+    notificacion
+  };
 };
 
 export const deleteAnimal = async (id, user, ip) => {

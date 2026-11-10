@@ -14,6 +14,7 @@ const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/animals', animalRoutes);
+router.use('/animales', animalRoutes);
 router.use('/caniles', canilRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/auditoria', auditRoutes);

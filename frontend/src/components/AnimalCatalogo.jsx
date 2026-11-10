@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL, getAuthHeaders } from '../api/config';
 
-export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
+export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey }) {
   const [animales, setAnimales] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [search, setSearch] = useState('');
@@ -12,7 +12,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
   const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
   const [avisoReciente, setAvisoReciente] = useState(null);
 
-  // Modal de Ficha Técnica Individual y Exportación de Expediente
+  // Modal de Ficha del Animal y Exportación de Expediente
   const [fichaSeleccionada, setFichaSeleccionada] = useState(null);
   const [cargandoFicha, setCargandoFicha] = useState(false);
   const [descargandoId, setDescargandoId] = useState(null);
@@ -45,6 +45,9 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
   useEffect(() => {
     fetchAnimals();
     fetchNotificaciones();
+    if (fichaSeleccionada?.id) {
+      abrirFichaAnimal(fichaSeleccionada.id, true);
+    }
   }, [search, especie, reloadKey]);
 
   useEffect(() => {
@@ -87,17 +90,26 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
     }
   };
 
-  const abrirFichaTecnica = async (animalId) => {
-    setCargandoFicha(true);
+  const abrirFichaAnimal = async (animalId, silencioso = false) => {
+    if (!silencioso) setCargandoFicha(true);
     try {
       const res = await fetch(`${API_URL}/animals/${animalId}`, { headers: getAuthHeaders() });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al cargar ficha técnica');
+      if (!res.ok) throw new Error(data.error || 'Error al cargar la ficha del animal');
       setFichaSeleccionada(data);
     } catch (err) {
-      alert(err.message);
+      if (!silencioso) alert(err.message);
     } finally {
-      setCargandoFicha(false);
+      if (!silencioso) setCargandoFicha(false);
+    }
+  };
+
+  const abrirEdicionFicha = (animal, e) => {
+    if (e) e.stopPropagation();
+    if (onEditAnimal) {
+      onEditAnimal(animal);
+    } else if (onOpenModal) {
+      onOpenModal(animal);
     }
   };
 
@@ -127,7 +139,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
       link.href = url;
       const safeName = (animal.nombre || 'animal').toLowerCase().replace(/[^a-z0-9]+/g, '_');
       const ext = formato.toLowerCase() === 'csv' ? 'csv' : 'pdf';
-      link.download = `ficha_tecnica_${safeName}_${animal.id}.${ext}`;
+      link.download = `ficha_animal_${safeName}_${animal.id}.${ext}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -239,7 +251,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
       >
         <div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>
-            Registro de Ingreso, Fichas Técnicas y Reportes
+            Registro de Ingreso, Fichas de Animales y Reportes
           </h2>
           <p style={{ color: '#7c8592', fontSize: '0.88rem', margin: '4px 0 0' }}>
             Registra a los perros y gatos que llegan al refugio y descarga sus fichas o reportes de gestión en PDF o CSV.
@@ -322,7 +334,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
           {/* Botón Registrar Ingreso Animal */}
           <button
             type="button"
-            onClick={onOpenModal}
+            onClick={() => onOpenModal && onOpenModal(null)}
             style={{
               background: '#3f6c52',
               color: '#fff',
@@ -652,7 +664,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
             return (
               <div
                 key={a.id}
-                onClick={() => abrirFichaTecnica(a.id)}
+                onClick={() => abrirFichaAnimal(a.id)}
                 style={{
                   background: '#fff',
                   borderRadius: '16px',
@@ -762,25 +774,44 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                       {a.raza || 'Desconocida'} · {a.peso > 0 ? `${a.peso} kg` : 'Peso s/i'}
                     </span>
 
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          abrirFichaTecnica(a.id);
+                          abrirFichaAnimal(a.id);
                         }}
+                        title="Ver Ficha del Animal"
                         style={{
                           background: '#eef3ec',
                           border: '1px solid #c9dfcd',
                           color: '#2f5540',
-                          padding: '5px 9px',
+                          padding: '5px 8px',
                           borderRadius: '6px',
                           fontSize: '0.72rem',
                           fontWeight: '700',
                           cursor: 'pointer'
                         }}
                       >
-                        📋 Ficha
+                        📋 Ver Ficha
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => abrirEdicionFicha(a, e)}
+                        title="Editar Ficha del Animal"
+                        style={{
+                          background: '#faf1de',
+                          border: '1px solid #f2d59b',
+                          color: '#9c6818',
+                          padding: '5px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ✏️ Editar Ficha
                       </button>
 
                       {puedeExportarExpediente && (
@@ -788,12 +819,12 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                           type="button"
                           onClick={(e) => handleExportExpediente(a, 'PDF', e)}
                           disabled={descargandoId === `${a.id}-PDF`}
-                          title="Descargar la ficha técnica en PDF (sin datos de contacto de postulantes)"
+                          title="Descargar la ficha del animal en PDF (sin datos de contacto de postulantes)"
                           style={{
                             background: '#edeffb',
                             border: '1px solid #c5cbf5',
                             color: '#4550c0',
-                            padding: '5px 9px',
+                            padding: '5px 8px',
                             borderRadius: '6px',
                             fontSize: '0.72rem',
                             fontWeight: '700',
@@ -811,7 +842,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                           background: '#fbeae8',
                           border: '1px solid #f3c9c4',
                           color: '#d1453b',
-                          padding: '5px 9px',
+                          padding: '5px 8px',
                           borderRadius: '6px',
                           fontSize: '0.72rem',
                           fontWeight: '700',
@@ -829,7 +860,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
         </div>
       )}
 
-      {/* MODAL DE FICHA TÉCNICA INDIVIDUAL */}
+      {/* MODAL DE FICHA DEL ANIMAL */}
       {(fichaSeleccionada || cargandoFicha) && (
         <div
           onClick={() => !cargandoFicha && setFichaSeleccionada(null)}
@@ -858,7 +889,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
             }}
           >
             {cargandoFicha || !fichaSeleccionada ? (
-              <div style={{ textAlign: 'center', padding: '30px', color: '#7c8592' }}>Cargando ficha técnica individual...</div>
+              <div style={{ textAlign: 'center', padding: '30px', color: '#7c8592' }}>Cargando ficha del animal...</div>
             ) : (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
@@ -898,7 +929,7 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                           borderRadius: '6px'
                         }}
                       >
-                        Ficha Técnica #{fichaSeleccionada.id} · Ingreso por {fichaSeleccionada.tipoIngreso || 'Rescate'}
+                        Ficha del Animal #{fichaSeleccionada.id} · Ingreso por {fichaSeleccionada.tipoIngreso || 'Rescate'}
                       </span>
                       <h3 style={{ margin: '6px 0 2px', fontSize: '1.35rem', color: '#1f2430' }}>{fichaSeleccionada.nombre}</h3>
                       <span style={{ fontSize: '0.82rem', color: '#7c8592' }}>
@@ -1029,48 +1060,67 @@ export default function AnimalCatalogo({ onOpenModal, reloadKey }) {
                     gap: '8px'
                   }}
                 >
-                  {puedeExportarExpediente ? (
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        onClick={(e) => handleExportExpediente(fichaSeleccionada, 'PDF', e)}
-                        disabled={descargandoId === `${fichaSeleccionada.id}-PDF`}
-                        style={{
-                          background: '#3f6c52',
-                          color: '#fff',
-                          border: 'none',
-                          padding: '9px 14px',
-                          borderRadius: '8px',
-                          fontWeight: '700',
-                          fontSize: '0.82rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {descargandoId === `${fichaSeleccionada.id}-PDF` ? 'Generando PDF...' : '📄 Descargar ficha (PDF)'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleExportExpediente(fichaSeleccionada, 'CSV', e)}
-                        disabled={descargandoId === `${fichaSeleccionada.id}-CSV`}
-                        style={{
-                          background: '#4550c0',
-                          color: '#fff',
-                          border: 'none',
-                          padding: '9px 14px',
-                          borderRadius: '8px',
-                          fontWeight: '700',
-                          fontSize: '0.82rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {descargandoId === `${fichaSeleccionada.id}-CSV` ? 'Generando CSV...' : '📊 Descargar ficha (CSV)'}
-                      </button>
-                    </div>
-                  ) : (
-                    <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
-                      🔒 La descarga de fichas está disponible para el personal del refugio y la Dirección.
-                    </span>
-                  )}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => abrirEdicionFicha(fichaSeleccionada, e)}
+                      style={{
+                        background: '#faf1de',
+                        color: '#9c6818',
+                        border: '1px solid #f2d59b',
+                        padding: '9px 14px',
+                        borderRadius: '8px',
+                        fontWeight: '700',
+                        fontSize: '0.82rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✏️ Editar Ficha del Animal
+                    </button>
+
+                    {puedeExportarExpediente ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => handleExportExpediente(fichaSeleccionada, 'PDF', e)}
+                          disabled={descargandoId === `${fichaSeleccionada.id}-PDF`}
+                          style={{
+                            background: '#3f6c52',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '9px 14px',
+                            borderRadius: '8px',
+                            fontWeight: '700',
+                            fontSize: '0.82rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {descargandoId === `${fichaSeleccionada.id}-PDF` ? 'Generando PDF...' : '📄 Descargar Ficha (PDF)'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleExportExpediente(fichaSeleccionada, 'CSV', e)}
+                          disabled={descargandoId === `${fichaSeleccionada.id}-CSV`}
+                          style={{
+                            background: '#4550c0',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '9px 14px',
+                            borderRadius: '8px',
+                            fontWeight: '700',
+                            fontSize: '0.82rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {descargandoId === `${fichaSeleccionada.id}-CSV` ? 'Generando CSV...' : '📊 Descargar Ficha (CSV)'}
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
+                        🔒 La descarga de fichas está disponible para el personal del refugio y la Dirección.
+                      </span>
+                    )}
+                  </div>
 
                   <button
                     type="button"

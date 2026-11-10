@@ -13,6 +13,7 @@ const INITIAL_FORM = {
   esterilizacion: 'Desconocido',
   comportamiento: '',
   estadoSalud: 'NORMAL',
+  estadoAdopcion: 'EN_REFUGIO',
   nota: '',
   canilId: ''
 };
@@ -20,12 +21,16 @@ const INITIAL_FORM = {
 const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/jpg'];
 const MAX_IMAGEN_MB = 10;
 
-export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = [] }) {
+export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = [], animalEditar = null }) {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [fotoArchivo, setFotoArchivo] = useState(null);
   const [fotoPreview, setFotoPreview] = useState('');
+  const [fotoActualUrl, setFotoActualUrl] = useState('');
+  const [eliminarFotoActual, setEliminarFotoActual] = useState(false);
   const [error, setError] = useState(null);
   const [guardando, setGuardando] = useState(false);
+
+  const esEdicion = Boolean(animalEditar && animalEditar.id);
 
   // Libera la URL temporal de la vista previa al cambiar o quitar la foto
   useEffect(() => {
@@ -34,11 +39,62 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
     };
   }, [fotoPreview]);
 
+  // Precarga los datos actuales del animal al abrir en modo edición, o limpia el formulario en modo creación
+  useEffect(() => {
+    if (!isOpen) return;
+    setError(null);
+    setFotoArchivo(null);
+    setFotoPreview('');
+    setEliminarFotoActual(false);
+
+    if (animalEditar && animalEditar.id) {
+      const notaRaw = animalEditar.nota || '';
+      const matchCausal = notaRaw.match(/^\[Ingreso por (Rescate|Abandono|Decomiso)\]\s*/i);
+      const causalExtraida = animalEditar.tipoIngreso || (matchCausal ? matchCausal[1] : 'Rescate');
+      const notaLimpia = notaRaw.replace(/^\[Ingreso por (Rescate|Abandono|Decomiso)\]\s*/i, '');
+
+      setFormData({
+        nombre: animalEditar.nombre || '',
+        tipoIngreso: causalExtraida,
+        especie: animalEditar.especie || 'Perro',
+        sexo: animalEditar.sexo || 'Macho',
+        edad: animalEditar.edad && animalEditar.edad !== 'Desconocida' ? animalEditar.edad : '',
+        raza: animalEditar.raza && animalEditar.raza !== 'Mestizo / Desconocida' ? animalEditar.raza : '',
+        peso: animalEditar.peso != null && Number(animalEditar.peso) > 0 ? String(animalEditar.peso) : '',
+        chip: animalEditar.chip || '',
+        esterilizacion: animalEditar.esterilizacion || 'Desconocido',
+        comportamiento:
+          animalEditar.comportamiento && animalEditar.comportamiento !== 'Por evaluar'
+            ? animalEditar.comportamiento
+            : '',
+        estadoSalud: animalEditar.estadoSalud || 'NORMAL',
+        estadoAdopcion: animalEditar.estadoAdopcion || 'EN_REFUGIO',
+        nota: notaLimpia === 'Sin antecedentes médicos registrados al ingreso.' ? '' : notaLimpia,
+        canilId: animalEditar.canilId
+          ? String(animalEditar.canilId)
+          : animalEditar.canil?.id
+          ? String(animalEditar.canil.id)
+          : ''
+      });
+      setFotoActualUrl(animalEditar.fotoUrl || '');
+    } else {
+      setFormData(INITIAL_FORM);
+      setFotoActualUrl('');
+    }
+  }, [isOpen, animalEditar]);
+
   if (!isOpen) return null;
 
   const quitarFoto = () => {
-    setFotoArchivo(null);
-    setFotoPreview('');
+    if (fotoPreview) {
+      setFotoArchivo(null);
+      setFotoPreview('');
+      return;
+    }
+    if (esEdicion && fotoActualUrl) {
+      setFotoActualUrl('');
+      setEliminarFotoActual(true);
+    }
   };
 
   const handlePhoto = (e) => {
@@ -56,6 +112,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
     }
 
     setError(null);
+    setEliminarFotoActual(false);
     setFotoArchivo(file);
     setFotoPreview(URL.createObjectURL(file));
   };
@@ -72,13 +129,12 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
       !['perro', 'gato'].includes((formData.especie || '').toLowerCase()) ||
       !['macho', 'hembra'].includes((formData.sexo || '').toLowerCase())
     ) {
-      setError('Debes especificar la especie (canina o felina) y el sexo del animal para completar el ingreso.');
+      setError('Debes especificar la especie (canina o felina) y el sexo del animal para guardar la ficha.');
       return;
     }
 
     setGuardando(true);
     try {
-      // Los datos desconocidos simplemente no se envían: el sistema completa valores por defecto
       const body = new FormData();
       body.append('nombre', formData.nombre.trim());
       body.append('tipoIngreso', formData.tipoIngreso || 'Rescate');
@@ -86,34 +142,57 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
       body.append('sexo', formData.sexo);
       body.append('estadoSalud', formData.estadoSalud || 'NORMAL');
 
-      const opcionales = {
-        edad: formData.edad.trim(),
-        raza: formData.raza.trim(),
-        peso: formData.peso !== '' ? String(formData.peso) : '',
-        chip: formData.chip.trim(),
-        esterilizacion: formData.esterilizacion || '',
-        comportamiento: formData.comportamiento.trim(),
-        nota: formData.nota.trim(),
-        canilId: formData.canilId ? String(formData.canilId) : ''
-      };
-      Object.entries(opcionales).forEach(([campo, valor]) => {
-        if (valor !== '') body.append(campo, valor);
-      });
+      if (esEdicion) {
+        body.append('estadoAdopcion', formData.estadoAdopcion || 'EN_REFUGIO');
+        body.append('edad', formData.edad.trim());
+        body.append('raza', formData.raza.trim());
+        body.append('peso', formData.peso !== '' ? String(formData.peso) : '0');
+        body.append('chip', formData.chip.trim());
+        body.append('esterilizacion', formData.esterilizacion || 'Desconocido');
+        body.append('comportamiento', formData.comportamiento.trim());
+        body.append('nota', formData.nota.trim());
+        body.append('canilId', formData.canilId ? String(formData.canilId) : '');
+        if (eliminarFotoActual && !fotoArchivo) {
+          body.append('eliminarFoto', 'true');
+        }
+      } else {
+        // Los datos desconocidos simplemente no se envían: el sistema completa valores por defecto
+        const opcionales = {
+          edad: formData.edad.trim(),
+          raza: formData.raza.trim(),
+          peso: formData.peso !== '' ? String(formData.peso) : '',
+          chip: formData.chip.trim(),
+          esterilizacion: formData.esterilizacion || '',
+          comportamiento: formData.comportamiento.trim(),
+          nota: formData.nota.trim(),
+          canilId: formData.canilId ? String(formData.canilId) : ''
+        };
+        Object.entries(opcionales).forEach(([campo, valor]) => {
+          if (valor !== '') body.append(campo, valor);
+        });
+      }
 
       if (fotoArchivo) body.append('foto', fotoArchivo);
 
       // Nota: no se fija 'Content-Type' manualmente; el navegador agrega
       // 'multipart/form-data' junto con el "boundary" que Multer necesita.
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/animals`, {
-        method: 'POST',
+      const endpoint = esEdicion ? `${API_URL}/animals/${animalEditar.id}` : `${API_URL}/animals`;
+      const res = await fetch(endpoint, {
+        method: esEdicion ? 'PUT' : 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const msgDetalle = data.detalles?.map((d) => d.mensaje).join(' · ');
-        throw new Error(msgDetalle || data.error || 'No pudimos registrar el ingreso. Inténtalo nuevamente.');
+        throw new Error(
+          msgDetalle ||
+            data.error ||
+            (esEdicion
+              ? 'No pudimos actualizar la ficha del animal. Inténtalo nuevamente.'
+              : 'No pudimos registrar el ingreso. Inténtalo nuevamente.')
+        );
       }
 
       if (data.notificacion) {
@@ -121,7 +200,10 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
       }
 
       setFormData(INITIAL_FORM);
-      quitarFoto();
+      setFotoArchivo(null);
+      setFotoPreview('');
+      setFotoActualUrl('');
+      setEliminarFotoActual(false);
       onSuccess();
       onClose();
     } catch (err) {
@@ -130,6 +212,9 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
       setGuardando(false);
     }
   };
+
+  const imagenMostrada = fotoPreview || fotoActualUrl;
+  const canilActualId = animalEditar?.canilId || animalEditar?.canil?.id || null;
 
   return (
     <div
@@ -140,7 +225,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
+        zIndex: 1200,
         padding: '16px'
       }}
     >
@@ -159,10 +244,14 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
           <div>
             <h3 style={{ margin: 0, color: '#1f2430', fontSize: '1.2rem', fontWeight: '800' }}>
-              🐾 Registro de Ingreso y Creación de Ficha Técnica
+              {esEdicion
+                ? `✏️ Editar Ficha del Animal #${animalEditar.id}`
+                : '🐾 Registro de Ingreso y Creación de Ficha del Animal'}
             </h3>
             <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
-              Los antecedentes desconocidos son opcionales y no bloquean el registro.
+              {esEdicion
+                ? 'Actualiza los antecedentes clínicos, administrativos o la fotografía de la ficha.'
+                : 'Los antecedentes desconocidos son opcionales y no bloquean el registro.'}
             </span>
           </div>
           <button
@@ -192,7 +281,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* Fotografía con vista previa */}
+          {/* Fotografía con vista previa (actual o nueva seleccionada) */}
           <div
             style={{
               marginBottom: '12px',
@@ -218,15 +307,19 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 flexShrink: 0
               }}
             >
-              {fotoPreview ? (
-                <img src={fotoPreview} alt="Vista previa de la fotografía" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {imagenMostrada ? (
+                <img
+                  src={imagenMostrada}
+                  alt="Vista previa de la fotografía"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
               ) : (
                 <span style={{ fontSize: '1.6rem' }}>📷</span>
               )}
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#1f2430', marginBottom: '4px' }}>
-                Fotografía del animal (opcional)
+                {esEdicion ? 'Fotografía de la Ficha del Animal' : 'Fotografía del animal (opcional)'}
               </label>
               <input
                 type="file"
@@ -236,10 +329,14 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 style={{ fontSize: '0.78rem', width: '100%' }}
               />
               <span style={{ display: 'block', fontSize: '0.7rem', color: '#a3aab5', marginTop: '3px' }}>
-                {fotoArchivo ? fotoArchivo.name : 'Formatos JPG o PNG, hasta 10 MB.'}
+                {fotoArchivo
+                  ? `Nueva imagen seleccionada: ${fotoArchivo.name}`
+                  : fotoActualUrl
+                  ? 'Fotografía actual activa. Selecciona un archivo si deseas reemplazarla.'
+                  : 'Formatos JPG o PNG, hasta 10 MB.'}
               </span>
             </div>
-            {fotoPreview && (
+            {imagenMostrada && (
               <button
                 type="button"
                 onClick={quitarFoto}
@@ -254,7 +351,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                   cursor: 'pointer'
                 }}
               >
-                Quitar
+                {fotoPreview ? 'Deshacer' : 'Quitar'}
               </button>
             )}
           </div>
@@ -408,10 +505,17 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: esEdicion ? '1fr 1fr 1fr' : '1fr 1fr',
+              gap: '8px',
+              marginBottom: '10px'
+            }}
+          >
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
-                Estado de Salud Inicial
+                Estado de Salud
               </label>
               <select
                 value={formData.estadoSalud}
@@ -423,9 +527,24 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 <option value="CRITICO">🔴 Crítico</option>
               </select>
             </div>
+            {esEdicion && (
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
+                  Estado de Adopción
+                </label>
+                <select
+                  value={formData.estadoAdopcion}
+                  onChange={(e) => setFormData({ ...formData, estadoAdopcion: e.target.value })}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px solid #e9eaed', background: '#fff' }}
+                >
+                  <option value="EN_REFUGIO">🏠 En Refugio</option>
+                  <option value="ADOPTADO">🏡 Adoptado</option>
+                </select>
+              </div>
+            )}
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
-                Canil Inicial (Opcional)
+                Canil Asignado (Opcional)
               </label>
               <select
                 value={formData.canilId}
@@ -434,10 +553,10 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
               >
                 <option value="">— Sin asignar —</option>
                 {caniles
-                  .filter((c) => c.estado === 'LIBRE')
+                  .filter((c) => c.estado === 'LIBRE' || (canilActualId && Number(c.id) === Number(canilActualId)))
                   .map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.nombre} ({c.sector})
+                      {c.nombre} ({c.sector}){canilActualId && Number(c.id) === Number(canilActualId) ? ' — Actual' : ''}
                     </option>
                   ))}
               </select>
@@ -459,7 +578,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
 
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
-              Historial Médico / Antecedentes al Ingreso (Opcional)
+              Historial Médico / Antecedentes Clínicos (Opcional)
             </label>
             <textarea
               rows={3}
@@ -498,7 +617,13 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 cursor: 'pointer'
               }}
             >
-              {guardando ? 'Registrando ficha...' : 'Guardar Ficha Técnica'}
+              {guardando
+                ? esEdicion
+                  ? 'Guardando cambios...'
+                  : 'Registrando ficha...'
+                : esEdicion
+                ? 'Guardar Cambios de la Ficha'
+                : 'Guardar Ficha del Animal'}
             </button>
           </div>
         </form>
