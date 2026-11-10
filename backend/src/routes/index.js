@@ -6,6 +6,7 @@ import dashboardRoutes from './dashboard.routes.js';
 import auditRoutes from './audit.routes.js';
 import insumoRoutes from './insumo.routes.js';
 import postulanteRoutes from './postulante.routes.js';
+import adopcionRoutes from './adopcion.routes.js';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/auditoria', auditRoutes);
 router.use('/insumos', insumoRoutes);
 router.use('/postulantes', postulanteRoutes);
+router.use('/adopciones', adopcionRoutes);
 
 export default router;
