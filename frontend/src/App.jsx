@@ -77,7 +77,7 @@ export default function App() {
         <>
           {/* SIDEBAR DE NAVEGACIÓN — FIEL AL PROTOTIPO */}
           <aside style={{
-            width: '252px', minHeight: '300vh', background: '#ffffff', borderRight: '1px solid #e9eaed',
+            width: '252px', height: '100vh', background: '#ffffff', borderRight: '1px solid #e9eaed',
             display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, zIndex: 100
           }}>
             <div style={{
@@ -100,7 +100,7 @@ export default function App() {
               </div>
             </div>
 
-            <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
               {/* Inicio / Panel de Indicadores */}
               <button
                 onClick={() => setActiveTab('dashboard')}
