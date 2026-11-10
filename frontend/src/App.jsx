@@ -71,7 +71,7 @@ export default function App() {
         <>
           {/* SIDEBAR DE NAVEGACIÓN — FIEL AL PROTOTIPO */}
           <aside style={{
-            width: '252px', minHeight: '100vh', background: '#ffffff', borderRight: '1px solid #e9eaed',
+            width: '252px', minHeight: '300vh', background: '#ffffff', borderRight: '1px solid #e9eaed',
             display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, zIndex: 100
           }}>
             <div style={{
@@ -134,7 +134,6 @@ export default function App() {
                 🐶 <span>Registro Animales</span>
               </button>
 
-<<<<<<< HEAD
               {puedeGestionarAdopciones && (
                 <button onClick={() => setActiveTab('adopciones')}
                   aria-current={activeTab === 'adopciones' ? 'page' : undefined}
@@ -147,9 +146,7 @@ export default function App() {
               )}
 
               {/* Auditoría y Trazabilidad (Requisito 3 - Restringido a Directora) */}
-=======
               {/* Auditoría y Trazabilidad */}
->>>>>>> 6b8894fdcccc34fb67c776e5de2449bc973680bc
               {esDirectora && (
                 <button
                   onClick={() => setActiveTab('auditoria')}
