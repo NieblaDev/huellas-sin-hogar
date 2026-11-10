@@ -25,3 +25,8 @@ export const editarSolicitud = (id, data) => request(`/solicitudes/${id}`, { met
 export const eliminarSolicitud = (id, actualizadoEn) => request(`/solicitudes/${id}`, { method: 'DELETE', body: JSON.stringify({ actualizadoEn }) });
 
 export const registrarEtapa = (id, data) => request(`/solicitudes/${id}/etapas`, { method: 'POST', body: JSON.stringify(data) });
+
+export const listarSeguimientos = (filters, signal) => request(`/seguimientos?${new URLSearchParams(filters)}`, { signal });
+export const registrarSeguimiento = (id, data) => request(`/seguimientos/${id}/registrar`, { method: 'POST', body: JSON.stringify(data) });
+export const reprogramarSeguimiento = (id, data) => request(`/seguimientos/${id}/reprogramar`, { method: 'POST', body: JSON.stringify(data) });
+export const registrarDevolucion = data => request('/devoluciones', { method: 'POST', body: JSON.stringify(data) });

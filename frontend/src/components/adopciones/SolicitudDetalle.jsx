@@ -1,5 +1,6 @@
 import SolicitudEtapas from './SolicitudEtapas';
 import SolicitudProgreso from './SolicitudProgreso';
+import DevolucionModal from './DevolucionModal';
 import React, { useEffect, useState } from 'react';
 import SolicitudForm from './SolicitudForm';
 import { obtenerSolicitud, eliminarSolicitud } from '../../api/adopciones';
@@ -7,6 +8,7 @@ import { ESTADOS, fechaLocal } from './SolicitudesLista';
 
 export default function SolicitudDetalle({ id }) {
   const [editando, setEditando] = useState(false);
+  const [devolviendo, setDevolviendo] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const [errorAccion, setErrorAccion] = useState('');
@@ -63,6 +65,10 @@ export default function SolicitudDetalle({ id }) {
       </dl></div>
     </div>
     <SolicitudEtapas key={solicitud.actualizadoEn} solicitud={solicitud} onUpdated={texto => { setMensaje(texto); setRecarga(k => k + 1); }} />
+    {solicitud.adopcion && (solicitud.adopcion.devolucion
+      ? <p className="adopciones-alert">Esta adopción fue devuelta: el animal reingresó al refugio y la devolución consta en los antecedentes del postulante.</p>
+      : <div className="adopciones-toolbar"><button onClick={() => setDevolviendo(true)}>Registrar devolución</button></div>)}
+    {devolviendo && <DevolucionModal adopcionId={solicitud.adopcion.id} animal={solicitud.animal.nombre} postulante={postulante.nombre} onClose={() => setDevolviendo(false)} onDone={() => { setDevolviendo(false); setMensaje('Devolución registrada. El animal volvió al refugio.'); setRecarga(k => k + 1); }} />}
     <h4>Antecedentes actuales del postulante</h4>
     <p>{antecedentes.solicitudesActivas.length} solicitud(es) activa(s), incluida esta si corresponde.</p>
     {antecedentes.devolucionesPrevias.length === 0 ? <p>Sin devoluciones registradas.</p> : <>

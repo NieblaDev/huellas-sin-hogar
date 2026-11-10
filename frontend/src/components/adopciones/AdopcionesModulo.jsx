@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import SolicitudesLista from './SolicitudesLista';
 import SolicitudForm from './SolicitudForm';
 import SolicitudDetalle from './SolicitudDetalle';
+import SeguimientosLista from './SeguimientosLista';
 import './adopciones.css';
 
 export default function AdopcionesModulo({ user }) {
@@ -14,9 +15,10 @@ export default function AdopcionesModulo({ user }) {
   return (
     <section className="adopciones" aria-labelledby="adopciones-title">
       <div className="adopciones-toolbar">
-        <div className="adopciones-header"><h2 id="adopciones-title">Adopciones</h2><p className="adopciones-muted">Solicitudes y antecedentes de postulantes</p></div>
+        <div className="adopciones-header"><h2 id="adopciones-title">Adopciones</h2><p className="adopciones-muted">Solicitudes, seguimientos y devoluciones</p></div>
         <nav className="adopciones-toolbar" aria-label="Gestión de adopciones">
           <button onClick={() => { setVista('lista'); setConfirmacion(null); }}>Consultar solicitudes</button>
+          <button onClick={() => { setVista('seguimientos'); setConfirmacion(null); }}>Seguimientos</button>
           <button className="primary" onClick={() => { setVista('crear'); setConfirmacion(null); }}>Nueva solicitud</button>
         </nav>
       </div>
@@ -25,6 +27,7 @@ export default function AdopcionesModulo({ user }) {
         {confirmacion.alertas.map(alerta => <p key={alerta.codigo}>{alerta.mensaje}</p>)}
       </div>}
       {vista === 'lista' && <SolicitudesLista onVer={verDetalle} />}
+      {vista === 'seguimientos' && <SeguimientosLista user={user} />}
       {vista === 'crear' && <SolicitudForm onSuccess={resultado => { setConfirmacion(resultado); verDetalle(resultado.solicitud.id); }} />}
       {vista === 'detalle' && <SolicitudDetalle key={solicitudId} id={solicitudId} />}
     </section>
