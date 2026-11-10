@@ -1,0 +1,74 @@
+.adopciones { max-width: 1100px; margin: 0 auto; padding: 24px; color: #1f2430; }
+.adopciones * { box-sizing: border-box; }
+.adopciones .adopciones-card { background: #fff; border: 1px solid #e9eaed; border-radius: 14px; padding: 24px; margin-top: 16px; }
+.adopciones h2 { font-size: 1.6rem; font-weight: 800; margin: 0; }
+.adopciones h3 { font-size: 1.1rem; font-weight: 800; margin-top: 0; }
+.adopciones-header p { font-size: .88rem; margin: 4px 0 0; }
+.adopciones p, .adopciones table, .adopciones dl { font-size: .88rem; line-height: 1.6; }
+.adopciones .adopciones-toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.adopciones .adopciones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px; }
+.adopciones label { display: flex; flex-direction: column; gap: 6px; font-size: .82rem; font-weight: 700; margin-bottom: 12px; }
+.adopciones input, .adopciones select, .adopciones textarea { font: inherit; padding: 10px; border: 1px solid #aeb7c1; border-radius: 7px; width: 100%; background: white; color: #1f2430; }
+.adopciones textarea { min-height: 90px; resize: vertical; }
+.adopciones button { font-family: inherit; font-size: .84rem; font-weight: 700; min-height: 40px; line-height: 1.25; border: 1px solid #c9d4ce; border-radius: 9px; background: #fff; padding: 10px 16px; cursor: pointer; color: #2f5540; }
+.adopciones .adopciones-filtros { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(170px, .45fr) auto; gap: 16px; align-items: end; }
+.adopciones .adopciones-filtros label { margin-bottom: 0; }
+.adopciones .adopciones-filtros input, .adopciones .adopciones-filtros select { height: 40px; }
+@media (max-width: 900px) { .adopciones .adopciones-filtros { grid-template-columns: 1fr; } }
+.adopciones button.primary { background: #3f6c52; color: #fff; border-color: #3f6c52; }
+.adopciones button:disabled { opacity: .55; cursor: not-allowed; }
+.adopciones :focus-visible { outline: 3px solid #3478c4; outline-offset: 2px; }
+.adopciones .adopciones-alert { border: 1px solid #e0c486; background: #fff7e5; color: #704d0e; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.adopciones .adopciones-error { border: 1px solid #efc2be; background: #fbeae8; color: #a02b24; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.adopciones .adopciones-success { background: #e8f0e8; padding: 12px; border-radius: 8px; color: #2f5540; }
+.adopciones .adopciones-scroll { overflow-x: auto; }
+.adopciones table { width: 100%; border-collapse: collapse; text-align: left; }
+.adopciones th, .adopciones td { padding: 12px 10px; border-bottom: 1px solid #e9eaed; }
+.adopciones dt { font-weight: 700; margin-top: 12px; }
+.adopciones dd { margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.adopciones fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.adopciones legend { font-weight: 700; margin-bottom: 16px; }
+.adopciones .adopciones-muted { color: #586270; }
+
+.adopciones label small { font-size: .78rem; font-weight: 400; color: #586270; line-height: 1.5; }
+
+.adopciones-etapas { border-top: 1px solid #e9eaed; margin-top: 24px; padding-top: 8px; }
+.adopciones-etapas caption { text-align: left; font-weight: 700; padding: 18px 0 6px; }
+
+.adopciones-progreso { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); list-style: none; padding: 0; margin: 20px 0 24px; gap: 10px; }
+.adopciones-progreso li { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px 10px; border: 1px solid #d9dfe3; border-radius: 10px; background: #f8f9fa; color: #586270; }
+.adopciones-progreso li.completado { background: #edf4ee; color: #2f5540; border-color: #bdd1c2; }
+.adopciones-progreso li.actual { outline: 2px solid #3f6c52; outline-offset: 1px; }
+.adopciones-progreso strong { font-size: .82rem; }
+.adopciones-progreso small { font-size: .76rem; }
+.adopciones-paso-numero { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid currentColor; border-radius: 50%; font-weight: 700; }
+.adopciones-progreso .completado .adopciones-paso-numero { background: #3f6c52; border-color: #3f6c52; color: white; }
+@media (max-width: 700px) { .adopciones-progreso { grid-template-columns: 1fr; } .adopciones-progreso li { display: grid; grid-template-columns: 28px 1fr; align-items: center; } .adopciones-progreso small { grid-column: 2; } }
+
+.adopciones-progreso li.cerrado { outline-color: #a02b24; border-color: #efc2be; background: #fbeae8; color: #a02b24; }
+
+/* Seguimiento post-adopción y devoluciones */
+.adopciones .adopciones-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .76rem; font-weight: 700; border: 1px solid #d9dfe3; background: #f8f9fa; color: #586270; }
+.adopciones .adopciones-badge.completado { background: #edf4ee; color: #2f5540; border-color: #bdd1c2; }
+.adopciones .adopciones-badge.reprogramado { background: #fff7e5; color: #704d0e; border-color: #e0c486; }
+.adopciones .adopciones-badge.sin_contacto { background: #fbeae8; color: #a02b24; border-color: #efc2be; }
+.adopciones tr.seguimiento-alerta { background: #fdf3f2; }
+.adopciones td button { margin: 0 6px 6px 0; }
+.adopciones .seguimiento-panel { border-color: #bdd1c2; }
+.adopciones-modal-fondo { position: fixed; inset: 0; background: rgba(31, 36, 48, .55); display: grid; place-items: center; padding: 16px; z-index: 1000; }
+.adopciones-modal { background: #fff; border-radius: 14px; padding: 24px; width: min(560px, 100%); max-height: 90vh; overflow-y: auto; color: #1f2430; font-size: .88rem; }
+.adopciones-modal * { box-sizing: border-box; }
+.adopciones-modal h3 { font-size: 1.1rem; font-weight: 800; margin-top: 0; }
+.adopciones-modal label { display: flex; flex-direction: column; gap: 6px; font-size: .82rem; font-weight: 700; margin-bottom: 12px; }
+.adopciones-modal input, .adopciones-modal textarea { font: inherit; padding: 10px; border: 1px solid #aeb7c1; border-radius: 7px; width: 100%; background: white; color: #1f2430; }
+.adopciones-modal textarea { min-height: 90px; resize: vertical; }
+.adopciones-modal fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.adopciones-modal button { font-family: inherit; font-size: .84rem; font-weight: 700; min-height: 40px; border: 1px solid #c9d4ce; border-radius: 9px; background: #fff; padding: 10px 16px; cursor: pointer; color: #2f5540; }
+.adopciones-modal button.primary { background: #3f6c52; color: #fff; border-color: #3f6c52; }
+.adopciones-modal button:disabled { opacity: .55; cursor: not-allowed; }
+.adopciones-modal :focus-visible { outline: 3px solid #3478c4; outline-offset: 2px; }
+.adopciones-modal .adopciones-toolbar { display: flex; gap: 12px; flex-wrap: wrap; }
+.adopciones-modal .adopciones-alert { border: 1px solid #e0c486; background: #fff7e5; color: #704d0e; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.adopciones-modal .adopciones-error { border: 1px solid #efc2be; background: #fbeae8; color: #a02b24; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.adopciones-modal .adopciones-success { background: #e8f0e8; padding: 12px; border-radius: 8px; color: #2f5540; }
+.adopciones-modal .adopciones-muted { color: #586270; }

@@ -9,12 +9,25 @@ export default function CanilesModulo({ user }) {
   const [cargando, setCargando] = useState(true);
   const [tab, setTab] = useState('mapa'); // 'mapa' | 'traslados' | 'solicitar'
 
-  // Modal de Asignación / Reubicación de Canil
+  // Formulario Agregar Canil
+  const [agregarCanilOpen, setAgregarCanilOpen] = useState(false);
+  const [nuevoCanil, setNuevoCanil] = useState({ sector: '' });
+  const [sectorMode, setSectorMode] = useState('select'); // 'select' | 'nuevo'
+  const [errorNuevoCanil, setErrorNuevoCanil] = useState(null);
+  const [creandoCanil, setCreandoCanil] = useState(false);
+
+  // Confirmación Eliminar Canil
+  const [eliminarCanil, setEliminarCanil] = useState(null);
+  const [eliminarConfirmOpen, setEliminarConfirmOpen] = useState(false);
+  const [eliminandoCanil, setEliminandoCanil] = useState(false);
+
+  // Modal de Gestión de Canil
   const [modalCanilOpen, setModalCanilOpen] = useState(false);
   const [selectedCanil, setSelectedCanil] = useState(null);
+  const [modalModo, setModalModo] = useState('asignar'); // 'asignar' | 'transferir' | 'cuarentena'
   const [selectedAnimalId, setSelectedAnimalId] = useState('');
+  const [canilDestinoId, setCanilDestinoId] = useState('');
   const [motivoMovimiento, setMotivoMovimiento] = useState('');
-  const [estadoCanil, setEstadoCanil] = useState('OCUPADO');
   const [guardando, setGuardando] = useState(false);
   const [errorModal, setErrorModal] = useState(null);
   const [mensajeExito, setMensajeExito] = useState(null);
@@ -29,6 +42,24 @@ export default function CanilesModulo({ user }) {
     motivo: ''
   });
   const [errorExterno, setErrorExterno] = useState(null);
+
+  // Sectores ya registrados (se derivan de los caniles existentes, por lo que
+  // quedan guardados en la base de datos al crear cada canil).
+  const sectoresExistentes = React.useMemo(
+    () => [...new Set(caniles.map(c => c.sector).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [caniles]
+  );
+
+  // Próximo número de canil a partir del mayor "Canil N" existente.
+  const getProximoNumeroCanil = () => {
+    const numeros = caniles
+      .map(c => {
+        const match = String(c.nombre || '').match(/(\d+)\s*$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(n => n > 0);
+    return (numeros.length ? Math.max(...numeros) : caniles.length) + 1;
+  };
 
   useEffect(() => {
     cargarDatos();
@@ -65,8 +96,9 @@ export default function CanilesModulo({ user }) {
 
   const handleOpenModal = (canil) => {
     setSelectedCanil(canil);
+    setModalModo('asignar');
     setSelectedAnimalId(canil.animalAlojado ? canil.animalAlojado.id.toString() : '');
-    setEstadoCanil(canil.estado === 'LIBRE' ? 'OCUPADO' : canil.estado);
+    setCanilDestinoId('');
     setMotivoMovimiento('');
     setErrorModal(null);
     setModalCanilOpen(true);
@@ -76,18 +108,13 @@ export default function CanilesModulo({ user }) {
     e.preventDefault();
     setErrorModal(null);
 
-    if (!motivoMovimiento.trim()) {
-      setErrorModal('El motivo del movimiento es obligatorio');
-      return;
-    }
-
     setGuardando(true);
     try {
       const body = {
         canilId: selectedCanil.id,
         animalId: selectedAnimalId ? parseInt(selectedAnimalId) : null,
-        motivo: motivoMovimiento.trim(),
-        estado: selectedAnimalId ? estadoCanil : 'LIBRE'
+        motivo: motivoMovimiento.trim() || null,
+        estado: selectedAnimalId ? 'OCUPADO' : 'LIBRE'
       };
 
       const res = await fetch(`${API_URL}/caniles/asignar`, {
@@ -100,6 +127,90 @@ export default function CanilesModulo({ user }) {
       if (!res.ok) throw new Error(data.error || 'Error al procesar asignación');
 
       setMensajeExito(data.mensaje);
+      setTimeout(() => setMensajeExito(null), 4000);
+      setModalCanilOpen(false);
+      await cargarDatos();
+    } catch (err) {
+      setErrorModal(err.message);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const handleTransferirCanil = async (e) => {
+    e.preventDefault();
+    setErrorModal(null);
+
+    const animal = selectedCanil.animalAlojado;
+    if (!animal) {
+      setErrorModal('Este canil no tiene un animal para transferir');
+      return;
+    }
+    if (!canilDestinoId) {
+      setErrorModal('Selecciona el canil de destino');
+      return;
+    }
+
+    setGuardando(true);
+    try {
+      const res = await fetch(`${API_URL}/caniles/asignar`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          canilId: parseInt(canilDestinoId),
+          animalId: animal.id,
+          motivo: motivoMovimiento.trim() || `Transferencia desde ${selectedCanil.nombre}`,
+          estado: 'OCUPADO'
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al transferir el animal');
+
+      setMensajeExito(data.mensaje || 'Animal transferido correctamente');
+      setTimeout(() => setMensajeExito(null), 4000);
+      setModalCanilOpen(false);
+      await cargarDatos();
+    } catch (err) {
+      setErrorModal(err.message);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const handleCambiarCuarentena = async (e) => {
+    e.preventDefault();
+    setErrorModal(null);
+
+    const animal = selectedCanil.animalAlojado;
+    if (!animal) {
+      setErrorModal('Solo se puede poner en cuarentena un canil con un animal alojado');
+      return;
+    }
+
+    const nuevoEstado = selectedCanil.estado === 'CUARENTENA' ? 'OCUPADO' : 'CUARENTENA';
+    if (nuevoEstado === 'CUARENTENA' && !motivoMovimiento.trim()) {
+      setErrorModal('El motivo es obligatorio para poner el canil en cuarentena');
+      return;
+    }
+
+    setGuardando(true);
+    try {
+      const res = await fetch(`${API_URL}/caniles/asignar`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          canilId: selectedCanil.id,
+          animalId: animal.id,
+          motivo: motivoMovimiento.trim() || 'Fin de cuarentena',
+          estado: nuevoEstado
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al actualizar el estado');
+
+      setMensajeExito(nuevoEstado === 'CUARENTENA' ? 'Canil puesto en cuarentena' : 'Canil devuelto a operación normal');
       setTimeout(() => setMensajeExito(null), 4000);
       setModalCanilOpen(false);
       await cargarDatos();
@@ -154,6 +265,90 @@ export default function CanilesModulo({ user }) {
       await cargarDatos();
     } catch (err) {
       setErrorExterno(err.message);
+    }
+  };
+
+  const handleOpenAgregarCanil = () => {
+    // Preferir el sector del último canil creado; si no hay, el primero disponible.
+    const ultimoCanil = [...caniles].sort((a, b) => b.id - a.id)[0];
+    const sectorPorDefecto = ultimoCanil?.sector || sectoresExistentes[0] || '';
+    setNuevoCanil({ sector: sectorPorDefecto });
+    setSectorMode(sectorPorDefecto ? 'select' : 'nuevo');
+    setErrorNuevoCanil(null);
+    setAgregarCanilOpen(true);
+  };
+
+  const handleCrearCanil = async (e) => {
+    e.preventDefault();
+    setErrorNuevoCanil(null);
+
+    if (!nuevoCanil.sector.trim()) {
+      setErrorNuevoCanil('Selecciona un sector existente o escribe uno nuevo');
+      return;
+    }
+
+    // Nombre y código automáticos: "Canil 12", "Canil 13", ...
+    const numero = getProximoNumeroCanil();
+    const nombre = `Canil ${numero}`;
+    let codigo = `C-${String(numero).padStart(2, '0')}`;
+    const codigosExistentes = new Set(caniles.map(c => c.codigo));
+    let sufijo = 0;
+    while (codigosExistentes.has(codigo)) {
+      sufijo += 1;
+      codigo = `C-${String(numero).padStart(2, '0')}-${sufijo}`;
+    }
+
+    setCreandoCanil(true);
+    try {
+      const res = await fetch(`${API_URL}/caniles`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          codigo,
+          nombre,
+          sector: nuevoCanil.sector.trim(),
+          capacidad: 1,
+          estado: 'LIBRE'
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al crear canil');
+
+      setMensajeExito(data.message || 'Canil creado con éxito');
+      setTimeout(() => setMensajeExito(null), 4000);
+      setAgregarCanilOpen(false);
+      setNuevoCanil({ sector: '' });
+      setSectorMode('select');
+      setErrorNuevoCanil(null);
+      await cargarDatos();
+    } catch (err) {
+      setErrorNuevoCanil(err.message);
+    } finally {
+      setCreandoCanil(false);
+    }
+  };
+
+  const handleConfirmarEliminarCanil = async () => {
+    if (!eliminarCanil) return;
+    setEliminandoCanil(true);
+    try {
+      const res = await fetch(`${API_URL}/caniles/${eliminarCanil.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al eliminar canil');
+
+      setMensajeExito(data.mensaje || 'Canil eliminado correctamente');
+      setTimeout(() => setMensajeExito(null), 4000);
+      setEliminarConfirmOpen(false);
+      setEliminarCanil(null);
+      await cargarDatos();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setEliminandoCanil(false);
     }
   };
 
@@ -220,6 +415,17 @@ export default function CanilesModulo({ user }) {
           </p>
         </div>
 
+        {/* Botón Agregar Canil */}
+        <button
+          onClick={handleOpenAgregarCanil}
+          style={{
+            padding: '8px 16px', borderRadius: '8px', border: '1.5px solid #3f6c52', fontWeight: '700', fontSize: '0.84rem', cursor: 'pointer',
+            background: '#fff', color: '#3f6c52', display: 'flex', alignItems: 'center', gap: '6px'
+          }}
+        >
+          ➕ Agregar Canil
+        </button>
+
         {/* Pestañas */}
         <div style={{ display: 'flex', gap: '8px', background: '#fff', padding: '4px', borderRadius: '10px', border: '1px solid #e9eaed' }}>
           <button
@@ -252,6 +458,93 @@ export default function CanilesModulo({ user }) {
         </div>
       </div>
 
+      {/* FORMULARIO AGREGAR CANIL */}
+      {agregarCanilOpen && (
+        <div style={{
+          background: '#fff', borderRadius: '16px', border: '1px solid #e9eaed', padding: '26px',
+          maxWidth: '640px', margin: '0 auto 24px', boxShadow: '0 4px 14px rgba(20,24,32,0.06)'
+        }}>
+          <h3 style={{ margin: '0 0 8px', color: '#1f2430' }}>➕ Agregar Nuevo Canil</h3>
+          <p style={{ color: '#7c8592', fontSize: '0.84rem', margin: '0 0 18px' }}>
+            Completa los datos del nuevo canil. Quedará disponible como LIBRE para asignar animales.
+          </p>
+
+          {errorNuevoCanil && (
+            <div style={{ background: '#fbeae8', color: '#d1453b', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.82rem' }}>
+              {errorNuevoCanil}
+            </div>
+          )}
+
+          <form onSubmit={handleCrearCanil}>
+            {/* Nombre y capacidad automáticos */}
+            <div style={{
+              background: '#f8f9fa', border: '1px solid #e9eaed', borderRadius: '10px',
+              padding: '12px 14px', marginBottom: '14px', fontSize: '0.84rem', color: '#555e6d'
+            }}>
+              Se creará <strong>Canil {getProximoNumeroCanil()}</strong> · Capacidad: <strong>1 animal</strong>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
+                Sector *
+              </label>
+              <select
+                value={sectorMode === 'nuevo' ? '__nuevo__' : nuevoCanil.sector}
+                onChange={e => {
+                  if (e.target.value === '__nuevo__') {
+                    setSectorMode('nuevo');
+                    setNuevoCanil({ sector: '' });
+                  } else {
+                    setSectorMode('select');
+                    setNuevoCanil({ sector: e.target.value });
+                  }
+                }}
+                style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1.5px solid #e9eaed' }}
+              >
+                <option value="">— Seleccionar sector —</option>
+                {sectoresExistentes.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+                <option value="__nuevo__">➕ Escribir un nuevo sector</option>
+              </select>
+            </div>
+
+            {sectorMode === 'nuevo' && (
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
+                  Nuevo sector *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Patio Principal"
+                  value={nuevoCanil.sector}
+                  onChange={e => setNuevoCanil({ sector: e.target.value })}
+                  style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1.5px solid #e9eaed', boxSizing: 'border-box' }}
+                />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setAgregarCanilOpen(false)}
+                style={{ padding: '9px 16px', background: 'transparent', border: '1.5px solid #e9eaed', borderRadius: '8px', cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={creandoCanil}
+                style={{ padding: '9px 20px', background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
+              >
+                {creandoCanil ? 'Creando...' : 'Crear Canil'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* KPI CARDS RESUMEN */}
       {resumen && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '24px' }}>
@@ -262,12 +555,12 @@ export default function CanilesModulo({ user }) {
           </div>
           <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 20px', border: '1px solid #e9eaed' }}>
             <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#7c8592', textTransform: 'uppercase' }}>Caniles Ocupados</span>
-            <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#d1453b', marginTop: '4px' }}>{resumen.ocupados}</div>
+            <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#b37416', marginTop: '4px' }}>{resumen.ocupados}</div>
             <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>Con animal alojado</span>
           </div>
           <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 20px', border: '1px solid #e9eaed' }}>
             <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#7c8592', textTransform: 'uppercase' }}>En Cuarentena</span>
-            <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#d99a3d', marginTop: '4px' }}>{resumen.cuarentena}</div>
+            <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#d1453b', marginTop: '4px' }}>{resumen.cuarentena}</div>
             <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>Observación médica</span>
           </div>
           <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 20px', border: '1px solid #e9eaed' }}>
@@ -291,8 +584,8 @@ export default function CanilesModulo({ user }) {
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <span style={{ fontSize: '0.75rem', background: '#e8f0e8', color: '#2f5540', padding: '4px 10px', borderRadius: '6px', fontWeight: '700' }}>● LIBRE</span>
-              <span style={{ fontSize: '0.75rem', background: '#fbeae8', color: '#d1453b', padding: '4px 10px', borderRadius: '6px', fontWeight: '700' }}>● OCUPADO</span>
-              <span style={{ fontSize: '0.75rem', background: '#faf1de', color: '#d99a3d', padding: '4px 10px', borderRadius: '6px', fontWeight: '700' }}>● CUARENTENA</span>
+              <span style={{ fontSize: '0.75rem', background: '#faf1de', color: '#b37416', padding: '4px 10px', borderRadius: '6px', fontWeight: '700' }}>● OCUPADO</span>
+              <span style={{ fontSize: '0.75rem', background: '#fbeae8', color: '#d1453b', padding: '4px 10px', borderRadius: '6px', fontWeight: '700' }}>● CUARENTENA</span>
             </div>
           </div>
 
@@ -306,9 +599,9 @@ export default function CanilesModulo({ user }) {
               const libre = canil.estado === 'LIBRE';
               const cuarentena = canil.estado === 'CUARENTENA';
 
-              const borderColor = libre ? '#3f6c52' : ocupado ? '#d1453b' : '#d99a3d';
-              const badgeBg = libre ? '#e8f0e8' : ocupado ? '#fbeae8' : '#faf1de';
-              const badgeColor = libre ? '#2f5540' : ocupado ? '#d1453b' : '#d99a3d';
+              const borderColor = libre ? '#3f6c52' : ocupado ? '#d99a3d' : '#d1453b';
+              const badgeBg = libre ? '#e8f0e8' : ocupado ? '#faf1de' : '#fbeae8';
+              const badgeColor = libre ? '#2f5540' : ocupado ? '#b37416' : '#d1453b';
 
               return (
                 <div
@@ -329,7 +622,7 @@ export default function CanilesModulo({ user }) {
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(20,24,32,0.04)'; }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <strong style={{ fontSize: '0.98rem', color: '#1f2430' }}>{canil.nombre} ({canil.codigo})</strong>
+                    <strong style={{ fontSize: '0.98rem', color: '#1f2430' }}>{canil.nombre}</strong>
                     <span style={{
                       fontSize: '0.7rem', fontWeight: '800', background: badgeBg, color: badgeColor,
                       padding: '3px 8px', borderRadius: '6px', textTransform: 'uppercase'
@@ -339,7 +632,7 @@ export default function CanilesModulo({ user }) {
                   </div>
 
                   <div style={{ fontSize: '0.78rem', color: '#7c8592', marginBottom: '10px' }}>
-                    Sector: <strong>{canil.sector}</strong> · {canil.tipo}
+                    Sector: <strong>{canil.sector}</strong>
                   </div>
 
                   {canil.animalAlojado ? (
@@ -372,8 +665,16 @@ export default function CanilesModulo({ user }) {
                     </div>
                   )}
 
-                  <div style={{ marginTop: '12px', textAlign: 'right' }}>
-                    <span style={{ fontSize: '0.74rem', color: '#3f6c52', fontWeight: '700' }}>Gestionar movimiento →</span>
+                  <div style={{ marginTop: '12px' }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleOpenModal(canil); }}
+                      style={{
+                        padding: '5px 10px', background: '#eef3ec', border: '1px solid #cfe0d3', borderRadius: '6px',
+                        color: '#2f5540', fontSize: '0.74rem', fontWeight: '700', cursor: 'pointer'
+                      }}
+                    >
+                      Gestionar Canil
+                    </button>
                   </div>
                 </div>
               );
@@ -604,14 +905,37 @@ export default function CanilesModulo({ user }) {
         }}>
           <div style={{
             background: '#fff', borderRadius: '18px', padding: '26px', width: '100%', maxWidth: '480px',
-            boxShadow: '0 12px 36px rgba(20,24,32,0.2)'
+            maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 12px 36px rgba(20,24,32,0.2)'
           }}>
             <h3 style={{ margin: '0 0 6px', color: '#1f2430' }}>
-              🚪 Gestionar Canil #{selectedCanil.nombre}
+              🚪 Gestionar Canil {selectedCanil.nombre}
             </h3>
-            <p style={{ color: '#7c8592', fontSize: '0.84rem', margin: '0 0 16px' }}>
+            <p style={{ color: '#7c8592', fontSize: '0.84rem', margin: '0 0 14px' }}>
               Sector: <strong>{selectedCanil.sector}</strong> · Capacidad máxima: {selectedCanil.capacidad} animal
             </p>
+
+            {/* Selector de acción */}
+            <div style={{ display: 'flex', gap: '6px', background: '#f3f4f6', padding: '4px', borderRadius: '10px', marginBottom: '16px' }}>
+              {[
+                { key: 'asignar', label: 'Asignar / Liberar' },
+                { key: 'transferir', label: 'Mover a otro canil' },
+                { key: 'cuarentena', label: 'Cuarentena' }
+              ].map(op => (
+                <button
+                  key={op.key}
+                  type="button"
+                  onClick={() => { setModalModo(op.key); setErrorModal(null); setMotivoMovimiento(''); }}
+                  style={{
+                    flex: 1, padding: '7px 6px', borderRadius: '7px', border: 'none', cursor: 'pointer',
+                    fontSize: '0.74rem', fontWeight: '700',
+                    background: modalModo === op.key ? '#3f6c52' : 'transparent',
+                    color: modalModo === op.key ? '#fff' : '#7c8592'
+                  }}
+                >
+                  {op.label}
+                </button>
+              ))}
+            </div>
 
             {errorModal && (
               <div style={{ background: '#fbeae8', color: '#d1453b', padding: '10px', borderRadius: '8px', marginBottom: '12px', fontSize: '0.82rem' }}>
@@ -619,79 +943,271 @@ export default function CanilesModulo({ user }) {
               </div>
             )}
 
-            <form onSubmit={handleGuardarAsignacion}>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
-                  Animal Alojado
-                </label>
-                <select
-                  value={selectedAnimalId}
-                  onChange={e => setSelectedAnimalId(e.target.value)}
-                  style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1.5px solid #e9eaed' }}
-                >
-                  <option value="">— Ninguno (Dejar canil LIBRE) —</option>
-                  {animales.map(a => (
-                    <option key={a.id} value={a.id}>
-                      {a.nombre} ({a.especie} · {a.canil ? `Actual: ${a.canil.nombre}` : 'Sin canil'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedAnimalId && (
+            {/* MODO ASIGNAR / LIBERAR */}
+            {modalModo === 'asignar' && (
+              <form onSubmit={handleGuardarAsignacion}>
                 <div style={{ marginBottom: '12px' }}>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
-                    Estado del Canil
+                    Animal Alojado
                   </label>
                   <select
-                    value={estadoCanil}
-                    onChange={e => setEstadoCanil(e.target.value)}
+                    value={selectedAnimalId}
+                    onChange={e => setSelectedAnimalId(e.target.value)}
                     style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1.5px solid #e9eaed' }}
                   >
-                    <option value="OCUPADO">OCUPADO (Normal)</option>
-                    <option value="CUARENTENA">CUARENTENA (Aislamiento médico)</option>
+                    <option value="">— Ninguno (Dejar canil LIBRE) —</option>
+                    {animales.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.nombre} ({a.especie} · {a.canil ? `Actual: ${a.canil.nombre}` : 'Sin canil'})
+                      </option>
+                    ))}
                   </select>
                 </div>
-              )}
 
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
-                  Motivo del Movimiento (Obligatorio) *
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Ej: Ingreso inicial al refugio / Movido por recomendación médica / Reorganización por sobrecupo"
-                  value={motivoMovimiento}
-                  onChange={e => setMotivoMovimiento(e.target.value)}
-                  style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1.5px solid #e9eaed', boxSizing: 'border-box' }}
-                />
-              </div>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
+                    Motivo del Movimiento (Opcional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Motivo del movimiento (opcional, ej: ingreso, reubicación, sobrecupo)"
+                    value={motivoMovimiento}
+                    onChange={e => setMotivoMovimiento(e.target.value)}
+                    style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1.5px solid #e9eaed', boxSizing: 'border-box' }}
+                  />
+                </div>
 
-              <div style={{
-                background: '#f8f9fa', padding: '10px 14px', borderRadius: '8px',
-                fontSize: '0.78rem', color: '#7c8592', marginBottom: '16px'
-              }}>
-                Responsable del movimiento: <strong>{user?.nombre}</strong> ({user?.rol})
-              </div>
+                <div style={{
+                  background: '#f8f9fa', padding: '10px 14px', borderRadius: '8px',
+                  fontSize: '0.78rem', color: '#7c8592', marginBottom: '16px'
+                }}>
+                  Responsable del movimiento: <strong>{user?.nombre}</strong> ({user?.rol})
+                </div>
 
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setModalCanilOpen(false)}
+                    style={{ padding: '9px 16px', background: 'transparent', border: '1.5px solid #e9eaed', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={guardando}
+                    style={{ padding: '9px 20px', background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
+                  >
+                    {guardando ? 'Guardando...' : 'Confirmar Asignación'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* MODO TRANSFERIR A OTRO CANIL */}
+            {modalModo === 'transferir' && (
+              <form onSubmit={handleTransferirCanil}>
+                {selectedCanil.animalAlojado ? (
+                  <div style={{ background: '#f8f9fa', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', color: '#1f2430', marginBottom: '12px' }}>
+                    Animal a transferir: <strong>{selectedCanil.animalAlojado.nombre}</strong>
+                  </div>
+                ) : (
+                  <div style={{ background: '#faf1de', color: '#b37416', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '12px' }}>
+                    Este canil no tiene un animal alojado para transferir.
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
+                    Canil de destino *
+                  </label>
+                  <select
+                    value={canilDestinoId}
+                    onChange={e => setCanilDestinoId(e.target.value)}
+                    disabled={!selectedCanil.animalAlojado}
+                    required
+                    style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1.5px solid #e9eaed' }}
+                  >
+                    <option value="">— Seleccionar canil libre —</option>
+                    {caniles
+                      .filter(c => c.id !== selectedCanil.id && c.estado === 'LIBRE')
+                      .map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre} · {c.sector}
+                        </option>
+                      ))}
+                  </select>
+                  {caniles.filter(c => c.id !== selectedCanil.id && c.estado === 'LIBRE').length === 0 && (
+                    <div style={{ fontSize: '0.74rem', color: '#d1453b', marginTop: '5px' }}>
+                      No hay caniles libres disponibles como destino.
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
+                    Motivo de la transferencia (Opcional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Ej: Reorganización interna / Mejor espacio"
+                    value={motivoMovimiento}
+                    onChange={e => setMotivoMovimiento(e.target.value)}
+                    style={{ width: '100%', padding: '9px', borderRadius: '8px', border: '1.5px solid #e9eaed', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setModalCanilOpen(false)}
+                    style={{ padding: '9px 16px', background: 'transparent', border: '1.5px solid #e9eaed', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={guardando || !selectedCanil.animalAlojado}
+                    style={{
+                      padding: '9px 20px', background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px',
+                      fontWeight: '700', cursor: 'pointer', opacity: !selectedCanil.animalAlojado ? 0.6 : 1
+                    }}
+                  >
+                    {guardando ? 'Transfiriendo...' : 'Transferir Animal'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* MODO CUARENTENA */}
+            {modalModo === 'cuarentena' && (
+              <form onSubmit={handleCambiarCuarentena}>
+                {selectedCanil.animalAlojado ? (
+                  <>
+                    <div style={{
+                      background: selectedCanil.estado === 'CUARENTENA' ? '#fbeae8' : '#f8f9fa',
+                      padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', color: '#1f2430', marginBottom: '12px'
+                    }}>
+                      Animal: <strong>{selectedCanil.animalAlojado.nombre}</strong> · Estado actual: <strong>{selectedCanil.estado}</strong>
+                    </div>
+
+                    <div style={{ marginBottom: '14px' }}>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
+                        Motivo {selectedCanil.estado === 'CUARENTENA' ? '(Opcional)' : '(Obligatorio) *'}
+                      </label>
+                      <textarea
+                        required={selectedCanil.estado !== 'CUARENTENA'}
+                        rows={3}
+                        placeholder={selectedCanil.estado === 'CUARENTENA' ? 'Motivo del alta de cuarentena (opcional)' : 'Motivo de la cuarentena (obligatorio)'}
+                        value={motivoMovimiento}
+                        onChange={e => setMotivoMovimiento(e.target.value)}
+                        style={{
+                          width: '100%', padding: '9px', borderRadius: '8px', boxSizing: 'border-box',
+                          border: `1.5px solid ${selectedCanil.estado === 'CUARENTENA' ? '#e9eaed' : '#d1453b'}`
+                        }}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ background: '#faf1de', color: '#b37416', padding: '12px 14px', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '14px' }}>
+                    Solo se puede poner en cuarentena un canil que tenga un animal alojado. Asigna primero un animal.
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setModalCanilOpen(false)}
+                    style={{ padding: '9px 16px', background: 'transparent', border: '1.5px solid #e9eaed', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={guardando || !selectedCanil.animalAlojado}
+                    style={{
+                      padding: '9px 20px', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700',
+                      cursor: 'pointer', opacity: !selectedCanil.animalAlojado ? 0.6 : 1,
+                      background: selectedCanil.estado === 'CUARENTENA' ? '#3f6c52' : '#d1453b'
+                    }}
+                  >
+                    {guardando ? 'Guardando...' : (selectedCanil.estado === 'CUARENTENA' ? 'Quitar de cuarentena' : 'Poner en cuarentena')}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Acción destructiva: eliminar canil */}
+            <div style={{
+              marginTop: '18px', paddingTop: '14px', borderTop: '1px solid #f0f1f3',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap'
+            }}>
+              <span style={{ fontSize: '0.74rem', color: '#a3aab5' }}>
+                Solo se pueden eliminar caniles que estén LIBRES.
+              </span>
+              <button
+                type="button"
+                disabled={selectedCanil.estado !== 'LIBRE'}
+                onClick={() => {
+                  setModalCanilOpen(false);
+                  setEliminarCanil(selectedCanil);
+                  setEliminarConfirmOpen(true);
+                }}
+                style={{
+                  padding: '7px 12px',
+                  background: selectedCanil.estado !== 'LIBRE' ? '#e9eaed' : '#fbeae8',
+                  border: `1px solid ${selectedCanil.estado !== 'LIBRE' ? '#e9eaed' : '#f3c9c4'}`,
+                  borderRadius: '7px',
+                  color: selectedCanil.estado !== 'LIBRE' ? '#a3aab5' : '#d1453b',
+                  fontSize: '0.75rem', fontWeight: '700',
+                  cursor: selectedCanil.estado !== 'LIBRE' ? 'not-allowed' : 'pointer',
+                  opacity: selectedCanil.estado !== 'LIBRE' ? 0.6 : 1
+                }}
+              >
+                🗑️ Eliminar canil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIRMACIÓN ELIMINAR CANIL */}
+      {eliminarConfirmOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(20,24,32,0.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '16px'
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '18px', padding: '26px', width: '100%', maxWidth: '480px',
+            boxShadow: '0 12px 36px rgba(20,24,32,0.2)'
+          }}>
+            <h3 style={{ margin: '0 0 6px', color: '#d1453b', fontSize: '1.25rem' }}>
+              🗑️ Eliminar Canil
+            </h3>
+            <p style={{ color: '#7c8592', fontSize: '0.88rem', margin: '0 0 18px' }}>
+              ¿Estás seguro de que deseas eliminar este canil? Esta acción no se puede deshacer.
+            </p>
+            <div style={{ background: '#fafbfc', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.86rem', color: '#555e6d' }}>
+              <strong>Canil a eliminar:</strong> {eliminarCanil?.nombre || ''}
+            </div>
+            {eliminandoCanil && (
+              <div style={{ textAlign: 'center', color: '#7c8592', fontSize: '0.84rem' }}>Eliminando...</div>
+            )}
+            {!eliminandoCanil && (
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button
-                  type="button"
-                  onClick={() => setModalCanilOpen(false)}
+                  onClick={() => setEliminarConfirmOpen(false)}
                   style={{ padding: '9px 16px', background: 'transparent', border: '1.5px solid #e9eaed', borderRadius: '8px', cursor: 'pointer' }}
                 >
                   Cancelar
                 </button>
                 <button
-                  type="submit"
-                  disabled={guardando}
-                  style={{ padding: '9px 20px', background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
+                  onClick={handleConfirmarEliminarCanil}
+                  style={{ padding: '9px 20px', background: '#d1453b', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
                 >
-                  {guardando ? 'Guardando...' : 'Confirmar Movimiento'}
+                  Eliminar Canil
                 </button>
               </div>
-            </form>
+            )}
           </div>
         </div>
       )}
