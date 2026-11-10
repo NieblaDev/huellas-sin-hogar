@@ -4,20 +4,31 @@ import {
   asignarCanil,
   solicitarTrasladoExterno,
   gestionarAprobacion,
-  getTraslados
+  getTraslados,
+  createCanil,
+  deleteCanil
 } from '../controllers/canil.controller.js';
 import { authenticateToken, requireRole } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import {
   asignarCanilSchema,
   trasladoExternoSchema,
-  gestionAprobacionSchema
+  gestionAprobacionSchema,
+  crearCanilSchema,
+  eliminarCanilSchema
 } from '../schemas/canil.schema.js';
 
 const router = Router();
 
 // Requisito 1: Cualquier miembro del staff autenticado puede ver caniles y asignar/reubicar
 router.get('/', authenticateToken, getCaniles);
+
+// Crear un nuevo canil (disponible para staff autenticado)
+router.post('/', authenticateToken, validate(crearCanilSchema, 'body'), createCanil);
+
+// Eliminar un canil (disponible para staff autenticado)
+router.delete('/:id', authenticateToken, validate(eliminarCanilSchema, 'params'), deleteCanil);
+
 router.post('/asignar', authenticateToken, validate(asignarCanilSchema, 'body'), asignarCanil);
 
 // Solicitud de traslado externo (Hogar Temporal o Protectora Aliada)

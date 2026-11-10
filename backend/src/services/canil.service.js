@@ -57,8 +57,9 @@ export const getAllCaniles = async () => {
  * - Alerta visual si ocupación supera el 90%
  */
 export const asignarCanil = async ({ canilId, animalId, motivo, estado = 'OCUPADO' }, user, ip) => {
-  if (!motivo || motivo.trim().length < 3) {
-    throw new Error('El motivo del movimiento es obligatorio');
+  // El motivo es obligatorio solo cuando el estado es CUARENTENA
+  if (estado === 'CUARENTENA' && (!motivo || motivo.trim().length < 3)) {
+    throw new Error('El motivo del movimiento es obligatorio para caniles en CUARENTENA');
   }
 
   const targetCanil = await prisma.canil.findUnique({
@@ -76,6 +77,7 @@ export const asignarCanil = async ({ canilId, animalId, motivo, estado = 'OCUPAD
     });
 
     if (!animal) throw new Error('El animal no existe');
+    if (animal.estadoAdopcion === 'ADOPTADO') throw new Error('El animal ya fue adoptado y no puede asignarse a un canil.');
 
     // Validar si el canil destino ya está ocupado por otro animal
     if (targetCanil.animalAlojado && targetCanil.animalAlojado.id !== animal.id) {
@@ -291,6 +293,69 @@ export const gestionarAprobacionTraslado = async (trasladoId, { aprobar, comenta
   });
 
   return trasladoActualizado;
+};
+
+/**
+ * Crear un nuevo canil
+ */
+export const createCanil = async ({ codigo, nombre, sector, tipo, capacidad, estado = 'LIBRE' }, user, ip) => {
+  // Verificar que el código no exista ya
+  const existing = await prisma.canil.findUnique({ where: { codigo } });
+  if (existing) {
+    throw new Error(`Ya existe un canil con el código ${codigo}`);
+  }
+
+  const canil = await prisma.canil.create({
+    data: { codigo, nombre, sector, tipo, capacidad: Number(capacidad) || 1, estado }
+  });
+
+  await registrarAuditoria({
+    entidad: 'Canil',
+    entidadId: canil.id,
+    accion: 'CREACION',
+    valorAnterior: null,
+    valorNuevo: { codigo, nombre, sector, tipo, capacidad, estado },
+    usuario: user,
+    ip
+  });
+
+  return canil;
+};
+
+/**
+ * Eliminar un canil (solo si no tiene animal asignado)
+ */
+export const deleteCanil = async ({ canilId }, user, ip) => {
+  const targetCanil = await prisma.canil.findUnique({
+    where: { id: Number(canilId) },
+    include: { animalAlojado: true }
+  });
+
+  if (!targetCanil) {
+    throw new Error('El canil seleccionado no existe');
+  }
+
+  if (targetCanil.animalAlojado) {
+    throw new Error(`No se puede eliminar el canil ${targetCanil.nombre} porque tiene un animal asignado. Libérelo primero.`);
+  }
+
+  const valorAnterior = { ...targetCanil };
+
+  await prisma.canil.delete({
+    where: { id: Number(canilId) }
+  });
+
+  await registrarAuditoria({
+    entidad: 'Canil',
+    entidadId: targetCanil.id,
+    accion: 'BAJA_LOGICA',
+    valorAnterior,
+    valorNuevo: { nombre: targetCanil.nombre, codigo: targetCanil.codigo },
+    usuario: user,
+    ip
+  });
+
+  return { success: true, mensaje: `Canil ${targetCanil.nombre} eliminado correctamente` };
 };
 
 /**
