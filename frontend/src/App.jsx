@@ -16,6 +16,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'caniles' | 'animales' | 'auditoria'
   const [modalOpen, setModalOpen] = useState(false);
+  const [animalEditar, setAnimalEditar] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [canilesList, setCanilesList] = useState([]);
 
@@ -225,15 +226,26 @@ export default function App() {
 
             {activeTab === 'animales' && (
               <AnimalCatalogo
-                onOpenModal={() => setModalOpen(true)}
+                onOpenModal={(animal = null) => {
+                  setAnimalEditar(animal && animal.id ? animal : null);
+                  setModalOpen(true);
+                }}
+                onEditAnimal={(animal) => {
+                  setAnimalEditar(animal);
+                  setModalOpen(true);
+                }}
                 reloadKey={reloadKey}
               />
             )}
 
             {activeTab === 'cuidados' && (
               <CuidadosModulo user={user} />
+            )}
+
             {activeTab === 'salud' && (
               <SaludModulo user={user} />
+            )}
+
             {activeTab === 'adopciones' && puedeGestionarAdopciones && (
               <AdopcionesModulo user={user} />
             )}
@@ -245,7 +257,11 @@ export default function App() {
 
           <AnimalFormModal
             isOpen={modalOpen}
-            onClose={() => setModalOpen(false)}
+            animalEditar={animalEditar}
+            onClose={() => {
+              setModalOpen(false);
+              setAnimalEditar(null);
+            }}
             onSuccess={() => setReloadKey(k => k + 1)}
             caniles={canilesList}
           />
