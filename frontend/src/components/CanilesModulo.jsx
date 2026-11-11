@@ -376,20 +376,16 @@ export default function CanilesModulo({ user }) {
   const esDirectora = user?.rol === 'DIRECTORA';
 
   return (
-    <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '24px' }}>
+    <div className="portal-page-container">
       {/* ALERTA VISUAL DE SOBRECUPO (>90%) */}
       {resumen?.alertaSobrecupo && (
-        <div style={{
-          background: '#fbeae8', border: '2px solid #d1453b', borderRadius: '12px',
-          padding: '16px 20px', marginBottom: '22px', display: 'flex', alignItems: 'center', gap: '14px',
-          boxShadow: '0 4px 14px rgba(209,69,59,0.15)'
-        }}>
+        <div className="portal-alert portal-alert-danger" style={{ boxShadow: '0 4px 14px rgba(209,69,59,0.15)', marginBottom: '22px' }}>
           <span style={{ fontSize: '1.8rem' }}>🚨</span>
           <div>
-            <strong style={{ color: '#d1453b', fontSize: '1.05rem', display: 'block' }}>
+            <strong style={{ fontSize: '1.05rem', display: 'block' }}>
               ¡ALERTA CRÍTICA DE SOBRECUPO EN CANILES! Ocupación al {resumen.porcentajeOcupacion}%
             </strong>
-            <span style={{ color: '#7c8592', fontSize: '0.86rem' }}>
+            <span style={{ fontSize: '0.86rem', opacity: 0.9 }}>
               El refugio supera el 90% de capacidad operativa. Solo quedan {resumen.libres} caniles libres.
               Se recomienda priorizar traslados a protectoras aliadas o activar red de hogares temporales.
             </span>
@@ -398,64 +394,55 @@ export default function CanilesModulo({ user }) {
       )}
 
       {mensajeExito && (
-        <div style={{
-          background: '#e8f0e8', border: '1px solid #3f6c52', color: '#2f5540',
-          borderRadius: '9px', padding: '12px 18px', marginBottom: '18px', fontWeight: '600'
-        }}>
+        <div className="portal-alert portal-alert-success" style={{ marginBottom: '18px', fontWeight: '600' }}>
           ✓ {mensajeExito}
         </div>
       )}
 
       {/* ENCABEZADO */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="portal-header">
         <div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>Módulo de Caniles y Traslados</h2>
-          <p style={{ color: '#7c8592', fontSize: '0.88rem', margin: '4px 0 0' }}>
+          <h2 className="portal-header-title">
+            <span>🚪</span>
+            <span>Módulo de Caniles y Traslados</span>
+          </h2>
+          <p className="portal-header-subtitle">
             Mapa visual de espacios, reubicaciones internas y traslados a protectoras / hogares temporales
           </p>
         </div>
 
-        {/* Botón Agregar Canil */}
-        <button
-          onClick={handleOpenAgregarCanil}
-          style={{
-            padding: '8px 16px', borderRadius: '8px', border: '1.5px solid #3f6c52', fontWeight: '700', fontSize: '0.84rem', cursor: 'pointer',
-            background: '#fff', color: '#3f6c52', display: 'flex', alignItems: 'center', gap: '6px'
-          }}
-        >
-          ➕ Agregar Canil
-        </button>
-
-        {/* Pestañas */}
-        <div style={{ display: 'flex', gap: '8px', background: '#fff', padding: '4px', borderRadius: '10px', border: '1px solid #e9eaed' }}>
+        <div className="portal-header-actions">
+          {/* Botón Agregar Canil */}
           <button
-            onClick={() => setTab('mapa')}
-            style={{
-              padding: '8px 16px', borderRadius: '7px', border: 'none', fontWeight: '700', fontSize: '0.84rem', cursor: 'pointer',
-              background: tab === 'mapa' ? '#3f6c52' : 'transparent', color: tab === 'mapa' ? '#fff' : '#7c8592'
-            }}
+            onClick={handleOpenAgregarCanil}
+            className="portal-btn portal-btn-secondary"
+            style={{ color: 'var(--portal-primary)', borderColor: 'var(--portal-primary)' }}
           >
-            🗺️ Mapa de Caniles
-          </button>
-          <button
-            onClick={() => setTab('traslados')}
-            style={{
-              padding: '8px 16px', borderRadius: '7px', border: 'none', fontWeight: '700', fontSize: '0.84rem', cursor: 'pointer',
-              background: tab === 'traslados' ? '#3f6c52' : 'transparent', color: tab === 'traslados' ? '#fff' : '#7c8592'
-            }}
-          >
-            📋 Bitácora de Traslados
-          </button>
-          <button
-            onClick={() => setTab('solicitar')}
-            style={{
-              padding: '8px 16px', borderRadius: '7px', border: 'none', fontWeight: '700', fontSize: '0.84rem', cursor: 'pointer',
-              background: tab === 'solicitar' ? '#3f6c52' : 'transparent', color: tab === 'solicitar' ? '#fff' : '#7c8592'
-            }}
-          >
-            ➕ Solicitar Traslado Externo
+            ➕ Agregar Canil
           </button>
         </div>
+      </div>
+
+      {/* Pestañas Subnavegación */}
+      <div className="portal-subtabs">
+        <button
+          onClick={() => setTab('mapa')}
+          className={`portal-subtab-btn ${tab === 'mapa' ? 'active' : ''}`}
+        >
+          🗺️ Mapa de Caniles
+        </button>
+        <button
+          onClick={() => setTab('traslados')}
+          className={`portal-subtab-btn ${tab === 'traslados' ? 'active' : ''}`}
+        >
+          📋 Bitácora de Traslados
+        </button>
+        <button
+          onClick={() => setTab('solicitar')}
+          className={`portal-subtab-btn ${tab === 'solicitar' ? 'active' : ''}`}
+        >
+          ➕ Solicitar Traslado Externo
+        </button>
       </div>
 
       {/* FORMULARIO AGREGAR CANIL */}

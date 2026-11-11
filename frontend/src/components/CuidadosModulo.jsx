@@ -142,40 +142,40 @@ export default function CuidadosModulo({ user }) {
   };
 
   if (cargando) {
-    return <div style={{ padding: '30px', textAlign: 'center', color: '#7c8592' }}>Cargando módulo de necesidades y cuidados...</div>;
+    return (
+      <div className="portal-page-container" style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--portal-text-muted)' }}>
+        <div style={{ fontSize: '1.8rem', marginBottom: '12px' }}>⏳</div>
+        <strong>Cargando módulo de necesidades y cuidados...</strong>
+      </div>
+    );
   }
 
   return (
-    <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '24px' }}>
-      <div style={{ marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>
-          📋 Necesidades Diarias y Notas de Cuidado
-        </h2>
-        <p style={{ color: '#7c8592', fontSize: '0.88rem', margin: '4px 0 0' }}>
-          Indicaciones operativas médicas publicadas en el panel del turno e historial por animal
-        </p>
+    <div className="portal-page-container">
+      <div className="portal-header">
+        <div>
+          <h2 className="portal-header-title">
+            <span>📋</span>
+            <span>Necesidades Diarias y Notas de Cuidado</span>
+          </h2>
+          <p className="portal-header-subtitle">
+            Indicaciones operativas médicas publicadas en el panel del turno e historial por animal
+          </p>
+        </div>
       </div>
 
       {/* Subnavegación */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '22px', borderBottom: '1px solid #e9eaed', paddingBottom: '12px', flexWrap: 'wrap' }}>
+      <div className="portal-subtabs">
         <button
           onClick={() => setTabCuidados('panel')}
-          style={{
-            padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '700',
-            background: tabCuidados === 'panel' ? '#3f6c52' : '#eef0f2',
-            color: tabCuidados === 'panel' ? '#fff' : '#555e6d'
-          }}
+          className={`portal-subtab-btn ${tabCuidados === 'panel' ? 'active' : ''}`}
         >
           📌 Panel de Tareas del Turno ({tareas.length})
         </button>
 
         <button
           onClick={() => { if (selectedAnimalId) cargarHistorial(selectedAnimalId); else setTabCuidados('historial'); }}
-          style={{
-            padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '700',
-            background: tabCuidados === 'historial' ? '#3f6c52' : '#eef0f2',
-            color: tabCuidados === 'historial' ? '#fff' : '#555e6d'
-          }}
+          className={`portal-subtab-btn ${tabCuidados === 'historial' ? 'active' : ''}`}
         >
           🗂️ Historial de Cuidados por Animal
         </button>
@@ -183,11 +183,7 @@ export default function CuidadosModulo({ user }) {
         {tienePermisoMedico && (
           <button
             onClick={() => setTabCuidados('nuevo')}
-            style={{
-              padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '700',
-              background: tabCuidados === 'nuevo' ? '#3f6c52' : '#eef0f2',
-              color: tabCuidados === 'nuevo' ? '#fff' : '#555e6d'
-            }}
+            className={`portal-subtab-btn ${tabCuidados === 'nuevo' ? 'active' : ''}`}
           >
             ➕ Registrar Indicación de Cuidado
           </button>

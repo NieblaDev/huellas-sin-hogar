@@ -7,7 +7,6 @@ export default function VoluntariosModulo({ user }) {
   const [turnos, setTurnos] = useState([]);
   const [permutas, setPermutas] = useState([]);
   const [directorio, setDirectorio] = useState([]);
-  const [alertasDescubiertos, setAlertasDescubiertos] = useState({ totalDescubiertos: 0, turnos: [] });
   const [cargando, setCargando] = useState(true);
 
   // Modales
@@ -57,11 +56,10 @@ export default function VoluntariosModulo({ user }) {
   const cargarDatos = async () => {
     setCargando(true);
     try {
-      const [resMatriz, resTurnos, resPermutas, resDescubiertos, resDirectorio] = await Promise.all([
+      const [resMatriz, resTurnos, resPermutas, resDirectorio] = await Promise.all([
         fetch(`${API_URL}/turnos/matriz`, { headers: getAuthHeaders() }),
         fetch(`${API_URL}/turnos`, { headers: getAuthHeaders() }),
         fetch(`${API_URL}/turnos/permutas`, { headers: getAuthHeaders() }).catch(() => ({ ok: false })),
-        fetch(`${API_URL}/turnos/alertas-descubiertos`, { headers: getAuthHeaders() }).catch(() => ({ ok: false })),
         fetch(`${API_URL}/turnos/directorio`, { headers: getAuthHeaders() }).catch(() => ({ ok: false }))
       ]);
 
@@ -76,10 +74,6 @@ export default function VoluntariosModulo({ user }) {
       if (resPermutas && resPermutas.ok) {
         const dataPermutas = await resPermutas.json();
         setPermutas(dataPermutas || []);
-      }
-      if (resDescubiertos && resDescubiertos.ok) {
-        const dataDesc = await resDescubiertos.json();
-        setAlertasDescubiertos(dataDesc || { totalDescubiertos: 0, turnos: [] });
       }
       if (resDirectorio && resDirectorio.ok) {
         const dataDir = await resDirectorio.json();
@@ -273,32 +267,20 @@ export default function VoluntariosModulo({ user }) {
   const misTurnos = turnos.filter(t => (t.inscripciones || []).some(i => i.usuarioId === user?.id));
 
   return (
-    <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '28px 24px' }}>
+    <div className="portal-page-container">
       {/* ENCABEZADO */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+      <div className="portal-header">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.8rem' }}>🤝</span>
-            <h2 style={{ fontSize: '1.65rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>
-              Voluntarios y Matriz de Turnos
-            </h2>
-          </div>
-          <p style={{ color: '#7c8592', fontSize: '0.9rem', margin: '6px 0 0' }}>
+          <h2 className="portal-header-title">
+            <span>🤝</span>
+            <span>Voluntarios y Matriz de Turnos</span>
+          </h2>
+          <p className="portal-header-subtitle">
             Matriz interactiva semanal, autogestión de inscripciones, validación de permutas por ambas partes y bitácora de servicio.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Rol del usuario */}
-          <div style={{
-            padding: '6px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '700',
-            background: esCoordinador ? '#edf4fc' : (esAvanzado ? '#e8f0e8' : '#f0f1f3'),
-            color: esCoordinador ? '#3478c4' : (esAvanzado ? '#2f5540' : '#57606a'),
-            border: `1px solid ${esCoordinador ? '#cbe0f8' : (esAvanzado ? '#c7dfc7' : '#dcdfe4')}`
-          }}>
-            {esCoordinador ? '👑 Rol: Coordinador de Matriz' : (esAvanzado ? '⭐ Personal Avanzado Habilitado' : '🌱 Voluntario Novato')}
-          </div>
-
+        <div className="portal-header-actions">
           {/* Botones de acción del Coordinador */}
           {esCoordinador && (
             <>
@@ -347,35 +329,8 @@ export default function VoluntariosModulo({ user }) {
         </div>
       </div>
 
-      {/* BANNER DE ALERTAS DE TURNOS DESCUBIERTOS EN TIEMPO REAL */}
-      {alertasDescubiertos.totalDescubiertos > 0 && (
-        <div style={{
-          background: '#fff9f4', border: '1.5px solid #f2dfbe', borderRadius: '12px',
-          padding: '16px 20px', marginBottom: '24px', display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <span style={{ fontSize: '1.6rem' }}>📢</span>
-            <div>
-              <div style={{ fontWeight: '800', color: '#b37416', fontSize: '0.96rem' }}>
-                Alerta de Cobertura: {alertasDescubiertos.totalDescubiertos} turno(s) descubiertos requieren atención
-              </div>
-              <div style={{ fontSize: '0.84rem', color: '#7c8592', marginTop: '2px' }}>
-                Turnos sin voluntarios asignados esta semana: {alertasDescubiertos.turnos.slice(0, 3).map(t => `${t.diaSemana} (${t.area})`).join(', ')}...
-              </div>
-            </div>
-          </div>
-          <span style={{
-            padding: '6px 12px', borderRadius: '8px', background: '#faf1de',
-            color: '#b37416', fontWeight: '800', fontSize: '0.8rem', border: '1px solid #f2dfbe'
-          }}>
-            Inscripción Abierta
-          </span>
-        </div>
-      )}
-
-      {/* TABS DE SECCIÓN */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #e9eaed', marginBottom: '24px' }}>
+      {/* TABS DE SECCIÓN — SUBNAVEGACIÓN ESTÁNDAR */}
+      <div className="portal-subtabs">
         {[
           { key: 'matriz', label: '📅 Matriz Semanal Interactiva', count: null },
           { key: 'permutas', label: '⇄ Gestión de Permutas', count: permutas.filter(p => p.estado === 'PENDIENTE' && p.destinatarioId === user?.id).length },
@@ -385,17 +340,14 @@ export default function VoluntariosModulo({ user }) {
           <button
             key={tab.key}
             onClick={() => setTabActual(tab.key)}
-            style={{
-              padding: '12px 18px', background: 'transparent', border: 'none',
-              borderBottom: tabActual === tab.key ? '3px solid #3f6c52' : '3px solid transparent',
-              color: tabActual === tab.key ? '#3f6c52' : '#7c8592',
-              fontWeight: '800', fontSize: '0.92rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
-            }}
+            className={`portal-subtab-btn ${tabActual === tab.key ? 'active' : ''}`}
           >
             <span>{tab.label}</span>
             {tab.count !== null && tab.count > 0 && (
               <span style={{
-                background: '#d1453b', color: '#fff', fontSize: '0.72rem', padding: '2px 7px',
+                background: tabActual === tab.key ? '#fff' : '#d1453b',
+                color: tabActual === tab.key ? 'var(--portal-primary)' : '#fff',
+                fontSize: '0.72rem', padding: '1px 6px',
                 borderRadius: '10px', fontWeight: '800'
               }}>
                 {tab.count}

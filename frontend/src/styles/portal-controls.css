@@ -1,12 +1,400 @@
-/* Controles del portal: misma tipografía y altura, incluidos los módulos existentes. */
-.portal-staff { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-.portal-staff button, .portal-staff input, .portal-staff select, .portal-staff textarea { font-family: inherit; box-sizing: border-box; }
-.portal-staff button { min-height: 40px; line-height: 1.25; }
-.portal-staff input:not([type='checkbox']):not([type='radio']), .portal-staff select { min-height: 40px; }
-.portal-staff button:focus-visible, .portal-staff input:focus-visible, .portal-staff select:focus-visible, .portal-staff textarea:focus-visible { outline: 3px solid #3478c4; outline-offset: 2px; }
+/* ==========================================================================
+   HUELLAS SIN HOGAR - SISTEMA DE DISEÑO Y ARMONIZACIÓN VISUAL
+   ========================================================================== */
+
+:root {
+  /* Paleta Primaria - Verde Refugio */
+  --portal-primary: #3f6c52;
+  --portal-primary-hover: #335943;
+  --portal-primary-dark: #274533;
+  --portal-primary-soft: #eef3ec;
+  --portal-primary-subtle: #e8f0e8;
+
+  /* Superficies y Neutros */
+  --portal-bg: #f4f6f8;
+  --portal-surface: #ffffff;
+  --portal-border: #e8ebef;
+  --portal-border-subtle: #f0f2f5;
+  --portal-text-main: #1a202c;
+  --portal-text-muted: #64748b;
+  --portal-text-light: #94a3b8;
+
+  /* Estados Funcionales */
+  --portal-success-bg: #edf7ee;
+  --portal-success-border: #c6e6c8;
+  --portal-success-text: #235c2e;
+
+  --portal-warning-bg: #fff8eb;
+  --portal-warning-border: #fce2b6;
+  --portal-warning-text: #9a6300;
+
+  --portal-danger-bg: #fdf2f2;
+  --portal-danger-border: #f9cece;
+  --portal-danger-text: #b91c1c;
+
+  --portal-info-bg: #eff6ff;
+  --portal-info-border: #bfdbfe;
+  --portal-info-text: #1d4ed8;
+
+  /* Layout y Geometría */
+  --portal-max-width: 1200px;
+  --portal-radius-xs: 6px;
+  --portal-radius-sm: 8px;
+  --portal-radius-md: 12px;
+  --portal-radius-lg: 16px;
+  --portal-radius-pill: 9999px;
+
+  /* Elevaciones / Sombras */
+  --portal-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --portal-shadow-card: 0 2px 8px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  --portal-shadow-hover: 0 6px 18px rgba(15, 23, 42, 0.08);
+  --portal-shadow-modal: 0 20px 40px rgba(15, 23, 42, 0.18), 0 1px 3px rgba(15, 23, 42, 0.1);
+
+  /* Transiciones */
+  --portal-transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Base del portal */
+.portal-staff {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--portal-text-main);
+  background-color: var(--portal-bg);
+}
+
+.portal-staff button,
+.portal-staff input,
+.portal-staff select,
+.portal-staff textarea {
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.portal-staff button {
+  min-height: 40px;
+  line-height: 1.25;
+}
+
+.portal-staff input:not([type='checkbox']):not([type='radio']),
+.portal-staff select {
+  min-height: 40px;
+}
+
+.portal-staff button:focus-visible,
+.portal-staff input:focus-visible,
+.portal-staff select:focus-visible,
+.portal-staff textarea:focus-visible {
+  outline: 3px solid #3478c4;
+  outline-offset: 2px;
+}
+
+/* Contenedor Unificado de Página para todas las pestañas */
+.portal-page-container {
+  max-width: var(--portal-max-width);
+  margin: 0 auto;
+  padding: 24px 28px;
+  box-sizing: border-box;
+  animation: portalFadeIn 0.3s ease-out;
+}
+
+@keyframes portalFadeIn {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Transición al cambiar de pestaña desde el menú lateral.
+   Solo se anima la opacidad: animar transform aquí crearía un containing block
+   y los modales con position: fixed se posicionarían respecto a la pestaña. */
+.portal-tab-panel {
+  animation: portalTabEnter 0.3s ease-out;
+}
+
+@keyframes portalTabEnter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Pequeño realce del botón activo del menú lateral */
+.portal-nav-btn.active {
+  animation: portalNavPop 0.24s ease-out;
+}
+
+@keyframes portalNavPop {
+  0% {
+    transform: translateX(-3px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Navegación lateral unificada */
+.portal-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--portal-text-muted);
+  border: none;
+  border-radius: var(--portal-radius-sm);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: var(--portal-transition);
+}
+
+.portal-nav-btn:hover {
+  background: var(--portal-primary-soft);
+  color: var(--portal-primary);
+}
+
+.portal-nav-btn.active {
+  background: var(--portal-primary-soft);
+  color: var(--portal-primary);
+  font-weight: 800;
+}
+
+/* Encabezado unificado de pestaña */
+.portal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.portal-header-title {
+  font-size: 1.62rem;
+  font-weight: 800;
+  color: var(--portal-text-main);
+  margin: 0;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portal-header-subtitle {
+  color: var(--portal-text-muted);
+  font-size: 0.88rem;
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.portal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Barra de sub-pestañas / pestañas internas */
+.portal-subtabs {
+  display: flex;
+  gap: 6px;
+  background: var(--portal-surface);
+  padding: 5px;
+  border-radius: var(--portal-radius-md);
+  border: 1px solid var(--portal-border);
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.portal-subtab-btn {
+  padding: 8px 16px;
+  border-radius: var(--portal-radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--portal-text-muted);
+  font-weight: 700;
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition: var(--portal-transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.portal-subtab-btn:hover {
+  color: var(--portal-primary);
+  background: var(--portal-primary-soft);
+}
+
+.portal-subtab-btn.active {
+  background: var(--portal-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(63, 108, 82, 0.25);
+}
+
+/* Tarjetas y Contenedores */
+.portal-card {
+  background: var(--portal-surface);
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius-md);
+  padding: 24px;
+  box-shadow: var(--portal-shadow-card);
+  box-sizing: border-box;
+}
+
+/* Badges y Etiquetas */
+.portal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--portal-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+  border: 1px solid transparent;
+}
+
+.portal-badge-success {
+  background: var(--portal-success-bg);
+  border-color: var(--portal-success-border);
+  color: var(--portal-success-text);
+}
+
+.portal-badge-warning {
+  background: var(--portal-warning-bg);
+  border-color: var(--portal-warning-border);
+  color: var(--portal-warning-text);
+}
+
+.portal-badge-danger {
+  background: var(--portal-danger-bg);
+  border-color: var(--portal-danger-border);
+  color: var(--portal-danger-text);
+}
+
+.portal-badge-info {
+  background: var(--portal-info-bg);
+  border-color: var(--portal-info-border);
+  color: var(--portal-info-text);
+}
+
+.portal-badge-neutral {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+/* Botones universales */
+.portal-btn {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: var(--portal-radius-sm);
+  padding: 9px 16px;
+  min-height: 40px;
+  cursor: pointer;
+  transition: var(--portal-transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  text-decoration: none;
+}
+
+.portal-btn-primary {
+  background: var(--portal-primary);
+  color: #ffffff;
+  border-color: var(--portal-primary);
+}
+
+.portal-btn-primary:hover:not(:disabled) {
+  background: var(--portal-primary-hover);
+  border-color: var(--portal-primary-hover);
+  box-shadow: 0 2px 6px rgba(63, 108, 82, 0.25);
+}
+
+.portal-btn-secondary {
+  background: #ffffff;
+  color: var(--portal-text-main);
+  border-color: #cbd5e1;
+}
+
+.portal-btn-secondary:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.portal-btn-danger {
+  background: var(--portal-danger-bg);
+  color: var(--portal-danger-text);
+  border-color: var(--portal-danger-border);
+}
+
+.portal-btn-danger:hover:not(:disabled) {
+  background: #fce8e8;
+}
+
+/* Alertas */
+.portal-alert {
+  padding: 14px 18px;
+  border-radius: var(--portal-radius-sm);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  border: 1px solid transparent;
+}
+
+.portal-alert-success {
+  background: var(--portal-success-bg);
+  border-color: var(--portal-success-border);
+  color: var(--portal-success-text);
+}
+
+.portal-alert-warning {
+  background: var(--portal-warning-bg);
+  border-color: var(--portal-warning-border);
+  color: var(--portal-warning-text);
+}
+
+.portal-alert-danger {
+  background: var(--portal-danger-bg);
+  border-color: var(--portal-danger-border);
+  color: var(--portal-danger-text);
+}
+
+.portal-alert-info {
+  background: var(--portal-info-bg);
+  border-color: var(--portal-info-border);
+  color: var(--portal-info-text);
+}
+
+/* Responsivo */
 @media (max-width: 760px) {
   .portal-staff { flex-direction: column; }
   .portal-staff > aside { position: static !important; width: 100% !important; min-height: auto !important; }
   .portal-staff > aside nav { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .portal-staff > main { margin-left: 0 !important; min-width: 0; }
+  .portal-page-container { padding: 16px; }
+  .portal-header { margin-bottom: 18px; }
+  .portal-header-title { font-size: 1.35rem; }
+}
+
+/* Accesibilidad: respeta la preferencia de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  .portal-tab-panel,
+  .portal-nav-btn.active,
+  .portal-page-container {
+    animation: none;
+  }
 }

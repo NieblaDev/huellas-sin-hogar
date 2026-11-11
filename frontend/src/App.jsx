@@ -105,88 +105,64 @@ export default function App() {
               {/* Inicio / Panel de Indicadores */}
               <button
                 onClick={() => setActiveTab('dashboard')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
-                  background: activeTab === 'dashboard' ? '#eef3ec' : 'transparent',
-                  color: activeTab === 'dashboard' ? '#2f5540' : '#7c8592',
-                  border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
-                }}
+                className={`portal-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
               >
-                📊 <span>Inicio</span>
+                <span>📊</span> <span>Inicio</span>
               </button>
 
               {/* Registro de Animales */}
               <button
                 onClick={() => setActiveTab('animales')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
-                  background: activeTab === 'animales' ? '#eef3ec' : 'transparent',
-                  color: activeTab === 'animales' ? '#2f5540' : '#7c8592',
-                  border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
-                }}
+                className={`portal-nav-btn ${activeTab === 'animales' ? 'active' : ''}`}
               >
-                🐶 <span>Registro Animales</span>
+                <span>🐶</span> <span>Registro Animales</span>
               </button>
 
               {/* Caniles y Traslados */}
               <button
                 onClick={() => setActiveTab('caniles')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
-                  background: activeTab === 'caniles' ? '#eef3ec' : 'transparent',
-                  color: activeTab === 'caniles' ? '#2f5540' : '#7c8592',
-                  border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
-                }}
+                className={`portal-nav-btn ${activeTab === 'caniles' ? 'active' : ''}`}
               >
-                🚪 <span>Caniles y Traslados</span>
+                <span>🚪</span> <span>Caniles y Traslados</span>
               </button>
 
               {/*Gestion de Adopciones */}
               {puedeGestionarAdopciones && (
-                <button onClick={() => setActiveTab('adopciones')}
+                <button
+                  onClick={() => setActiveTab('adopciones')}
                   aria-current={activeTab === 'adopciones' ? 'page' : undefined}
-                  style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
-                    background: activeTab === 'adopciones' ? '#eef3ec' : 'transparent',
-                    color: activeTab === 'adopciones' ? '#2f5540' : '#7c8592',
-                    border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left' }}>
-                  🏡 <span>Adopciones</span>
+                  className={`portal-nav-btn ${activeTab === 'adopciones' ? 'active' : ''}`}
+                >
+                  <span>🏡</span> <span>Adopciones</span>
                 </button>
               )}
 
               {/* Sección: Bienestar */}
-              <div style={{ borderTop: '1px solid #e9eaed', marginTop: '10px', paddingTop: '12px', paddingBottom: '2px', paddingLeft: '14px' }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a3aab5' }}>
+              <div style={{ borderTop: '1px solid var(--portal-border)', marginTop: '10px', paddingTop: '12px', paddingBottom: '2px', paddingLeft: '14px' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--portal-text-light)' }}>
                   Bienestar
                 </span>
               </div>
 
               {/* Necesidades Diarias y Notas de Cuidado */}
               <button
-                 onClick={() => setActiveTab('cuidados')}
-                 style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
-                 background: activeTab === 'cuidados' ? '#eef3ec' : 'transparent',
-                 color: activeTab === 'cuidados' ? '#2f5540' : '#7c8592',
-                 border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
-                }}
+                onClick={() => setActiveTab('cuidados')}
+                className={`portal-nav-btn ${activeTab === 'cuidados' ? 'active' : ''}`}
               >
-                📋 <span>Rondas y Cuidados</span>
+                <span>📋</span> <span>Rondas y Cuidados</span>
               </button>
-              {/*Salud y Vacuncacion */}
+
+              {/*Salud y Vacunacion */}
               <button
                 onClick={() => setActiveTab('salud')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
-                  background: activeTab === 'salud' ? '#eef3ec' : 'transparent',
-                  color: activeTab === 'salud' ? '#2f5540' : '#7c8592',
-                  border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
-                }}
+                className={`portal-nav-btn ${activeTab === 'salud' ? 'active' : ''}`}
               >
-                💉 <span>Salud y Vacunación</span>
+                <span>💉</span> <span>Salud y Vacunación</span>
               </button>
+
               {/* Sección: Administración */}
-              <div style={{ borderTop: '1px solid #e9eaed', marginTop: '10px', paddingTop: '12px', paddingBottom: '2px', paddingLeft: '14px' }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a3aab5' }}>
+              <div style={{ borderTop: '1px solid var(--portal-border)', marginTop: '10px', paddingTop: '12px', paddingBottom: '2px', paddingLeft: '14px' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--portal-text-light)' }}>
                   Administración
                 </span>
               </div>
@@ -196,14 +172,9 @@ export default function App() {
                 <button
                   onClick={() => setActiveTab('inventario')}
                   aria-current={activeTab === 'inventario' ? 'page' : undefined}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
-                    background: activeTab === 'inventario' ? '#eef3ec' : 'transparent',
-                    color: activeTab === 'inventario' ? '#2f5540' : '#7c8592',
-                    border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
-                  }}
+                  className={`portal-nav-btn ${activeTab === 'inventario' ? 'active' : ''}`}
                 >
-                  📦 <span>Inventario</span>
+                  <span>📦</span> <span>Inventario</span>
                 </button>
               )}
 
@@ -211,28 +182,18 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('voluntarios')}
                 aria-current={activeTab === 'voluntarios' ? 'page' : undefined}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
-                  background: activeTab === 'voluntarios' ? '#eef3ec' : 'transparent',
-                  color: activeTab === 'voluntarios' ? '#2f5540' : '#7c8592',
-                  border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
-                }}
+                className={`portal-nav-btn ${activeTab === 'voluntarios' ? 'active' : ''}`}
               >
-                🤝 <span>Voluntarios y Turnos</span>
+                <span>🤝</span> <span>Voluntarios y Turnos</span>
               </button>
 
               {/* Auditoría y Trazabilidad */}
               {esDirectora && (
                 <button
                   onClick={() => setActiveTab('auditoria')}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
-                    background: activeTab === 'auditoria' ? '#eef3ec' : 'transparent',
-                    color: activeTab === 'auditoria' ? '#2f5540' : '#7c8592',
-                    border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
-                  }}
+                  className={`portal-nav-btn ${activeTab === 'auditoria' ? 'active' : ''}`}
                 >
-                  🛡️ <span>Auditoría</span>
+                  <span>🛡️</span> <span>Auditoría</span>
                 </button>
               )}
             </nav>
@@ -264,51 +225,54 @@ export default function App() {
 
           {/* ÁREA PRINCIPAL */}
           <main style={{ marginLeft: '252px', flex: 1, minHeight: '100vh', boxSizing: 'border-box' }}>
-            {activeTab === 'dashboard' && (
-              <DashboardModulo user={user} onNavigate={setActiveTab} />
-            )}
+            {/* key={activeTab} remonta el panel y reproduce la transición al cambiar de sección */}
+            <div key={activeTab} className="portal-tab-panel">
+              {activeTab === 'dashboard' && (
+                <DashboardModulo user={user} onNavigate={setActiveTab} />
+              )}
 
-            {activeTab === 'caniles' && (
-              <CanilesModulo user={user} />
-            )}
+              {activeTab === 'caniles' && (
+                <CanilesModulo user={user} />
+              )}
 
-            {activeTab === 'animales' && (
-              <AnimalCatalogo
-                onOpenModal={(animal = null) => {
-                  setAnimalEditar(animal && animal.id ? animal : null);
-                  setModalOpen(true);
-                }}
-                onEditAnimal={(animal) => {
-                  setAnimalEditar(animal);
-                  setModalOpen(true);
-                }}
-                reloadKey={reloadKey}
-              />
-            )}
+              {activeTab === 'animales' && (
+                <AnimalCatalogo
+                  onOpenModal={(animal = null) => {
+                    setAnimalEditar(animal && animal.id ? animal : null);
+                    setModalOpen(true);
+                  }}
+                  onEditAnimal={(animal) => {
+                    setAnimalEditar(animal);
+                    setModalOpen(true);
+                  }}
+                  reloadKey={reloadKey}
+                />
+              )}
 
-            {activeTab === 'cuidados' && (
-              <CuidadosModulo user={user} />
-            )}
+              {activeTab === 'cuidados' && (
+                <CuidadosModulo user={user} />
+              )}
 
-            {activeTab === 'salud' && (
-              <SaludModulo user={user} />
-            )}
+              {activeTab === 'salud' && (
+                <SaludModulo user={user} />
+              )}
 
-            {activeTab === 'adopciones' && puedeGestionarAdopciones && (
-              <AdopcionesModulo user={user} />
-            )}
+              {activeTab === 'adopciones' && puedeGestionarAdopciones && (
+                <AdopcionesModulo user={user} />
+              )}
 
-            {activeTab === 'inventario' && puedeGestionarInventario && (
-              <InventarioModulo user={user} />
-            )}
+              {activeTab === 'inventario' && puedeGestionarInventario && (
+                <InventarioModulo user={user} />
+              )}
 
-            {activeTab === 'voluntarios' && (
-              <VoluntariosModulo user={user} />
-            )}
+              {activeTab === 'voluntarios' && (
+                <VoluntariosModulo user={user} />
+              )}
 
-            {activeTab === 'auditoria' && esDirectora && (
-              <AuditoriaModulo user={user} />
-            )}
+              {activeTab === 'auditoria' && esDirectora && (
+                <AuditoriaModulo user={user} />
+              )}
+            </div>
           </main>
 
           <AnimalFormModal

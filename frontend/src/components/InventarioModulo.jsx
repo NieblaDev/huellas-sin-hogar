@@ -10,7 +10,6 @@ export default function InventarioModulo({ user }) {
   const [cargando, setCargando] = useState(true);
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('TODAS');
-  const [soloAlertas, setSoloAlertas] = useState(false);
 
   // Modales
   const [modalInsumoOpen, setModalInsumoOpen] = useState(false);
@@ -227,101 +226,72 @@ export default function InventarioModulo({ user }) {
       (ins.ubicacion && ins.ubicacion.toLowerCase().includes(filtroTexto.toLowerCase()));
 
     const coincideCat = filtroCategoria === 'TODAS' || ins.categoria === filtroCategoria;
+    const coincideTab = activeTab === 'catalogo' || (activeTab === 'alertas' && (ins.esStockBajo || ins.esAgotado || ins.esProximoVencer));
 
-    if (soloAlertas) {
-      return coincideTexto && coincideCat && (ins.esStockBajo || ins.alertaVencimiento);
-    }
-    return coincideTexto && coincideCat;
+    return coincideTexto && coincideCat && coincideTab;
   });
 
   // Categorías únicas
   const categorias = ['TODAS', ...new Set(insumos.map(i => i.categoria))];
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '28px 24px' }}>
+    <div className="portal-page-container">
       {/* Encabezado Principal */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+      <div className="portal-header">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.8rem' }}>📦</span>
-            <h2 style={{ fontSize: '1.65rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>
-              Inventario de Insumos
-            </h2>
-          </div>
-          <p style={{ color: '#7c8592', fontSize: '0.9rem', margin: '6px 0 0' }}>
+          <h2 className="portal-header-title">
+            <span>📦</span>
+            <span>Inventario de Insumos</span>
+          </h2>
+          <p className="portal-header-subtitle">
             Control de existencias en tiempo real, registro clasificado de entradas y salidas y alertas de stock mínimo.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Badge de Seguridad de Fármacos */}
-          <div style={{
-            padding: '6px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '700',
-            background: esAutorizadoFarmacos ? '#e8f0e8' : '#faf1de',
-            color: esAutorizadoFarmacos ? '#2f5540' : '#b37416',
-            border: `1px solid ${esAutorizadoFarmacos ? '#c7dfc7' : '#f2dfbe'}`,
-            display: 'flex', alignItems: 'center', gap: '6px'
-          }}>
-            <span>{esAutorizadoFarmacos ? '🛡️' : '🔒'}</span>
-            <span>{esAutorizadoFarmacos ? 'Personal Médico: Fármacos habilitados' : 'Fármacos restringidos a Veterinaria'}</span>
-          </div>
-
+        <div className="portal-header-actions">
           <button
             onClick={() => abrirModalMovimiento()}
-            style={{
-              background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px',
-              padding: '10px 18px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 6px rgba(63,108,82,0.2)'
-            }}
+            className="portal-btn portal-btn-primary"
           >
             <span>⇄</span> Registrar Movimiento
           </button>
 
           <button
             onClick={abrirModalCrearInsumo}
-            style={{
-              background: '#ffffff', color: '#1f2430', border: '1.5px solid #dcdfe4', borderRadius: '8px',
-              padding: '10px 16px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '6px'
-            }}
+            className="portal-btn portal-btn-secondary"
           >
             <span>+</span> Nuevo Insumo
           </button>
         </div>
       </div>
 
-      {/* BANNER DE ALERTAS AUTOMÁTICAS EN TIEMPO REAL */}
-      {alertas.totalAlertas > 0 && (
-        <div style={{
-          background: '#fff9f4', border: '1.5px solid #f2dfbe', borderRadius: '12px',
-          padding: '16px 20px', marginBottom: '24px', display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <span style={{ fontSize: '1.5rem' }}>⚠️</span>
-            <div>
-              <div style={{ fontWeight: '800', color: '#b37416', fontSize: '0.94rem' }}>
-                Atención Operativa: {alertas.totalAlertas} alerta(s) de inventario detectadas
-              </div>
-              <div style={{ fontSize: '0.82rem', color: '#7c8592', marginTop: '2px' }}>
-                {alertas.stockCriticoCount > 0 && <span>• {alertas.stockCriticoCount} producto(s) en stock crítico o agotado. </span>}
-                {alertas.vencimientoCount > 0 && <span>• {alertas.vencimientoCount} producto(s) con vencimiento próximo o vencidos.</span>}
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => setSoloAlertas(v => !v)}
-            style={{
-              background: soloAlertas ? '#b37416' : '#ffffff',
-              color: soloAlertas ? '#fff' : '#b37416',
-              border: '1px solid #b37416',
-              borderRadius: '6px', padding: '6px 14px', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer'
-            }}
-          >
-            {soloAlertas ? 'Ver todos los insumos' : 'Filtrar solo con alertas'}
-          </button>
-        </div>
-      )}
+      {/* Subnavegación de Inventario — Estilo portal-subtabs */}
+      <div className="portal-subtabs">
+        <button
+          onClick={() => setActiveTab('catalogo')}
+          className={`portal-subtab-btn ${activeTab === 'catalogo' ? 'active' : ''}`}
+        >
+          📦 Catálogo de Insumos ({insumos.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('alertas')}
+          className={`portal-subtab-btn ${activeTab === 'alertas' ? 'active' : ''}`}
+        >
+          🚨 Alertas de Stock ({alertas.totalAlertas || 0})
+        </button>
+        <button
+          onClick={() => abrirModalMovimiento()}
+          className="portal-subtab-btn"
+        >
+          ⇄ Registrar Movimiento
+        </button>
+        <button
+          onClick={abrirModalCrearInsumo}
+          className="portal-subtab-btn"
+        >
+          ➕ Nuevo Insumo
+        </button>
+      </div>
 
       {/* TARJETAS RESUMEN OPERACIONAL */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
@@ -379,7 +349,7 @@ export default function InventarioModulo({ user }) {
         </div>
 
         <button
-          onClick={() => { setFiltroTexto(''); setFiltroCategoria('TODAS'); setSoloAlertas(false); }}
+          onClick={() => { setFiltroTexto(''); setFiltroCategoria('TODAS'); }}
           style={{ background: 'transparent', border: 'none', color: '#7c8592', fontSize: '0.84rem', cursor: 'pointer', fontWeight: '600' }}
         >
           Limpiar filtros

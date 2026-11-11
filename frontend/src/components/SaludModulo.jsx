@@ -116,41 +116,39 @@ export default function SaludModulo({ user }) {
   };
 
   if (cargando) {
-    return <div style={{ padding: '30px', textAlign: 'center', color: '#7c8592' }}>Cargando módulo de salud...</div>;
+    return (
+      <div className="portal-page-container" style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--portal-text-muted)' }}>
+        <div style={{ fontSize: '1.8rem', marginBottom: '12px' }}>⏳</div>
+        <strong>Cargando módulo de salud...</strong>
+      </div>
+    );
   }
 
   return (
-    <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+    <div className="portal-page-container">
+      <div className="portal-header">
         <div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>
-            🩺 Módulo de Salud y Vacunación
+          <h2 className="portal-header-title">
+            <span>🩺</span>
+            <span>Módulo de Salud y Vacunación</span>
           </h2>
-          <p style={{ color: '#7c8592', fontSize: '0.88rem', margin: '4px 0 0' }}>
+          <p className="portal-header-subtitle">
             Atención clínica, listado de pendientes sanitarios y alertas de vencimiento
           </p>
         </div>
       </div>
 
       {/* Subnavegación del Módulo de Salud */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '22px', borderBottom: '1px solid #e9eaed', paddingBottom: '12px', flexWrap: 'wrap' }}>
+      <div className="portal-subtabs">
         <button
           onClick={() => setTabSalud('alertas')}
-          style={{
-           padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '700',
-           background: tabSalud === 'alertas' ? '#3f6c52' : '#eef0f2',
-           color: tabSalud === 'alertas' ? '#fff' : '#555e6d'
-          }}
+          className={`portal-subtab-btn ${tabSalud === 'alertas' ? 'active' : ''}`}
         >
           🚨 Alertas y Pendientes ({alertas?.resumen?.totalAlertas || 0})
         </button>
         <button
           onClick={() => { setTabSalud('historial'); if (selectedAnimalId) verHistorialAnimal(selectedAnimalId); }}
-          style={{
-            padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '700',
-            background: tabSalud === 'historial' ? '#3f6c52' : '#eef0f2',
-            color: tabSalud === 'historial' ? '#fff' : '#555e6d'
-          }}
+          className={`portal-subtab-btn ${tabSalud === 'historial' ? 'active' : ''}`}
         >
           📋 Ficha e Historial Clínico
         </button>
@@ -158,21 +156,13 @@ export default function SaludModulo({ user }) {
           <>
             <button
               onClick={() => setTabSalud('nueva_vacuna')}
-              style={{
-                padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '700',
-                background: tabSalud === 'nueva_vacuna' ? '#3f6c52' : '#eef0f2',
-                color: tabSalud === 'nueva_vacuna' ? '#fff' : '#555e6d'
-              }}
+              className={`portal-subtab-btn ${tabSalud === 'nueva_vacuna' ? 'active' : ''}`}
             >
               💉 Registrar Vacuna
             </button>
             <button
               onClick={() => setTabSalud('nueva_atencion')}
-              style={{
-                padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '700',
-                background: tabSalud === 'nueva_atencion' ? '#3f6c52' : '#eef0f2',
-                color: tabSalud === 'nueva_atencion' ? '#fff' : '#555e6d'
-              }}
+              className={`portal-subtab-btn ${tabSalud === 'nueva_atencion' ? 'active' : ''}`}
             >
               🩺 Registrar Atención Médica
             </button>

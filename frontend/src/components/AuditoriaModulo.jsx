@@ -15,6 +15,7 @@ export default function AuditoriaModulo({ user }) {
 
   // Registro seleccionado para ver detalle de Diff (valor anterior vs nuevo)
   const [detalleRegistro, setDetalleRegistro] = useState(null);
+  const [tabAccion, setTabAccion] = useState('TODAS'); // 'TODAS' | 'CREACION' | 'MODIFICACION' | 'BAJA_LOGICA'
 
   useEffect(() => {
     fetchAuditorias();
@@ -69,24 +70,77 @@ export default function AuditoriaModulo({ user }) {
     BAJA_LOGICA: { bg: '#fbeae8', color: '#d1453b', label: 'Baja Lógica' }
   };
 
+  const accionNombres = {
+    CREACION: 'Creación',
+    MODIFICACION: 'Modificación',
+    BAJA_LOGICA: 'Baja lógica'
+  };
+
+  // Descripción legible: acción realizada + nombre del registro/animal afectado
+  const describirAccion = (item) => {
+    const accion = accionNombres[item.accion] || item.accion;
+    const nombre = item.entidadNombre;
+    if (item.entidad === 'Animal') {
+      return nombre
+        ? `${accion} de la ficha del animal: ${nombre}`
+        : `${accion} de ficha animal #${item.entidadId ?? '—'}`;
+    }
+    return nombre
+      ? `${accion} de registro en ${item.entidad} — ${nombre}`
+      : `${accion} de registro en ${item.entidad} #${item.entidadId ?? '—'}`;
+  };
+
+  const auditoriasFiltradas = auditorias.filter(item => tabAccion === 'TODAS' || item.accion === tabAccion);
+
   return (
-    <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '24px' }}>
+    <div className="portal-page-container">
       {/* ENCABEZADO */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
+      <div className="portal-header">
         <div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>
-            🛡️ Módulo de Auditoría y Trazabilidad
+          <h2 className="portal-header-title">
+            <span>🛡️</span>
+            <span>Módulo de Auditoría y Trazabilidad</span>
           </h2>
-          <p style={{ color: '#7c8592', fontSize: '0.88rem', margin: '4px 0 0' }}>
+          <p className="portal-header-subtitle">
             Bitácora histórica inmutable de solo lectura. Registro automático de creaciones, modificaciones y bajas lógicas.
           </p>
         </div>
-        <div style={{
-          background: '#f8f9fa', border: '1px solid #e9eaed', borderRadius: '8px', padding: '6px 14px',
-          fontSize: '0.78rem', color: '#7c8592', display: 'flex', alignItems: 'center', gap: '6px'
-        }}>
-          <span>🔒</span> Solo lectura (Inmutable)
+        <div className="portal-header-actions">
+          <div style={{
+            background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', borderRadius: 'var(--portal-radius-sm)', padding: '6px 14px',
+            fontSize: '0.78rem', color: 'var(--portal-text-muted)', display: 'flex', alignItems: 'center', gap: '6px'
+          }}>
+            <span>🔒</span> Solo lectura (Inmutable)
+          </div>
         </div>
+      </div>
+
+      {/* Subnavegación de Auditoría — Estilo portal-subtabs */}
+      <div className="portal-subtabs">
+        <button
+          onClick={() => setTabAccion('TODAS')}
+          className={`portal-subtab-btn ${tabAccion === 'TODAS' ? 'active' : ''}`}
+        >
+          📋 Toda la Bitácora ({auditorias.length})
+        </button>
+        <button
+          onClick={() => setTabAccion('CREACION')}
+          className={`portal-subtab-btn ${tabAccion === 'CREACION' ? 'active' : ''}`}
+        >
+          ➕ Creaciones ({auditorias.filter(a => a.accion === 'CREACION').length})
+        </button>
+        <button
+          onClick={() => setTabAccion('MODIFICACION')}
+          className={`portal-subtab-btn ${tabAccion === 'MODIFICACION' ? 'active' : ''}`}
+        >
+          ✏️ Modificaciones ({auditorias.filter(a => a.accion === 'MODIFICACION').length})
+        </button>
+        <button
+          onClick={() => setTabAccion('BAJA_LOGICA')}
+          className={`portal-subtab-btn ${tabAccion === 'BAJA_LOGICA' ? 'active' : ''}`}
+        >
+          🗑️ Bajas Lógicas ({auditorias.filter(a => a.accion === 'BAJA_LOGICA').length})
+        </button>
       </div>
 
       {error && (
@@ -191,6 +245,7 @@ export default function AuditoriaModulo({ user }) {
                 <th style={{ padding: '12px 16px' }}>Usuario Responsable</th>
                 <th style={{ padding: '12px 16px' }}>Entidad Afectada</th>
                 <th style={{ padding: '12px 16px' }}>Acción</th>
+                <th style={{ padding: '12px 16px' }}>Descripción de la Acción</th>
                 <th style={{ padding: '12px 16px' }}>ID Registro</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center' }}>Comparativa de Valores</th>
               </tr>
@@ -198,18 +253,18 @@ export default function AuditoriaModulo({ user }) {
             <tbody>
               {cargando ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#7c8592' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '30px', color: '#7c8592' }}>
                     Cargando bitácora de auditoría...
                   </td>
                 </tr>
-              ) : auditorias.length === 0 ? (
+              ) : auditoriasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#a3aab5' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '30px', color: '#a3aab5' }}>
                     No se encontraron registros que coincidan con los filtros aplicados.
                   </td>
                 </tr>
               ) : (
-                auditorias.map(item => {
+                auditoriasFiltradas.map(item => {
                   const badge = accionColor[item.accion] || { bg: '#e9eaed', color: '#7c8592', label: item.accion };
                   const fechaObj = new Date(item.fechaHora);
 
@@ -233,6 +288,9 @@ export default function AuditoriaModulo({ user }) {
                         }}>
                           {badge.label}
                         </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', color: '#1f2430' }}>
+                        {describirAccion(item)}
                       </td>
                       <td style={{ padding: '12px 16px', color: '#7c8592' }}>
                         #{item.entidadId || '—'}

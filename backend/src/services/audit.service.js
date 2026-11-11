@@ -85,10 +85,33 @@ export const getAuditorias = async ({ usuarioResponsable, entidad, fechaDesde, f
     })
   ]);
 
+  // Enriquecer cada registro con el nombre de la entidad afectada
+  // (típicamente el animal) para mostrar una descripción legible de la acción.
+  const animalIds = registros
+    .filter(r => r.entidad === 'Animal' && r.entidadId)
+    .map(r => r.entidadId);
+  const animales = animalIds.length
+    ? await prisma.animal.findMany({ where: { id: { in: animalIds } }, select: { id: true, nombre: true } })
+    : [];
+  const nombrePorAnimalId = new Map(animales.map(a => [a.id, a.nombre]));
+
+  const registrosConNombre = registros.map(r => {
+    const snapshot = r.valorNuevo || r.valorAnterior || {};
+    const nombreEnSnapshot = snapshot.nombre
+      || (typeof snapshot.animal === 'string' ? snapshot.animal : null)
+      || snapshot.animal?.nombre
+      || null;
+    const entidadNombre = r.entidad === 'Animal'
+      ? (nombrePorAnimalId.get(r.entidadId) || nombreEnSnapshot)
+      : nombreEnSnapshot;
+
+    return { ...r, entidadNombre: entidadNombre || null };
+  });
+
   return {
     total,
     page: Number(page) || 1,
     limit: take,
-    registros
+    registros: registrosConNombre
   };
 };

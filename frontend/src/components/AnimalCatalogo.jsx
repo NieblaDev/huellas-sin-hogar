@@ -6,6 +6,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   const [cargando, setCargando] = useState(true);
   const [search, setSearch] = useState('');
   const [especie, setEspecie] = useState('');
+  const [tabAnimales, setTabAnimales] = useState('catalogo'); // 'catalogo' | 'reportes' | 'notificaciones'
 
   // Notificaciones del personal del refugio
   const [notificaciones, setNotificaciones] = useState([]);
@@ -15,6 +16,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   // Modal de Ficha del Animal y Exportación de Expediente
   const [fichaSeleccionada, setFichaSeleccionada] = useState(null);
   const [cargandoFicha, setCargandoFicha] = useState(false);
+  const [fotoAmpliada, setFotoAmpliada] = useState(false);
   const [descargandoId, setDescargandoId] = useState(null);
 
   // Panel de Configuración de Reportes Consolidados
@@ -49,6 +51,20 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       abrirFichaAnimal(fichaSeleccionada.id, true);
     }
   }, [search, especie, reloadKey]);
+
+  // Cierra la foto ampliada si se cierra la ficha o con la tecla Escape
+  useEffect(() => {
+    if (!fichaSeleccionada) setFotoAmpliada(false);
+  }, [fichaSeleccionada]);
+
+  useEffect(() => {
+    if (!fotoAmpliada) return undefined;
+    const handler = (e) => {
+      if (e.key === 'Escape') setFotoAmpliada(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [fotoAmpliada]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -237,118 +253,91 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   const limpiarNotaCausal = (nota) => (nota || '').replace(/^\[Ingreso por (Rescate|Abandono|Decomiso)\]\s*/i, '');
 
   return (
-    <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '24px' }}>
+    <div
+      className="portal-page-container"
+      style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+    >
       {/* ENCABEZADO Y ACCIONES DE REGISTRO / EXPORTACIÓN */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: '20px',
-          flexWrap: 'wrap',
-          gap: '12px'
-        }}
-      >
+      <div className="portal-header" style={{ flexShrink: 0 }}>
         <div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>
-            Registro de Ingreso, Fichas de Animales y Reportes
+          <h2 className="portal-header-title">
+            <span>🐶</span>
+            <span>Registro de Ingreso, Fichas de Animales y Reportes</span>
           </h2>
-          <p style={{ color: '#7c8592', fontSize: '0.88rem', margin: '4px 0 0' }}>
+          <p className="portal-header-subtitle">
             Registra a los perros y gatos que llegan al refugio y descarga sus fichas o reportes de gestión en PDF o CSV.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Botón Bandeja de Notificaciones del Personal */}
-          <button
-            type="button"
-            onClick={() => setMostrarNotificaciones(!mostrarNotificaciones)}
-            style={{
-              background: mostrarNotificaciones ? '#eef3ec' : '#fff',
-              color: '#2f5540',
-              padding: '10px 14px',
-              borderRadius: '9px',
-              border: '1.5px solid #c9dfcd',
-              fontWeight: '700',
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            🔔 <span>Notificaciones Personal</span>
-            <span
-              style={{
-                background: '#3f6c52',
-                color: '#fff',
-                borderRadius: '999px',
-                padding: '1px 7px',
-                fontSize: '0.72rem'
-              }}
-            >
-              {notificaciones.length}
-            </span>
-          </button>
-
-          {/* Botón Módulo de Reportes Consolidados (Exclusivo Directora) */}
-          {esDirectora ? (
-            <button
-              type="button"
-              onClick={() => setMostrarConfigReporte(!mostrarConfigReporte)}
-              style={{
-                background: mostrarConfigReporte ? '#313a9e' : '#4550c0',
-                color: '#fff',
-                padding: '10px 16px',
-                borderRadius: '9px',
-                border: 'none',
-                fontWeight: '700',
-                fontSize: '0.84rem',
-                cursor: 'pointer'
-              }}
-            >
-              📊 {mostrarConfigReporte ? 'Cerrar Módulo de Reportes' : 'Configurar y Exportar Reportes (PDF/CSV)'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() =>
-                alert('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.')
-              }
-              title="Disponible solo para la Dirección del refugio"
-              style={{
-                background: '#f0f1f3',
-                color: '#7c8592',
-                padding: '10px 14px',
-                borderRadius: '9px',
-                border: '1px solid #d6d9e0',
-                fontWeight: '700',
-                fontSize: '0.8rem',
-                cursor: 'not-allowed'
-              }}
-            >
-              🔒 Reportes de gestión (Dirección)
-            </button>
-          )}
-
+        <div className="portal-header-actions">
           {/* Botón Registrar Ingreso Animal */}
           <button
             type="button"
             onClick={() => onOpenModal && onOpenModal(null)}
-            style={{
-              background: '#3f6c52',
-              color: '#fff',
-              padding: '10px 18px',
-              borderRadius: '9px',
-              border: 'none',
-              fontWeight: '700',
-              fontSize: '0.86rem',
-              cursor: 'pointer'
-            }}
+            className="portal-btn portal-btn-primary"
           >
-            + Registrar ingreso de animal
+            ➕ Registrar ingreso de animal
           </button>
         </div>
+      </div>
+
+      {/* Subnavegación del Módulo de Registro de Animales — Estilo portal-subtabs */}
+      <div className="portal-subtabs" style={{ flexShrink: 0 }}>
+        <button
+          type="button"
+          onClick={() => {
+            setTabAnimales('catalogo');
+            setMostrarConfigReporte(false);
+            setMostrarNotificaciones(false);
+          }}
+          className={`portal-subtab-btn ${tabAnimales === 'catalogo' ? 'active' : ''}`}
+        >
+          🐾 Catálogo de Animales ({animales.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (!esDirectora) {
+              alert('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.');
+              return;
+            }
+            const nuevoEstado = tabAnimales === 'reportes' ? 'catalogo' : 'reportes';
+            setTabAnimales(nuevoEstado);
+            setMostrarConfigReporte(nuevoEstado === 'reportes');
+            setMostrarNotificaciones(false);
+          }}
+          className={`portal-subtab-btn ${tabAnimales === 'reportes' ? 'active' : ''}`}
+        >
+          📊 Reportes Consolidados (PDF/CSV) {!esDirectora && '🔒'}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            const nuevoEstado = tabAnimales === 'notificaciones' ? 'catalogo' : 'notificaciones';
+            setTabAnimales(nuevoEstado);
+            setMostrarNotificaciones(nuevoEstado === 'notificaciones');
+            setMostrarConfigReporte(false);
+          }}
+          className={`portal-subtab-btn ${tabAnimales === 'notificaciones' ? 'active' : ''}`}
+        >
+          <span>🔔 Novedades y Notificaciones</span>
+          {notificaciones.length > 0 && (
+            <span
+              style={{
+                background: tabAnimales === 'notificaciones' ? '#fff' : '#d1453b',
+                color: tabAnimales === 'notificaciones' ? 'var(--portal-primary)' : '#fff',
+                borderRadius: '999px',
+                padding: '1px 6px',
+                fontSize: '0.72rem',
+                fontWeight: 800
+              }}
+            >
+              {notificaciones.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* MÓDULO DE CONFIGURACIÓN Y EXPORTACIÓN DE REPORTES CONSOLIDADOS (SOLO DIRECTORA) */}
@@ -361,7 +350,10 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
             borderRadius: '16px',
             padding: '20px 22px',
             marginBottom: '22px',
-            boxShadow: '0 4px 16px rgba(69,80,192,0.08)'
+            boxShadow: '0 4px 16px rgba(69,80,192,0.08)',
+            flexShrink: 0,
+            maxHeight: '45vh',
+            overflowY: 'auto'
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
@@ -546,7 +538,8 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            boxShadow: '0 2px 8px rgba(20,24,32,0.05)'
+            boxShadow: '0 2px 8px rgba(20,24,32,0.05)',
+            flexShrink: 0
           }}
         >
           <div>
@@ -574,7 +567,10 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
             borderRadius: '14px',
             padding: '16px 20px',
             marginBottom: '20px',
-            boxShadow: '0 4px 12px rgba(20,24,32,0.05)'
+            boxShadow: '0 4px 12px rgba(20,24,32,0.05)',
+            flexShrink: 0,
+            maxHeight: '38vh',
+            overflowY: 'auto'
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -622,7 +618,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       )}
 
       {/* BUSCADOR Y FILTROS */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', flexShrink: 0 }}>
         <input
           type="text"
           placeholder="Buscar por nombre..."
@@ -641,7 +637,8 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
         </select>
       </div>
 
-      {/* LISTADO DE FICHAS DE ANIMALES */}
+      {/* LISTADO DE FICHAS DE ANIMALES — solo esta zona hace scroll */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '6px', marginRight: '-6px', paddingBottom: '8px' }}>
       {cargando ? (
         <div style={{ textAlign: 'center', padding: '40px', color: '#7c8592' }}>Cargando catálogo...</div>
       ) : animales.length === 0 ? (
@@ -775,45 +772,6 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                     </span>
 
                     <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          abrirFichaAnimal(a.id);
-                        }}
-                        title="Ver Ficha del Animal"
-                        style={{
-                          background: '#eef3ec',
-                          border: '1px solid #c9dfcd',
-                          color: '#2f5540',
-                          padding: '5px 8px',
-                          borderRadius: '6px',
-                          fontSize: '0.72rem',
-                          fontWeight: '700',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        📋 Ver Ficha
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={(e) => abrirEdicionFicha(a, e)}
-                        title="Editar Ficha del Animal"
-                        style={{
-                          background: '#faf1de',
-                          border: '1px solid #f2d59b',
-                          color: '#9c6818',
-                          padding: '5px 8px',
-                          borderRadius: '6px',
-                          fontSize: '0.72rem',
-                          fontWeight: '700',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        ✏️ Editar Ficha
-                      </button>
-
                       {puedeExportarExpediente && (
                         <button
                           type="button"
@@ -831,13 +789,14 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                             cursor: 'pointer'
                           }}
                         >
-                          {descargandoId === `${a.id}-PDF` ? '...' : '📄 PDF'}
+                          {descargandoId === `${a.id}-PDF` ? '...' : '📄 Descargar PDF'}
                         </button>
                       )}
 
                       <button
                         type="button"
                         onClick={(e) => handleDelete(a.id, a.nombre, e)}
+                        title="Dar de baja al animal"
                         style={{
                           background: '#fbeae8',
                           border: '1px solid #f3c9c4',
@@ -859,6 +818,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
           })}
         </div>
       )}
+      </div>
 
       {/* MODAL DE FICHA DEL ANIMAL */}
       {(fichaSeleccionada || cargandoFicha) && (
@@ -895,6 +855,8 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                 {/* Fotografía + datos principales del animal */}
                 <div style={{ display: 'flex', gap: '18px', alignItems: 'flex-start', marginBottom: '16px' }}>
                   <div
+                    onClick={() => fichaSeleccionada.fotoUrl && setFotoAmpliada(true)}
+                    title={fichaSeleccionada.fotoUrl ? 'Clic para ampliar la fotografía' : undefined}
                     style={{
                       width: '160px',
                       height: '160px',
@@ -904,15 +866,35 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                       alignItems: 'center',
                       justifyContent: 'center',
                       overflow: 'hidden',
-                      flexShrink: 0
+                      flexShrink: 0,
+                      cursor: fichaSeleccionada.fotoUrl ? 'zoom-in' : 'default',
+                      position: 'relative'
                     }}
                   >
                     {fichaSeleccionada.fotoUrl ? (
-                      <img
-                        src={fichaSeleccionada.fotoUrl}
-                        alt={fichaSeleccionada.nombre}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
+                      <>
+                        <img
+                          src={fichaSeleccionada.fotoUrl}
+                          alt={fichaSeleccionada.nombre}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <span
+                          style={{
+                            position: 'absolute',
+                            right: '6px',
+                            bottom: '6px',
+                            background: 'rgba(20,24,32,0.65)',
+                            color: '#fff',
+                            fontSize: '0.68rem',
+                            fontWeight: '700',
+                            padding: '2px 7px',
+                            borderRadius: '6px',
+                            pointerEvents: 'none'
+                          }}
+                        >
+                          🔍 Ampliar
+                        </span>
+                      </>
                     ) : (
                       <span style={{ fontSize: '3rem' }}>🐾</span>
                     )}
@@ -1124,7 +1106,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                     )}
                   </div>
 
-                  <button
+                  {/* <button
                     type="button"
                     onClick={() => setFichaSeleccionada(null)}
                     style={{
@@ -1137,10 +1119,74 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                     }}
                   >
                     Cerrar
-                  </button>
+                  </button> */}
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* VISOR DE FOTOGRAFÍA AMPLIADA */}
+      {fotoAmpliada && fichaSeleccionada?.fotoUrl && (
+        <div
+          onClick={() => setFotoAmpliada(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(10,12,16,0.88)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1300,
+            padding: '24px',
+            cursor: 'zoom-out'
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setFotoAmpliada(false)}
+            aria-label="Cerrar fotografía ampliada"
+            style={{
+              position: 'absolute',
+              top: '18px',
+              right: '22px',
+              background: 'rgba(255,255,255,0.15)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.35)',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              fontSize: '1.1rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            ✕
+          </button>
+
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', maxWidth: '100%', maxHeight: '100%' }}
+          >
+            <img
+              src={fichaSeleccionada.fotoUrl}
+              alt={fichaSeleccionada.nombre}
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '82vh',
+                objectFit: 'contain',
+                borderRadius: '12px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                cursor: 'default'
+              }}
+            />
+            <span style={{ color: '#e9eaed', fontSize: '0.9rem', fontWeight: '700' }}>
+              {fichaSeleccionada.nombre}
+            </span>
           </div>
         </div>
       )}

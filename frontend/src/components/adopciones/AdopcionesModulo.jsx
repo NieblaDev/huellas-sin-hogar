@@ -14,15 +14,57 @@ export default function AdopcionesModulo({ user }) {
   const verDetalle = id => { setSolicitudId(id); setVista('detalle'); };
   return (
     <section className="adopciones" aria-labelledby="adopciones-title">
-      <div className="adopciones-toolbar">
-        <div className="adopciones-header"><h2 id="adopciones-title">Adopciones</h2><p className="adopciones-muted">Solicitudes, seguimientos y devoluciones</p></div>
-        <nav className="adopciones-toolbar" aria-label="Gestión de adopciones">
-          <button onClick={() => { setVista('lista'); setConfirmacion(null); }}>Consultar solicitudes</button>
-          <button onClick={() => { setVista('seguimientos'); setConfirmacion(null); }}>Seguimientos</button>
-          <button className="primary" onClick={() => { setVista('crear'); setConfirmacion(null); }}>Nueva solicitud</button>
-        </nav>
+      <div className="portal-header">
+        <div>
+          <h2 id="adopciones-title" className="portal-header-title">
+            <span>🏡</span>
+            <span>Gestión de Adopciones</span>
+          </h2>
+          <p className="portal-header-subtitle">
+            Solicitudes de adopción, evaluación de adoptantes, seguimientos post-adopción y devoluciones
+          </p>
+        </div>
+        <div className="portal-header-actions">
+          <button
+            onClick={() => { setVista('crear'); setConfirmacion(null); }}
+            className="portal-btn portal-btn-primary"
+          >
+            ➕ Nueva Solicitud
+          </button>
+        </div>
       </div>
-      {confirmacion && <div role="status" className="adopciones-success">
+
+      {/* Subnavegación del Módulo de Adopciones */}
+      <div className="portal-subtabs" role="tablist" aria-label="Gestión de adopciones">
+        <button
+          className={`portal-subtab-btn ${vista === 'lista' ? 'active' : ''}`}
+          onClick={() => { setVista('lista'); setConfirmacion(null); }}
+        >
+          📋 Consultar Solicitudes
+        </button>
+        <button
+          className={`portal-subtab-btn ${vista === 'seguimientos' ? 'active' : ''}`}
+          onClick={() => { setVista('seguimientos'); setConfirmacion(null); }}
+        >
+          📞 Seguimientos Post-Adopción
+        </button>
+        <button
+          className={`portal-subtab-btn ${vista === 'crear' ? 'active' : ''}`}
+          onClick={() => { setVista('crear'); setConfirmacion(null); }}
+        >
+          📝 Formulario de Solicitud
+        </button>
+        {vista === 'detalle' && (
+          <button
+            className="portal-subtab-btn active"
+            onClick={() => setVista('detalle')}
+          >
+            📄 Expediente #{solicitudId}
+          </button>
+        )}
+      </div>
+
+      {confirmacion && <div role="status" className="adopciones-success" style={{ marginBottom: '20px' }}>
         Solicitud #{confirmacion.solicitud.id} registrada correctamente.
         {confirmacion.alertas.map(alerta => <p key={alerta.codigo}>{alerta.mensaje}</p>)}
       </div>}
