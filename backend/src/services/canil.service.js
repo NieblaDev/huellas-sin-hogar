@@ -107,11 +107,15 @@ export const asignarCanil = async ({ canilId, animalId, motivo, estado = 'OCUPAD
     });
 
     // Registrar traslado interno
+    const motivoTraslado = motivo && motivo.trim().length > 0
+      ? motivo.trim()
+      : `Asignación de canil ${targetCanil.nombre}`;
+
     await prisma.traslado.create({
       data: {
         animalId: animal.id,
         tipo: 'INTERNO_CANIL',
-        motivo,
+        motivo: motivoTraslado,
         estado: 'COMPLETADO',
         canilOrigenId: canilAnteriorId || null,
         canilDestinoId: targetCanil.id,

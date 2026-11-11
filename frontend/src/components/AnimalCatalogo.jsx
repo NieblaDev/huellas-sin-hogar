@@ -892,32 +892,34 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
               <div style={{ textAlign: 'center', padding: '30px', color: '#7c8592' }}>Cargando ficha del animal...</div>
             ) : (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                    <div
-                      style={{
-                        width: '68px',
-                        height: '68px',
-                        borderRadius: '14px',
-                        background: '#e8f0e8',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden',
-                        flexShrink: 0
-                      }}
-                    >
-                      {fichaSeleccionada.fotoUrl ? (
-                        <img
-                          src={fichaSeleccionada.fotoUrl}
-                          alt={fichaSeleccionada.nombre}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <span style={{ fontSize: '2rem' }}>🐾</span>
-                      )}
-                    </div>
-                    <div>
+                {/* Fotografía + datos principales del animal */}
+                <div style={{ display: 'flex', gap: '18px', alignItems: 'flex-start', marginBottom: '16px' }}>
+                  <div
+                    style={{
+                      width: '160px',
+                      height: '160px',
+                      borderRadius: '14px',
+                      background: '#eef0f2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      flexShrink: 0
+                    }}
+                  >
+                    {fichaSeleccionada.fotoUrl ? (
+                      <img
+                        src={fichaSeleccionada.fotoUrl}
+                        alt={fichaSeleccionada.nombre}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: '3rem' }}>🐾</span>
+                    )}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                       <span
                         style={{
                           fontSize: '0.7rem',
@@ -931,19 +933,19 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                       >
                         Ficha del Animal #{fichaSeleccionada.id} · Ingreso por {fichaSeleccionada.tipoIngreso || 'Rescate'}
                       </span>
-                      <h3 style={{ margin: '6px 0 2px', fontSize: '1.35rem', color: '#1f2430' }}>{fichaSeleccionada.nombre}</h3>
-                      <span style={{ fontSize: '0.82rem', color: '#7c8592' }}>
-                        {fichaSeleccionada.especie} · {fichaSeleccionada.sexo} · Edad: {fichaSeleccionada.edad || 'Desconocida'}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFichaSeleccionada(null)}
+                        style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#7c8592', flexShrink: 0 }}
+                      >
+                        ✕
+                      </button>
                     </div>
+                    <h3 style={{ margin: '10px 0 4px', fontSize: '1.5rem', color: '#1f2430' }}>{fichaSeleccionada.nombre}</h3>
+                    <span style={{ fontSize: '0.85rem', color: '#7c8592' }}>
+                      {fichaSeleccionada.especie} · {fichaSeleccionada.sexo} · Edad: {fichaSeleccionada.edad || 'Desconocida'}
+                    </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setFichaSeleccionada(null)}
-                    style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#7c8592' }}
-                  >
-                    ✕
-                  </button>
                 </div>
 
                 {/* Datos Generales y Clínicos */}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { API_URL } from '../api/config';
+import Logo from './Logo';
 
 export default function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState('directora@huellas.cl');
@@ -81,7 +82,12 @@ export default function Login({ onLoginSuccess }) {
         boxShadow: '0 8px 24px rgba(20,24,32,.06)', width: '100%', maxWidth: '420px', boxSizing: 'border-box'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <span style={{ fontSize: '2.4rem' }}>🐾</span>
+          <div style={{
+            width: '64px', height: '64px', borderRadius: '18px', background: '#e8f0e8',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px'
+          }}>
+            <Logo size={40} />
+          </div>
           <h2 style={{ fontSize: '1.45rem', fontWeight: '800', margin: '8px 0 4px', color: '#1f2430' }}>Iniciar Sesión</h2>
           <p style={{ fontSize: '0.85rem', color: '#7c8592', margin: 0 }}>Huellas Sin Hogar — Portal Staff</p>
         </div>

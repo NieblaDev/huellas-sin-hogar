@@ -10,6 +10,7 @@ import SaludModulo from './components/SaludModulo';
 import AdopcionesModulo from './components/adopciones/AdopcionesModulo';
 import InventarioModulo from './components/InventarioModulo';
 import VoluntariosModulo from './components/VoluntariosModulo';
+import Logo from './components/Logo';
 import { clearStoredSession, readStoredSession } from './utils/session';
 import './styles/portal-controls.css';
 import { API_URL, getAuthHeaders } from './api/config';
@@ -86,9 +87,9 @@ export default function App() {
             }}>
               <div style={{
                 width: '38px', height: '38px', borderRadius: '11px', background: '#e8f0e8',
-                color: '#3f6c52', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem'
+                color: '#3f6c52', display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-                🐾
+                <Logo size={24} />
               </div>
               <div>
                 <h1 style={{ fontSize: '0.98rem', fontWeight: '800', color: '#1f2430', lineHeight: 1.2, margin: 0 }}>
@@ -114,6 +115,19 @@ export default function App() {
                 📊 <span>Inicio</span>
               </button>
 
+              {/* Registro de Animales */}
+              <button
+                onClick={() => setActiveTab('animales')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
+                  background: activeTab === 'animales' ? '#eef3ec' : 'transparent',
+                  color: activeTab === 'animales' ? '#2f5540' : '#7c8592',
+                  border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
+                }}
+              >
+                🐶 <span>Registro Animales</span>
+              </button>
+
               {/* Caniles y Traslados */}
               <button
                 onClick={() => setActiveTab('caniles')}
@@ -127,18 +141,24 @@ export default function App() {
                 🚪 <span>Caniles y Traslados</span>
               </button>
 
-              {/* Registro de Animales */}
-              <button
-                onClick={() => setActiveTab('animales')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
-                  background: activeTab === 'animales' ? '#eef3ec' : 'transparent',
-                  color: activeTab === 'animales' ? '#2f5540' : '#7c8592',
-                  border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left'
-                }}
-              >
-                🐶 <span>Registro Animales</span>
-              </button>
+              {/*Gestion de Adopciones */}
+              {puedeGestionarAdopciones && (
+                <button onClick={() => setActiveTab('adopciones')}
+                  aria-current={activeTab === 'adopciones' ? 'page' : undefined}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
+                    background: activeTab === 'adopciones' ? '#eef3ec' : 'transparent',
+                    color: activeTab === 'adopciones' ? '#2f5540' : '#7c8592',
+                    border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left' }}>
+                  🏡 <span>Adopciones</span>
+                </button>
+              )}
+
+              {/* Sección: Bienestar */}
+              <div style={{ borderTop: '1px solid #e9eaed', marginTop: '10px', paddingTop: '12px', paddingBottom: '2px', paddingLeft: '14px' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a3aab5' }}>
+                  Bienestar
+                </span>
+              </div>
 
               {/* Necesidades Diarias y Notas de Cuidado */}
               <button
@@ -164,17 +184,12 @@ export default function App() {
               >
                 💉 <span>Salud y Vacunación</span>
               </button>
-              {/*Gestion de Adopciones */}
-              {puedeGestionarAdopciones && (
-                <button onClick={() => setActiveTab('adopciones')}
-                  aria-current={activeTab === 'adopciones' ? 'page' : undefined}
-                  style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '10px 14px',
-                    background: activeTab === 'adopciones' ? '#eef3ec' : 'transparent',
-                    color: activeTab === 'adopciones' ? '#2f5540' : '#7c8592',
-                    border: 'none', borderRadius: '9px', fontSize: '0.88rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left' }}>
-                  🏡 <span>Adopciones</span>
-                </button>
-              )}
+              {/* Sección: Administración */}
+              <div style={{ borderTop: '1px solid #e9eaed', marginTop: '10px', paddingTop: '12px', paddingBottom: '2px', paddingLeft: '14px' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a3aab5' }}>
+                  Administración
+                </span>
+              </div>
 
               {/* Inventario de Insumos */}
               {puedeGestionarInventario && (

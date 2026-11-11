@@ -46,10 +46,10 @@ export const getDashboardMetrics = async (user) => {
     // 3. Todos los insumos activos
     prisma.insumo.findMany({ where: { activo: true } }),
 
-    // 4. Turnos descubiertos (voluntario es nulo o cubierto = false)
+    // 4. Turnos descubiertos (sin inscripciones confirmadas, misma regla que la matriz de turnos)
     prisma.turno.findMany({
       where: {
-        cubierto: false
+        inscripciones: { none: { estado: 'CONFIRMADA' } }
       },
       orderBy: { id: 'asc' }
     }),
