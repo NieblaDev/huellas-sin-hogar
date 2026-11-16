@@ -1,4 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  ClipboardList,
+  Lock,
+  Pencil,
+  Plus,
+  Search,
+  ShieldCheck,
+  Trash2
+} from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
 
 export default function AuditoriaModulo({ user }) {
@@ -98,7 +109,7 @@ export default function AuditoriaModulo({ user }) {
       <div className="portal-header">
         <div>
           <h2 className="portal-header-title">
-            <span>🛡️</span>
+            <ShieldCheck size={26} aria-hidden="true" />
             <span>Módulo de Auditoría y Trazabilidad</span>
           </h2>
           <p className="portal-header-subtitle">
@@ -110,7 +121,7 @@ export default function AuditoriaModulo({ user }) {
             background: 'var(--portal-surface)', border: '1px solid var(--portal-border)', borderRadius: 'var(--portal-radius-sm)', padding: '6px 14px',
             fontSize: '0.78rem', color: 'var(--portal-text-muted)', display: 'flex', alignItems: 'center', gap: '6px'
           }}>
-            <span>🔒</span> Solo lectura (Inmutable)
+            <Lock size={14} aria-hidden="true" /> Solo lectura (Inmutable)
           </div>
         </div>
       </div>
@@ -121,25 +132,25 @@ export default function AuditoriaModulo({ user }) {
           onClick={() => setTabAccion('TODAS')}
           className={`portal-subtab-btn ${tabAccion === 'TODAS' ? 'active' : ''}`}
         >
-          📋 Toda la Bitácora ({auditorias.length})
+          <ClipboardList size={15} aria-hidden="true" /> Toda la Bitácora ({auditorias.length})
         </button>
         <button
           onClick={() => setTabAccion('CREACION')}
           className={`portal-subtab-btn ${tabAccion === 'CREACION' ? 'active' : ''}`}
         >
-          ➕ Creaciones ({auditorias.filter(a => a.accion === 'CREACION').length})
+          <Plus size={15} aria-hidden="true" /> Creaciones ({auditorias.filter(a => a.accion === 'CREACION').length})
         </button>
         <button
           onClick={() => setTabAccion('MODIFICACION')}
           className={`portal-subtab-btn ${tabAccion === 'MODIFICACION' ? 'active' : ''}`}
         >
-          ✏️ Modificaciones ({auditorias.filter(a => a.accion === 'MODIFICACION').length})
+          <Pencil size={15} aria-hidden="true" /> Modificaciones ({auditorias.filter(a => a.accion === 'MODIFICACION').length})
         </button>
         <button
           onClick={() => setTabAccion('BAJA_LOGICA')}
           className={`portal-subtab-btn ${tabAccion === 'BAJA_LOGICA' ? 'active' : ''}`}
         >
-          🗑️ Bajas Lógicas ({auditorias.filter(a => a.accion === 'BAJA_LOGICA').length})
+          <Trash2 size={15} aria-hidden="true" /> Bajas Lógicas ({auditorias.filter(a => a.accion === 'BAJA_LOGICA').length})
         </button>
       </div>
 
@@ -214,7 +225,7 @@ export default function AuditoriaModulo({ user }) {
             type="submit"
             style={{ flex: 1, padding: '9px', background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '7px', fontWeight: '700', fontSize: '0.84rem', cursor: 'pointer' }}
           >
-            🔍 Filtrar
+            <Search size={15} aria-hidden="true" /> Filtrar
           </button>
           <button
             type="button"
@@ -303,7 +314,7 @@ export default function AuditoriaModulo({ user }) {
                             fontSize: '0.76rem', fontWeight: '700', color: '#1f2430', cursor: 'pointer'
                           }}
                         >
-                          Ver Diff / Detalle 🔍
+                          Ver Diff / Detalle <Search size={12} aria-hidden="true" />
                         </button>
                       </td>
                     </tr>
@@ -346,7 +357,7 @@ export default function AuditoriaModulo({ user }) {
               {/* Valor Anterior */}
               <div style={{ background: '#fcf8f7', border: '1px solid #f3c9c4', borderRadius: '10px', padding: '14px' }}>
                 <strong style={{ fontSize: '0.8rem', color: '#d1453b', display: 'block', marginBottom: '8px' }}>
-                  ◀ VALOR ANTERIOR (Previo a la acción)
+                  <ArrowLeft size={14} aria-hidden="true" /> VALOR ANTERIOR (Previo a la acción)
                 </strong>
                 {detalleRegistro.valorAnterior ? (
                   <pre style={{ margin: 0, fontSize: '0.75rem', color: '#1f2430', whiteSpace: 'pre-wrap', maxHeight: '300px', overflowY: 'auto' }}>
@@ -362,7 +373,7 @@ export default function AuditoriaModulo({ user }) {
               {/* Valor Nuevo */}
               <div style={{ background: '#f5f9f6', border: '1px solid #c9dfcd', borderRadius: '10px', padding: '14px' }}>
                 <strong style={{ fontSize: '0.8rem', color: '#2f5540', display: 'block', marginBottom: '8px' }}>
-                  ▶ NUEVO VALOR REGISTRADO
+                  <ArrowRight size={14} aria-hidden="true" /> NUEVO VALOR REGISTRADO
                 </strong>
                 {detalleRegistro.valorNuevo ? (
                   <pre style={{ margin: 0, fontSize: '0.75rem', color: '#1f2430', whiteSpace: 'pre-wrap', maxHeight: '300px', overflowY: 'auto' }}>

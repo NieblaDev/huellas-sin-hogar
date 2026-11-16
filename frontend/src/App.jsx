@@ -11,6 +11,17 @@ import AdopcionesModulo from './components/adopciones/AdopcionesModulo';
 import InventarioModulo from './components/InventarioModulo';
 import VoluntariosModulo from './components/VoluntariosModulo';
 import Logo from './components/Logo';
+import {
+  BarChart3,
+  ClipboardList,
+  Dog,
+  DoorOpen,
+  Handshake,
+  House,
+  Package,
+  ShieldCheck,
+  Syringe
+} from 'lucide-react';
 import { clearStoredSession, readStoredSession } from './utils/session';
 import './styles/portal-controls.css';
 import { API_URL, getAuthHeaders } from './api/config';
@@ -107,7 +118,7 @@ export default function App() {
                 onClick={() => setActiveTab('dashboard')}
                 className={`portal-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
               >
-                <span>📊</span> <span>Inicio</span>
+                <BarChart3 size={18} aria-hidden="true" /> <span>Inicio</span>
               </button>
 
               {/* Registro de Animales */}
@@ -115,7 +126,7 @@ export default function App() {
                 onClick={() => setActiveTab('animales')}
                 className={`portal-nav-btn ${activeTab === 'animales' ? 'active' : ''}`}
               >
-                <span>🐶</span> <span>Registro Animales</span>
+                <Dog size={18} aria-hidden="true" /> <span>Registro Animales</span>
               </button>
 
               {/* Caniles y Traslados */}
@@ -123,7 +134,7 @@ export default function App() {
                 onClick={() => setActiveTab('caniles')}
                 className={`portal-nav-btn ${activeTab === 'caniles' ? 'active' : ''}`}
               >
-                <span>🚪</span> <span>Caniles y Traslados</span>
+                <DoorOpen size={18} aria-hidden="true" /> <span>Caniles y Traslados</span>
               </button>
 
               {/*Gestion de Adopciones */}
@@ -133,7 +144,7 @@ export default function App() {
                   aria-current={activeTab === 'adopciones' ? 'page' : undefined}
                   className={`portal-nav-btn ${activeTab === 'adopciones' ? 'active' : ''}`}
                 >
-                  <span>🏡</span> <span>Adopciones</span>
+                  <House size={18} aria-hidden="true" /> <span>Adopciones</span>
                 </button>
               )}
 
@@ -149,7 +160,7 @@ export default function App() {
                 onClick={() => setActiveTab('cuidados')}
                 className={`portal-nav-btn ${activeTab === 'cuidados' ? 'active' : ''}`}
               >
-                <span>📋</span> <span>Rondas y Cuidados</span>
+                <ClipboardList size={18} aria-hidden="true" /> <span>Rondas y Cuidados</span>
               </button>
 
               {/*Salud y Vacunacion */}
@@ -157,7 +168,7 @@ export default function App() {
                 onClick={() => setActiveTab('salud')}
                 className={`portal-nav-btn ${activeTab === 'salud' ? 'active' : ''}`}
               >
-                <span>💉</span> <span>Salud y Vacunación</span>
+                <Syringe size={18} aria-hidden="true" /> <span>Salud y Vacunación</span>
               </button>
 
               {/* Sección: Administración */}
@@ -174,7 +185,7 @@ export default function App() {
                   aria-current={activeTab === 'inventario' ? 'page' : undefined}
                   className={`portal-nav-btn ${activeTab === 'inventario' ? 'active' : ''}`}
                 >
-                  <span>📦</span> <span>Inventario</span>
+                  <Package size={18} aria-hidden="true" /> <span>Inventario</span>
                 </button>
               )}
 
@@ -184,7 +195,7 @@ export default function App() {
                 aria-current={activeTab === 'voluntarios' ? 'page' : undefined}
                 className={`portal-nav-btn ${activeTab === 'voluntarios' ? 'active' : ''}`}
               >
-                <span>🤝</span> <span>Voluntarios y Turnos</span>
+                <Handshake size={18} aria-hidden="true" /> <span>Voluntarios y Turnos</span>
               </button>
 
               {/* Auditoría y Trazabilidad */}
@@ -193,7 +204,7 @@ export default function App() {
                   onClick={() => setActiveTab('auditoria')}
                   className={`portal-nav-btn ${activeTab === 'auditoria' ? 'active' : ''}`}
                 >
-                  <span>🛡️</span> <span>Auditoría</span>
+                  <ShieldCheck size={18} aria-hidden="true" /> <span>Auditoría</span>
                 </button>
               )}
             </nav>

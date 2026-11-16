@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { TriangleAlert } from 'lucide-react';
 import { listarSeguimientos } from '../../api/adopciones';
 import { fechaLocal } from './SolicitudesLista';
 import SeguimientoAcciones from './SeguimientoAcciones';
@@ -52,7 +53,7 @@ export default function SeguimientosLista({ user }) {
     {mensaje && <p role="status" className="adopciones-success">{mensaje}</p>}
     {cargando && <p role="status">Cargando seguimientos…</p>}
     {error && <p className="adopciones-error" role="alert">{error}</p>}
-    {sinContacto.length > 0 && <p className="adopciones-error" role="alert">⚠ {sinContacto.length} caso(s) en esta página alcanzaron el límite de intentos sin respuesta («Sin contacto»). Requieren atención.</p>}
+    {sinContacto.length > 0 && <p className="adopciones-error" role="alert"><TriangleAlert size={16} aria-hidden="true" style={{ verticalAlign: 'text-bottom', marginRight: 4 }} /> {sinContacto.length} caso(s) en esta página alcanzaron el límite de intentos sin respuesta («Sin contacto»). Requieren atención.</p>}
     {resultado && <>
       <p role="status">{resultado.total} seguimiento(s) encontrado(s).</p>
       {resultado.seguimientos.length > 0 && <div className="adopciones-scroll"><table>
@@ -62,7 +63,7 @@ export default function SeguimientosLista({ user }) {
           <td>{s.adopcion.animal.nombre}<br />{s.adopcion.postulante.nombre}</td>
           <td>{fechaLocal(s.fechaProgramada)}{s.fechaEjecucion && <><br />Realizado: {fechaLocal(s.fechaEjecucion)}</>}</td>
           <td><span className={`adopciones-badge ${s.estado.toLowerCase()}`}>{ESTADOS_SEGUIMIENTO[s.estado]}</span>
-            {s.alertaSinContacto && <><br /><span className="adopciones-badge sin_contacto">⚠ Límite de intentos alcanzado</span></>}
+            {s.alertaSinContacto && <><br /><span className="adopciones-badge sin_contacto"><TriangleAlert size={13} aria-hidden="true" /> Límite de intentos alcanzado</span></>}
             {s.estado === 'COMPLETADO' && <><br />{CANALES[s.canalContacto] || ''} · {s.resultado}</>}</td>
           <td>{s.intentosFallidos} / {s.limiteIntentos}</td>
           <td>

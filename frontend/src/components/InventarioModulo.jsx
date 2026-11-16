@@ -1,4 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import {
+  ArrowDown,
+  ArrowLeftRight,
+  ArrowUp,
+  Ban,
+  CircleCheck,
+  CircleX,
+  Clock,
+  MapPin,
+  Package,
+  PackagePlus,
+  PawPrint,
+  Pencil,
+  Pill,
+  Plus,
+  Search,
+  Siren,
+  TriangleAlert
+} from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
 
 export default function InventarioModulo({ user }) {
@@ -240,7 +259,7 @@ export default function InventarioModulo({ user }) {
       <div className="portal-header">
         <div>
           <h2 className="portal-header-title">
-            <span>📦</span>
+            <Package size={26} aria-hidden="true" />
             <span>Inventario de Insumos</span>
           </h2>
           <p className="portal-header-subtitle">
@@ -253,14 +272,14 @@ export default function InventarioModulo({ user }) {
             onClick={() => abrirModalMovimiento()}
             className="portal-btn portal-btn-primary"
           >
-            <span>⇄</span> Registrar Movimiento
+            <ArrowLeftRight size={16} aria-hidden="true" /> Registrar Movimiento
           </button>
 
           <button
             onClick={abrirModalCrearInsumo}
             className="portal-btn portal-btn-secondary"
           >
-            <span>+</span> Nuevo Insumo
+            <Plus size={16} aria-hidden="true" /> Nuevo Insumo
           </button>
         </div>
       </div>
@@ -271,25 +290,25 @@ export default function InventarioModulo({ user }) {
           onClick={() => setActiveTab('catalogo')}
           className={`portal-subtab-btn ${activeTab === 'catalogo' ? 'active' : ''}`}
         >
-          📦 Catálogo de Insumos ({insumos.length})
+          <Package size={15} aria-hidden="true" /> Catálogo de Insumos ({insumos.length})
         </button>
         <button
           onClick={() => setActiveTab('alertas')}
           className={`portal-subtab-btn ${activeTab === 'alertas' ? 'active' : ''}`}
         >
-          🚨 Alertas de Stock ({alertas.totalAlertas || 0})
+          <Siren size={15} aria-hidden="true" /> Alertas de Stock ({alertas.totalAlertas || 0})
         </button>
         <button
           onClick={() => abrirModalMovimiento()}
           className="portal-subtab-btn"
         >
-          ⇄ Registrar Movimiento
+          <ArrowLeftRight size={15} aria-hidden="true" /> Registrar Movimiento
         </button>
         <button
           onClick={abrirModalCrearInsumo}
           className="portal-subtab-btn"
         >
-          ➕ Nuevo Insumo
+          <Plus size={15} aria-hidden="true" /> Nuevo Insumo
         </button>
       </div>
 
@@ -325,13 +344,18 @@ export default function InventarioModulo({ user }) {
         background: '#fff', borderRadius: '12px', border: '1px solid #e9eaed',
         padding: '16px 20px', marginBottom: '20px', display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center'
       }}>
-        <div style={{ flex: 1, minWidth: '220px' }}>
+        <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
+          <Search
+            size={16}
+            aria-hidden="true"
+            style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#a3aab5' }}
+          />
           <input
             type="text"
-            placeholder="🔍 Buscar insumo por nombre, lote o ubicación..."
+            placeholder="Buscar insumo por nombre, lote o ubicación..."
             value={filtroTexto}
             onChange={e => setFiltroTexto(e.target.value)}
-            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #dcdfe4', fontSize: '0.88rem' }}
+            style={{ width: '100%', padding: '10px 14px 10px 36px', borderRadius: '8px', border: '1px solid #dcdfe4', fontSize: '0.88rem', boxSizing: 'border-box' }}
           />
         </div>
 
@@ -392,11 +416,11 @@ export default function InventarioModulo({ user }) {
                   <tr key={ins.id} style={{ borderBottom: '1px solid #f0f1f3', transition: 'background 0.15s' }}>
                     <td style={{ padding: '14px 18px' }}>
                       <div style={{ fontWeight: '800', color: '#1f2430', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {ins.esFarmaco && <span title="Fármaco / Medicamento controlado" style={{ fontSize: '0.9rem' }}>💊</span>}
+                        {ins.esFarmaco && <Pill size={15} color="#3478c4" aria-label="Fármaco / Medicamento controlado" />}
                         {ins.nombre}
                       </div>
                       <div style={{ fontSize: '0.76rem', color: '#a3aab5', marginTop: '2px' }}>
-                        {ins.ubicacion && <span>📍 {ins.ubicacion} · </span>}
+                        {ins.ubicacion && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}><MapPin size={12} aria-hidden="true" /> {ins.ubicacion} · </span>}
                         {ins.lote && <span>Lote: {ins.lote}</span>}
                       </div>
                     </td>
@@ -421,16 +445,16 @@ export default function InventarioModulo({ user }) {
 
                     <td style={{ padding: '14px 18px' }}>
                       {agotado ? (
-                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: '#fbeae8', color: '#d1453b', border: '1px solid #f3c9c4' }}>
-                          🔴 AGOTADO
+                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: '#fbeae8', color: '#d1453b', border: '1px solid #f3c9c4', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CircleX size={12} aria-hidden="true" /> AGOTADO
                         </span>
                       ) : stockCritico ? (
-                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: '#fff4e5', color: '#b37416', border: '1px solid #f2dfbe' }}>
-                          ⚠️ STOCK CRÍTICO
+                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: '#fff4e5', color: '#b37416', border: '1px solid #f2dfbe', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <TriangleAlert size={12} aria-hidden="true" /> STOCK CRÍTICO
                         </span>
                       ) : (
-                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: '#e8f0e8', color: '#2f5540' }}>
-                          🟢 NORMAL
+                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: '#e8f0e8', color: '#2f5540', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CircleCheck size={12} aria-hidden="true" /> NORMAL
                         </span>
                       )}
                     </td>
@@ -441,8 +465,8 @@ export default function InventarioModulo({ user }) {
                           <div style={{ fontSize: '0.84rem', fontWeight: '700', color: ins.estaVencido ? '#d1453b' : (ins.alertaVencimiento ? '#b37416' : '#1f2430') }}>
                             {new Date(ins.fechaVencimiento).toLocaleDateString()}
                           </div>
-                          <div style={{ fontSize: '0.74rem', color: ins.estaVencido ? '#d1453b' : (ins.alertaVencimiento ? '#b37416' : '#7c8592'), fontWeight: '600' }}>
-                            {ins.estaVencido ? '⛔ ¡VENCIDO!' : (ins.alertaVencimiento ? `⏰ Vence en ${ins.diasParaVencer}d` : `${ins.diasParaVencer}d restantes`)}
+                          <div style={{ fontSize: '0.74rem', color: ins.estaVencido ? '#d1453b' : (ins.alertaVencimiento ? '#b37416' : '#7c8592'), fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {ins.estaVencido ? <><Ban size={12} aria-hidden="true" /> ¡VENCIDO!</> : (ins.alertaVencimiento ? <><Clock size={12} aria-hidden="true" /> Vence en {ins.diasParaVencer}d</> : `${ins.diasParaVencer}d restantes`)}
                           </div>
                         </div>
                       ) : (
@@ -471,7 +495,7 @@ export default function InventarioModulo({ user }) {
                             padding: '6px 10px', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer'
                           }}
                         >
-                          ✏️ Editar
+                          <Pencil size={12} aria-hidden="true" /> Editar
                         </button>
                       </div>
                     </td>
@@ -492,7 +516,7 @@ export default function InventarioModulo({ user }) {
           <div style={{ background: '#fff', borderRadius: '16px', maxWidth: '540px', width: '100%', padding: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>
-                ⇄ Registrar Movimiento Clasificado
+                <ArrowLeftRight size={15} aria-hidden="true" /> Registrar Movimiento Clasificado
               </h3>
               <button
                 onClick={() => setModalMovimientoOpen(false)}
@@ -537,7 +561,7 @@ export default function InventarioModulo({ user }) {
                   </div>
                   {insumoSeleccionado.esFarmaco && (
                     <div style={{ fontSize: '0.76rem', color: '#3478c4', marginTop: '4px', fontWeight: '700' }}>
-                      💊 Producto clasificado como Fármaco. Operación reservada a Personal Clínico Autorizado.
+                      <Pill size={13} aria-hidden="true" /> Producto clasificado como Fármaco. Operación reservada a Personal Clínico Autorizado.
                     </div>
                   )}
                 </div>
@@ -559,7 +583,7 @@ export default function InventarioModulo({ user }) {
                       border: `1.5px solid ${formMovimiento.tipo === 'SALIDA' ? '#d1453b' : '#e9eaed'}`
                     }}
                   >
-                    ⬇️ Salida (Consumo / Tratamiento)
+                    <ArrowDown size={15} aria-hidden="true" /> Salida (Consumo / Tratamiento)
                   </button>
 
                   <button
@@ -572,7 +596,7 @@ export default function InventarioModulo({ user }) {
                       border: `1.5px solid ${formMovimiento.tipo === 'ENTRADA' ? '#2f5540' : '#e9eaed'}`
                     }}
                   >
-                    ⬆️ Entrada (Donación / Compra)
+                    <ArrowUp size={15} aria-hidden="true" /> Entrada (Donación / Compra)
                   </button>
                 </div>
               </div>
@@ -590,16 +614,16 @@ export default function InventarioModulo({ user }) {
                 >
                   {formMovimiento.tipo === 'ENTRADA' ? (
                     <>
-                      <option value="DONACION">🎁 Donación (Comunidad / Campañas)</option>
-                      <option value="COMPRA">🛒 Compra Directa del Refugio</option>
-                      <option value="AJUSTE">⚙️ Ajuste de Inventario (Entrada)</option>
+                      <option value="DONACION">Donación (Comunidad / Campañas)</option>
+                      <option value="COMPRA">Compra Directa del Refugio</option>
+                      <option value="AJUSTE">Ajuste de Inventario (Entrada)</option>
                     </>
                   ) : (
                     <>
-                      <option value="CONSUMO">🥣 Consumo General / Alimentación / Limpieza</option>
-                      <option value="TRATAMIENTO_MEDICO">🩺 Vinculación a Tratamiento Médico de Animal</option>
-                      <option value="MERMA">🗑️ Merma / Deterioro</option>
-                      <option value="AJUSTE">⚙️ Ajuste de Inventario (Salida)</option>
+                      <option value="CONSUMO">Consumo General / Alimentación / Limpieza</option>
+                      <option value="TRATAMIENTO_MEDICO">Vinculación a Tratamiento Médico de Animal</option>
+                      <option value="MERMA">Merma / Deterioro</option>
+                      <option value="AJUSTE">Ajuste de Inventario (Salida)</option>
                     </>
                   )}
                 </select>
@@ -609,7 +633,7 @@ export default function InventarioModulo({ user }) {
               {formMovimiento.tipo === 'SALIDA' && formMovimiento.subtipo === 'TRATAMIENTO_MEDICO' && (
                 <div style={{ marginBottom: '14px', background: '#edf4fc', padding: '12px', borderRadius: '8px', border: '1px solid #cbe0f8' }}>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#3478c4', marginBottom: '6px' }}>
-                    🐾 Animal Vinculado al Tratamiento Clínico *
+                    <PawPrint size={13} aria-hidden="true" /> Animal Vinculado al Tratamiento Clínico *
                   </label>
                   <select
                     value={formMovimiento.animalId}
@@ -678,7 +702,7 @@ export default function InventarioModulo({ user }) {
                   padding: '10px 14px', borderRadius: '8px', background: '#fbeae8',
                   border: '1.5px solid #d1453b', color: '#d1453b', fontSize: '0.82rem', fontWeight: '700', marginBottom: '14px'
                 }}>
-                  🚨 Saldo negativo prohibido: El stock actual es {insumoSeleccionado.stock} {insumoSeleccionado.unidad} y no se puede retirar {formMovimiento.cantidad}.
+                  <Siren size={14} aria-hidden="true" /> Saldo negativo prohibido: El stock actual es {insumoSeleccionado.stock} {insumoSeleccionado.unidad} y no se puede retirar {formMovimiento.cantidad}.
                 </div>
               )}
 
@@ -730,8 +754,8 @@ export default function InventarioModulo({ user }) {
         }}>
           <div style={{ background: '#fff', borderRadius: '16px', maxWidth: '520px', width: '100%', padding: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1f2430', margin: 0 }}>
-                {insumoEditar ? '✏️ Modificar Insumo' : '📦 Registrar Nuevo Insumo'}
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1f2430', margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                {insumoEditar ? <><Pencil size={19} aria-hidden="true" /> Modificar Insumo</> : <><PackagePlus size={19} aria-hidden="true" /> Registrar Nuevo Insumo</>}
               </h3>
               <button
                 onClick={() => setModalInsumoOpen(false)}

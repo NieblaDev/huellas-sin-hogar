@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Crown, Handshake, Star, Stethoscope, Wrench } from 'lucide-react';
 import { API_URL } from '../api/config';
 import Logo from './Logo';
 
@@ -11,7 +12,7 @@ export default function Login({ onLoginSuccess }) {
   const rolesDev = [
     {
       titulo: 'Directora',
-      icono: '👑',
+      Icono: Crown,
       email: 'directora@huellas.cl',
       password: 'admin123',
       color: '#3f6c52',
@@ -19,7 +20,7 @@ export default function Login({ onLoginSuccess }) {
     },
     {
       titulo: 'Veterinaria',
-      icono: '🩺',
+      Icono: Stethoscope,
       email: 'veterinaria@huellas.cl',
       password: 'admin123',
       color: '#2f5540',
@@ -27,7 +28,7 @@ export default function Login({ onLoginSuccess }) {
     },
     {
       titulo: 'Voluntario Avanzado',
-      icono: '⭐',
+      Icono: Star,
       email: 'voluntario.avanzado@huellas.cl',
       password: 'admin123',
       color: '#b37416',
@@ -35,7 +36,7 @@ export default function Login({ onLoginSuccess }) {
     },
     {
       titulo: 'Voluntario',
-      icono: '🤝',
+      Icono: Handshake,
       email: 'voluntario@huellas.cl',
       password: 'admin123',
       color: '#4550c0',
@@ -138,8 +139,8 @@ export default function Login({ onLoginSuccess }) {
         {/* ══════════════ BOTONES RÁPIDOS MODO DESARROLLO ══════════════ */}
         <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px dashed #e9eaed' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: '800', letterSpacing: '0.05em', color: '#a3aab5', textTransform: 'uppercase' }}>
-              🛠️ Acceso Rápido (Modo Desarrollo)
+            <span style={{ fontSize: '0.72rem', fontWeight: '800', letterSpacing: '0.05em', color: '#a3aab5', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <Wrench size={14} aria-hidden="true" /> Acceso Rápido (Modo Desarrollo)
             </span>
             <span style={{ fontSize: '0.68rem', background: '#f8f9fa', color: '#7c8592', padding: '2px 6px', borderRadius: '4px', fontWeight: '600' }}>
               1 Clic
@@ -171,7 +172,7 @@ export default function Login({ onLoginSuccess }) {
                 onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                 onMouseLeave={e => e.currentTarget.style.opacity = '1'}
               >
-                <span>{role.icono}</span>
+                <role.Icono size={15} aria-hidden="true" />
                 <span>{role.titulo}</span>
               </button>
             ))}
