@@ -7,7 +7,7 @@ import DashboardModulo from './components/DashboardModulo';
 import AuditoriaModulo from './components/AuditoriaModulo';
 import CuidadosModulo from './components/CuidadosModulo';
 import SaludModulo from './components/SaludModulo';
-import AdopcionesModulo from './components/adopciones/AdopcionesModulo';
+import AdopcionesModulo from './components/AdopcionesModulo';
 import InventarioModulo from './components/InventarioModulo';
 import VoluntariosModulo from './components/VoluntariosModulo';
 import PerfilesUsuariosModulo from './components/PerfilesUsuariosModulo';
