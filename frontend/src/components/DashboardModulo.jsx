@@ -110,21 +110,13 @@ export default function DashboardModulo({ user, onNavigate }) {
 
         <div className="portal-header-actions" style={{ position: "relative" }}>
           <button
+            type="button"
             onClick={fetchMetrics}
-            style={{
-              background: "#fff",
-              border: "1.5px solid #e9eaed",
-              borderRadius: "8px",
-              padding: "8px 14px",
-              fontSize: "0.8rem",
-              fontWeight: "700",
-              color: "#1f2430",
-              cursor: "pointer",
-              height: "40px",
-            }}
+            className="portal-btn portal-btn-primary"
           >
             <RefreshCw size={14} aria-hidden="true" /> Refrescar
           </button>
+          
           {/* Icono de notificación con contador */}
           <button
             onClick={() => setAvisosOpen((v) => !v)}
@@ -335,7 +327,7 @@ export default function DashboardModulo({ user, onNavigate }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: "16px",
           marginBottom: "26px",
         }}
@@ -376,7 +368,7 @@ export default function DashboardModulo({ user, onNavigate }) {
                 letterSpacing: "0.04em",
               }}
             >
-              <PawPrint size={13} aria-hidden="true" /> Animales Albergados
+              Animales Albergados
             </span>
             <div
               style={{
@@ -447,7 +439,7 @@ export default function DashboardModulo({ user, onNavigate }) {
                 letterSpacing: "0.04em",
               }}
             >
-              <DoorClosed size={13} aria-hidden="true" /> Caniles Ocupados
+              Caniles Ocupados
             </span>
             <div
               style={{
@@ -530,7 +522,7 @@ export default function DashboardModulo({ user, onNavigate }) {
                 letterSpacing: "0.04em",
               }}
             >
-              <TrendingUp size={13} aria-hidden="true" /> Porcentaje de Ocupación
+              Porcentaje de Ocupación
             </span>
             <div
               style={{
