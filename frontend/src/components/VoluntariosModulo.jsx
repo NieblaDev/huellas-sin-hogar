@@ -1,4 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import {
+  ArrowLeftRight,
+  Ban,
+  BookOpen,
+  CalendarDays,
+  CircleCheck,
+  CircleX,
+  ClipboardList,
+  Clock,
+  Crown,
+  Handshake,
+  Lock,
+  ShieldCheck,
+  TriangleAlert,
+  User,
+  Users
+} from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
 
 export default function VoluntariosModulo({ user }) {
@@ -272,7 +289,7 @@ export default function VoluntariosModulo({ user }) {
       <div className="portal-header">
         <div>
           <h2 className="portal-header-title">
-            <span>🤝</span>
+            <Handshake size={26} aria-hidden="true" />
             <span>Voluntarios y Matriz de Turnos</span>
           </h2>
           <p className="portal-header-subtitle">
@@ -292,7 +309,7 @@ export default function VoluntariosModulo({ user }) {
                   display: 'flex', alignItems: 'center', gap: '6px'
                 }}
               >
-                <span>🔒</span> Confirmar Planificación Semanal
+                <Lock size={15} aria-hidden="true" /> Confirmar Planificación Semanal
               </button>
 
               <button
@@ -332,16 +349,17 @@ export default function VoluntariosModulo({ user }) {
       {/* TABS DE SECCIÓN — SUBNAVEGACIÓN ESTÁNDAR */}
       <div className="portal-subtabs">
         {[
-          { key: 'matriz', label: '📅 Matriz Semanal Interactiva', count: null },
-          { key: 'permutas', label: '⇄ Gestión de Permutas', count: permutas.filter(p => p.estado === 'PENDIENTE' && p.destinatarioId === user?.id).length },
-          { key: 'bitacora', label: '📝 Bitácora de Turnos', count: misTurnos.length },
-          { key: 'directorio', label: '👥 Directorio de Voluntarios', count: directorio.length }
+          { key: 'matriz', label: 'Matriz Semanal Interactiva', icon: CalendarDays, count: null },
+          { key: 'permutas', label: 'Gestión de Permutas', icon: ArrowLeftRight, count: permutas.filter(p => p.estado === 'PENDIENTE' && p.destinatarioId === user?.id).length },
+          { key: 'bitacora', label: 'Bitácora de Turnos', icon: ClipboardList, count: misTurnos.length },
+          { key: 'directorio', label: 'Directorio de Voluntarios', icon: Users, count: directorio.length }
         ].map(tab => (
           <button
             key={tab.key}
             onClick={() => setTabActual(tab.key)}
             className={`portal-subtab-btn ${tabActual === tab.key ? 'active' : ''}`}
           >
+            <tab.icon size={15} aria-hidden="true" />
             <span>{tab.label}</span>
             {tab.count !== null && tab.count > 0 && (
               <span style={{
@@ -378,13 +396,13 @@ export default function VoluntariosModulo({ user }) {
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#fbeae8', border: '1px solid #f3c9c4' }}></span>
-                🛡️ Tarea Crítica (Solo Avanzados)
+                <ShieldCheck size={14} aria-hidden="true" /> Tarea Crítica (Solo Avanzados)
               </span>
             </div>
 
             <div style={{ fontWeight: '700', color: '#1f2430' }}>
               Estado Planificación: <span style={{ color: matriz?.estadisticas?.planificacionConfirmada ? '#2f5540' : '#b37416' }}>
-                {matriz?.estadisticas?.planificacionConfirmada ? '✅ CONFIRMADA' : '📝 EN PLANIFICACIÓN (Borrador)'}
+                {matriz?.estadisticas?.planificacionConfirmada ? <><CircleCheck size={14} aria-hidden="true" /> CONFIRMADA</> : <><ClipboardList size={14} aria-hidden="true" /> EN PLANIFICACIÓN (Borrador)</>}
               </span>
             </div>
           </div>
@@ -468,8 +486,8 @@ export default function VoluntariosModulo({ user }) {
                                         {turno.area}
                                       </div>
                                       {esCritico && (
-                                        <span title="Tarea Crítica: Reservada a Personal Avanzado" style={{ fontSize: '0.8rem' }}>
-                                          🛡️
+                                        <span title="Tarea Crítica: Reservada a Personal Avanzado">
+                                          <ShieldCheck size={14} aria-hidden="true" />
                                         </span>
                                       )}
                                     </div>
@@ -483,7 +501,7 @@ export default function VoluntariosModulo({ user }) {
                                     <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                       {inscritos.length === 0 ? (
                                         <div style={{ fontSize: '0.74rem', color: '#b37416', fontWeight: '700', fontStyle: 'italic' }}>
-                                          ⚠️ Turno Descubierto
+                                          <TriangleAlert size={13} aria-hidden="true" /> Turno Descubierto
                                         </div>
                                       ) : (
                                         inscritos.map(ins => (
@@ -496,7 +514,7 @@ export default function VoluntariosModulo({ user }) {
                                             }}
                                           >
                                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                              {ins.usuarioId === user?.id ? '👤 Tú' : ins.usuario.nombre}
+                                              {ins.usuarioId === user?.id ? <><User size={12} aria-hidden="true" /> Tú</> : ins.usuario.nombre}
                                             </span>
                                             {esCoordinador && (
                                               <button
@@ -527,11 +545,11 @@ export default function VoluntariosModulo({ user }) {
                                         </button>
                                       ) : tieneCruce ? (
                                         <div style={{ fontSize: '0.7rem', color: '#d1453b', fontWeight: '700', textAlign: 'center' }}>
-                                          ⛔ Cruce de horario
+                                          <Ban size={12} aria-hidden="true" /> Cruce de horario
                                         </div>
                                       ) : !puedeInscribirsePorRol ? (
                                         <div style={{ fontSize: '0.7rem', color: '#b37416', fontWeight: '700', textAlign: 'center' }}>
-                                          🔒 Solo Personal Avanzado
+                                          <Lock size={12} aria-hidden="true" /> Solo Personal Avanzado
                                         </div>
                                       ) : lleno ? (
                                         <div style={{ fontSize: '0.7rem', color: '#7c8592', fontWeight: '600', textAlign: 'center' }}>
@@ -661,7 +679,7 @@ export default function VoluntariosModulo({ user }) {
                               padding: '8px 14px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer'
                             }}
                           >
-                            ✅ Aprobar Permuta
+                            <CircleCheck size={15} aria-hidden="true" /> Aprobar Permuta
                           </button>
                           <button
                             onClick={() => handleResponderPermuta(p.id, 'RECHAZAR')}
@@ -670,12 +688,12 @@ export default function VoluntariosModulo({ user }) {
                               padding: '8px 14px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer'
                             }}
                           >
-                            ❌ Rechazar
+                            <CircleX size={15} aria-hidden="true" /> Rechazar
                           </button>
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.8rem', color: '#7c8592', fontWeight: '600' }}>
-                          {pendiente ? '⏳ Esperando aprobación de ' + p.destinatario.nombre : `Resuelto el ${new Date(p.fechaResolucion || p.fechaSolicitud).toLocaleDateString()}`}
+                          {pendiente ? <><Clock size={13} aria-hidden="true" /> Esperando aprobación de {p.destinatario.nombre}</> : `Resuelto el ${new Date(p.fechaResolucion || p.fechaSolicitud).toLocaleDateString()}`}
                         </div>
                       )}
                     </div>
@@ -705,7 +723,7 @@ export default function VoluntariosModulo({ user }) {
             {/* Mis turnos para registrar bitácora */}
             <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e9eaed', padding: '20px' }}>
               <div style={{ fontWeight: '800', fontSize: '1rem', color: '#1f2430', marginBottom: '14px' }}>
-                📋 Mis Turnos Confirmados
+                <ClipboardList size={16} aria-hidden="true" /> Mis Turnos Confirmados
               </div>
 
               {misTurnos.length === 0 ? (
@@ -752,7 +770,7 @@ export default function VoluntariosModulo({ user }) {
             {/* Historial de Bitácoras Registradas */}
             <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e9eaed', padding: '20px' }}>
               <div style={{ fontWeight: '800', fontSize: '1rem', color: '#1f2430', marginBottom: '14px' }}>
-                📖 Registros Recientes en Bitácora
+                <BookOpen size={16} aria-hidden="true" /> Registros Recientes en Bitácora
               </div>
 
               {turnos.flatMap(t => t.bitacoras || []).length === 0 ? (
@@ -775,7 +793,7 @@ export default function VoluntariosModulo({ user }) {
                       </div>
                       {b.incidentes && (
                         <div style={{ fontSize: '0.78rem', color: '#d1453b', marginTop: '4px', fontWeight: '600' }}>
-                          ⚠️ Incidente: {b.incidentes}
+                          <TriangleAlert size={13} aria-hidden="true" /> Incidente: {b.incidentes}
                         </div>
                       )}
                     </div>
@@ -850,8 +868,8 @@ export default function VoluntariosModulo({ user }) {
           background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
         }}>
           <div style={{ background: '#fff', borderRadius: '16px', maxWidth: '500px', width: '100%', padding: '24px' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1f2430', marginBottom: '8px' }}>
-              📝 Bitácora de Turno
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1f2430', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <ClipboardList size={19} aria-hidden="true" /> Bitácora de Turno
             </h3>
             <p style={{ fontSize: '0.84rem', color: '#7c8592', marginBottom: '16px' }}>
               Turno: <strong>{turnoSeleccionado.area}</strong> ({turnoSeleccionado.diaSemana} · {turnoSeleccionado.franja})
@@ -1008,8 +1026,8 @@ export default function VoluntariosModulo({ user }) {
           background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
         }}>
           <div style={{ background: '#fff', borderRadius: '16px', maxWidth: '440px', width: '100%', padding: '24px' }}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1f2430', marginBottom: '8px' }}>
-              👑 Asignar Voluntario a Turno
+            <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1f2430', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <Crown size={18} aria-hidden="true" /> Asignar Voluntario a Turno
             </h3>
             <p style={{ fontSize: '0.84rem', color: '#7c8592', marginBottom: '14px' }}>
               Turno: <strong>{turnoSeleccionado.area}</strong> ({turnoSeleccionado.diaSemana} · {turnoSeleccionado.franja})

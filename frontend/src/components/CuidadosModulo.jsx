@@ -1,4 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Circle,
+  CircleAlert,
+  CircleCheck,
+  ClipboardList,
+  DoorOpen,
+  FolderOpen,
+  LoaderCircle,
+  Pin,
+  Plus
+} from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
 
 export default function CuidadosModulo({ user }) {
@@ -129,10 +140,10 @@ export default function CuidadosModulo({ user }) {
   };
 
   const criticidadEstilos = {
-    CRITICA: { bg: '#fbeae8', border: '#e57373', text: '#b71c1c', badge: '🔴 CRITICIDAD CRÍTICA' },
-    ALTA: { bg: '#fff3e0', border: '#ffb74d', text: '#e65100', badge: '🟠 CRITICIDAD ALTA' },
-    MEDIA: { bg: '#fffbf2', border: '#fae2b8', text: '#b7791f', badge: '🟡 CRITICIDAD MEDIA' },
-    BAJA: { bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d', badge: '🟢 CRITICIDAD BAJA' }
+    CRITICA: { bg: '#fbeae8', border: '#e57373', text: '#b71c1c', badge: 'CRITICIDAD CRÍTICA', Icono: CircleAlert },
+    ALTA: { bg: '#fff3e0', border: '#ffb74d', text: '#e65100', badge: 'CRITICIDAD ALTA', Icono: CircleAlert },
+    MEDIA: { bg: '#fffbf2', border: '#fae2b8', text: '#b7791f', badge: 'CRITICIDAD MEDIA', Icono: Circle },
+    BAJA: { bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d', badge: 'CRITICIDAD BAJA', Icono: CircleCheck }
   };
 
   const contextoLabel = {
@@ -144,7 +155,7 @@ export default function CuidadosModulo({ user }) {
   if (cargando) {
     return (
       <div className="portal-page-container" style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--portal-text-muted)' }}>
-        <div style={{ fontSize: '1.8rem', marginBottom: '12px' }}>⏳</div>
+        <div style={{ marginBottom: '12px' }}><LoaderCircle size={30} className="portal-spin" aria-hidden="true" /></div>
         <strong>Cargando módulo de necesidades y cuidados...</strong>
       </div>
     );
@@ -155,7 +166,7 @@ export default function CuidadosModulo({ user }) {
       <div className="portal-header">
         <div>
           <h2 className="portal-header-title">
-            <span>📋</span>
+            <ClipboardList size={26} aria-hidden="true" />
             <span>Necesidades Diarias y Notas de Cuidado</span>
           </h2>
           <p className="portal-header-subtitle">
@@ -170,14 +181,14 @@ export default function CuidadosModulo({ user }) {
           onClick={() => setTabCuidados('panel')}
           className={`portal-subtab-btn ${tabCuidados === 'panel' ? 'active' : ''}`}
         >
-          📌 Panel de Tareas del Turno ({tareas.length})
+          <Pin size={15} aria-hidden="true" /> Panel de Tareas del Turno ({tareas.length})
         </button>
 
         <button
           onClick={() => { if (selectedAnimalId) cargarHistorial(selectedAnimalId); else setTabCuidados('historial'); }}
           className={`portal-subtab-btn ${tabCuidados === 'historial' ? 'active' : ''}`}
         >
-          🗂️ Historial de Cuidados por Animal
+          <FolderOpen size={15} aria-hidden="true" /> Historial de Cuidados por Animal
         </button>
 
         {tienePermisoMedico && (
@@ -185,7 +196,7 @@ export default function CuidadosModulo({ user }) {
             onClick={() => setTabCuidados('nuevo')}
             className={`portal-subtab-btn ${tabCuidados === 'nuevo' ? 'active' : ''}`}
           >
-            ➕ Registrar Indicación de Cuidado
+            <Plus size={15} aria-hidden="true" /> Registrar Indicación de Cuidado
           </button>
         )}
       </div>
@@ -209,8 +220,8 @@ export default function CuidadosModulo({ user }) {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '8px' }}>
-                    <span style={{ background: style.bg, color: style.text, padding: '4px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
-                      {style.badge}
+                    <span style={{ background: style.bg, color: style.text, padding: '4px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <style.Icono size={12} aria-hidden="true" /> {style.badge}
                     </span>
                     <span style={{ fontSize: '0.74rem', background: '#eef0f2', padding: '3px 8px', borderRadius: '4px', fontWeight: '700' }}>
                       {t.franjaHoraria}
@@ -220,7 +231,7 @@ export default function CuidadosModulo({ user }) {
                   <div style={{ margin: '6px 0' }}>
                     <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#1f2430' }}>{t.animal.nombre} ({t.animal.especie})</h4>
                     <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
-                      🚪 Canil: {t.animal.canil ? `${t.animal.canil.nombre} (${t.animal.canil.sector})` : 'Sin canil asignado'}
+                      <DoorOpen size={13} aria-hidden="true" /> Canil: {t.animal.canil ? `${t.animal.canil.nombre} (${t.animal.canil.sector})` : 'Sin canil asignado'}
                     </span>
                   </div>
 

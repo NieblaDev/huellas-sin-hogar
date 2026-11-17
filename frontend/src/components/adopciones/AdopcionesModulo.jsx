@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ClipboardList, FilePenLine, FileText, House, PhoneCall, Plus } from 'lucide-react';
 import SolicitudesLista from './SolicitudesLista';
 import SolicitudForm from './SolicitudForm';
 import SolicitudDetalle from './SolicitudDetalle';
@@ -17,7 +18,7 @@ export default function AdopcionesModulo({ user }) {
       <div className="portal-header">
         <div>
           <h2 id="adopciones-title" className="portal-header-title">
-            <span>🏡</span>
+            <House size={24} aria-hidden="true" />
             <span>Gestión de Adopciones</span>
           </h2>
           <p className="portal-header-subtitle">
@@ -29,7 +30,7 @@ export default function AdopcionesModulo({ user }) {
             onClick={() => { setVista('crear'); setConfirmacion(null); }}
             className="portal-btn portal-btn-primary"
           >
-            ➕ Nueva Solicitud
+            <Plus size={16} aria-hidden="true" /> Nueva Solicitud
           </button>
         </div>
       </div>
@@ -40,32 +41,32 @@ export default function AdopcionesModulo({ user }) {
           className={`portal-subtab-btn ${vista === 'lista' ? 'active' : ''}`}
           onClick={() => { setVista('lista'); setConfirmacion(null); }}
         >
-          📋 Consultar Solicitudes
+          <ClipboardList size={15} aria-hidden="true" /> Consultar Solicitudes
         </button>
         <button
           className={`portal-subtab-btn ${vista === 'seguimientos' ? 'active' : ''}`}
           onClick={() => { setVista('seguimientos'); setConfirmacion(null); }}
         >
-          📞 Seguimientos Post-Adopción
+          <PhoneCall size={15} aria-hidden="true" /> Seguimientos Post-Adopción
         </button>
         <button
           className={`portal-subtab-btn ${vista === 'crear' ? 'active' : ''}`}
           onClick={() => { setVista('crear'); setConfirmacion(null); }}
         >
-          📝 Formulario de Solicitud
+          <FilePenLine size={15} aria-hidden="true" /> Formulario de Solicitud
         </button>
         {vista === 'detalle' && (
           <button
             className="portal-subtab-btn active"
             onClick={() => setVista('detalle')}
           >
-            📄 Expediente #{solicitudId}
+            <FileText size={15} aria-hidden="true" /> Expediente de adopción
           </button>
         )}
       </div>
 
       {confirmacion && <div role="status" className="adopciones-success" style={{ marginBottom: '20px' }}>
-        Solicitud #{confirmacion.solicitud.id} registrada correctamente.
+        Solicitud registrada correctamente.
         {confirmacion.alertas.map(alerta => <p key={alerta.codigo}>{alerta.mensaje}</p>)}
       </div>}
       {vista === 'lista' && <SolicitudesLista onVer={verDetalle} />}

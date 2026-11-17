@@ -1,4 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import {
+  BarChart3,
+  Bell,
+  ClipboardList,
+  Dog,
+  DoorOpen,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Lock,
+  Mail,
+  PawPrint,
+  Pencil,
+  Plus,
+  Search,
+  Stethoscope
+} from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
 
 export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey }) {
@@ -155,7 +172,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       link.href = url;
       const safeName = (animal.nombre || 'animal').toLowerCase().replace(/[^a-z0-9]+/g, '_');
       const ext = formato.toLowerCase() === 'csv' ? 'csv' : 'pdf';
-      link.download = `ficha_animal_${safeName}_${animal.id}.${ext}`;
+      link.download = `ficha_animal_${safeName}.${ext}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -261,7 +278,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       <div className="portal-header" style={{ flexShrink: 0 }}>
         <div>
           <h2 className="portal-header-title">
-            <span>🐶</span>
+            <Dog size={26} aria-hidden="true" />
             <span>Registro de Ingreso, Fichas de Animales y Reportes</span>
           </h2>
           <p className="portal-header-subtitle">
@@ -276,7 +293,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
             onClick={() => onOpenModal && onOpenModal(null)}
             className="portal-btn portal-btn-primary"
           >
-            ➕ Registrar ingreso de animal
+            <Plus size={16} aria-hidden="true" /> Registrar ingreso de animal
           </button>
         </div>
       </div>
@@ -292,7 +309,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
           }}
           className={`portal-subtab-btn ${tabAnimales === 'catalogo' ? 'active' : ''}`}
         >
-          🐾 Catálogo de Animales ({animales.length})
+          <PawPrint size={15} aria-hidden="true" /> Catálogo de Animales ({animales.length})
         </button>
 
         <button
@@ -309,7 +326,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
           }}
           className={`portal-subtab-btn ${tabAnimales === 'reportes' ? 'active' : ''}`}
         >
-          📊 Reportes Consolidados (PDF/CSV) {!esDirectora && '🔒'}
+          <BarChart3 size={15} aria-hidden="true" /> Reportes Consolidados (PDF/CSV) {!esDirectora && <Lock size={12} aria-label="Solo Dirección" />}
         </button>
 
         <button
@@ -322,7 +339,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
           }}
           className={`portal-subtab-btn ${tabAnimales === 'notificaciones' ? 'active' : ''}`}
         >
-          <span>🔔 Novedades y Notificaciones</span>
+          <Bell size={15} aria-hidden="true" /> Novedades y Notificaciones
           {notificaciones.length > 0 && (
             <span
               style={{
@@ -358,8 +375,8 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <div>
-              <strong style={{ fontSize: '1rem', color: '#1f2430', display: 'block' }}>
-                📊 Reportes de gestión del refugio
+              <strong style={{ fontSize: '1rem', color: '#1f2430', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <BarChart3 size={18} aria-hidden="true" /> Reportes de gestión del refugio
               </strong>
               <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
                 Elige el período, el tipo de información (ingresos, adopciones, devoluciones, censo o insumos), los filtros y el formato de descarga.
@@ -373,11 +390,14 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                 color: '#d1453b',
                 padding: '4px 10px',
                 borderRadius: '6px',
-                border: '1px solid #f3c9c4'
+                border: '1px solid #f3c9c4',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
               }}
               title="Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en los documentos exportados."
             >
-              🔒 Sin datos personales de postulantes
+              <Lock size={12} aria-hidden="true" /> Sin datos personales de postulantes
             </span>
           </div>
 
@@ -520,7 +540,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
             >
               {descargandoConsolidado
                 ? 'Generando reporte...'
-                : `⬇️ Generar y Descargar Reporte Consolidado (${configReporte.formato})`}
+                : <><Download size={15} aria-hidden="true" /> Generar y Descargar Reporte Consolidado ({configReporte.formato})</>}
             </button>
           </div>
         </form>
@@ -543,8 +563,8 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
           }}
         >
           <div>
-            <strong style={{ color: '#2f5540', fontSize: '0.86rem', display: 'block' }}>
-              🔔 Se avisó al equipo del refugio
+            <strong style={{ color: '#2f5540', fontSize: '0.86rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Bell size={15} aria-hidden="true" /> Se avisó al equipo del refugio
             </strong>
             <span style={{ color: '#1f2430', fontSize: '0.82rem' }}>{avisoReciente}</span>
           </div>
@@ -574,8 +594,8 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <strong style={{ fontSize: '0.92rem', color: '#1f2430' }}>
-              📬 Novedades del equipo: ingresos y descargas recientes
+            <strong style={{ fontSize: '0.92rem', color: '#1f2430', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Mail size={16} aria-hidden="true" /> Novedades del equipo: ingresos y descargas recientes
             </strong>
             <button
               type="button"
@@ -686,7 +706,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                   {a.fotoUrl ? (
                     <img src={a.fotoUrl} alt={a.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <span style={{ fontSize: '3rem' }}>🐾</span>
+                    <PawPrint size={48} color="#cbd5e1" aria-hidden="true" />
                   )}
                   <span
                     style={{
@@ -729,7 +749,9 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                         {a.especie} · {a.sexo} · {a.edad || 'Edad desconocida'}
                       </span>
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#a3aab5', fontWeight: '700' }}>#{a.id}</span>
+                    <span style={{ fontSize: '0.72rem', color: '#a3aab5', fontWeight: '700' }}>
+                      {a.chip ? 'Microchip registrado' : 'Sin microchip'}
+                    </span>
                   </div>
 
                   {/* Canil asignado en tiempo real */}
@@ -746,7 +768,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                       fontSize: '0.76rem'
                     }}
                   >
-                    <span>🚪</span>
+                    <DoorOpen size={14} aria-hidden="true" />
                     <span>
                       Ubicación: <strong>{a.canil ? `${a.canil.nombre} (${a.canil.sector})` : 'Sin canil asignado'}</strong>
                     </span>
@@ -789,7 +811,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                             cursor: 'pointer'
                           }}
                         >
-                          {descargandoId === `${a.id}-PDF` ? '...' : '📄 Descargar PDF'}
+                          {descargandoId === `${a.id}-PDF` ? '...' : <><FileText size={13} aria-hidden="true" /> Descargar PDF</>}
                         </button>
                       )}
 
@@ -892,11 +914,11 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                             pointerEvents: 'none'
                           }}
                         >
-                          🔍 Ampliar
+                          <Search size={12} aria-hidden="true" /> Ampliar
                         </span>
                       </>
                     ) : (
-                      <span style={{ fontSize: '3rem' }}>🐾</span>
+                      <PawPrint size={48} color="#cbd5e1" aria-hidden="true" />
                     )}
                   </div>
 
@@ -913,7 +935,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                           borderRadius: '6px'
                         }}
                       >
-                        Ficha del Animal #{fichaSeleccionada.id} · Ingreso por {fichaSeleccionada.tipoIngreso || 'Rescate'}
+                        Ficha del animal · Ingreso por {fichaSeleccionada.tipoIngreso || 'Rescate'}
                       </span>
                       <button
                         type="button"
@@ -971,8 +993,8 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
 
                 {/* Historial Médico / Notas Clínicas */}
                 <div style={{ marginBottom: '16px' }}>
-                  <div style={{ fontSize: '0.76rem', fontWeight: '800', textTransform: 'uppercase', color: '#7c8592', marginBottom: '6px' }}>
-                    🩺 Antecedentes Clínicos e Historial Médico
+                  <div style={{ fontSize: '0.76rem', fontWeight: '800', textTransform: 'uppercase', color: '#7c8592', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Stethoscope size={14} aria-hidden="true" /> Antecedentes Clínicos e Historial Médico
                   </div>
                   <div
                     style={{
@@ -990,8 +1012,8 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
 
                 {/* Sección de Postulantes / Adopciones con Protección de Datos */}
                 <div style={{ marginBottom: '18px' }}>
-                  <div style={{ fontSize: '0.76rem', fontWeight: '800', textTransform: 'uppercase', color: '#7c8592', marginBottom: '6px' }}>
-                    📋 Trazabilidad de Adopciones y Devoluciones
+                  <div style={{ fontSize: '0.76rem', fontWeight: '800', textTransform: 'uppercase', color: '#7c8592', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <ClipboardList size={14} aria-hidden="true" /> Trazabilidad de Adopciones y Devoluciones
                   </div>
                   <div
                     style={{
@@ -1004,7 +1026,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                       marginBottom: '8px'
                     }}
                   >
-                    🔒 Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en
+                    <Lock size={12} aria-hidden="true" /> Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en
                     los documentos exportados.
                   </div>
                   {!fichaSeleccionada.adopciones || fichaSeleccionada.adopciones.length === 0 ? (
@@ -1024,7 +1046,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                             fontSize: '0.8rem'
                           }}
                         >
-                          <strong>Solicitud #{ad.id}</strong> — Etapa: <strong>{ad.etapa}</strong> · Devolución:{' '}
+                          <strong>Solicitud de adopción</strong> — Etapa: <strong>{ad.etapa}</strong> · Devolución:{' '}
                           <strong>{ad.devolucion ? 'Sí' : 'No'}</strong>
                         </div>
                       ))}
@@ -1059,7 +1081,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                         cursor: 'pointer'
                       }}
                     >
-                      ✏️ Editar Ficha del Animal
+                      <Pencil size={14} aria-hidden="true" /> Editar Ficha del Animal
                     </button>
 
                     {puedeExportarExpediente ? (
@@ -1079,7 +1101,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                             cursor: 'pointer'
                           }}
                         >
-                          {descargandoId === `${fichaSeleccionada.id}-PDF` ? 'Generando PDF...' : '📄 Descargar Ficha (PDF)'}
+                          {descargandoId === `${fichaSeleccionada.id}-PDF` ? 'Generando PDF...' : <><FileText size={14} aria-hidden="true" /> Descargar Ficha (PDF)</>}
                         </button>
                         <button
                           type="button"
@@ -1096,12 +1118,12 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                             cursor: 'pointer'
                           }}
                         >
-                          {descargandoId === `${fichaSeleccionada.id}-CSV` ? 'Generando CSV...' : '📊 Descargar Ficha (CSV)'}
+                          {descargandoId === `${fichaSeleccionada.id}-CSV` ? 'Generando CSV...' : <><FileSpreadsheet size={14} aria-hidden="true" /> Descargar Ficha (CSV)</>}
                         </button>
                       </>
                     ) : (
-                      <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
-                        🔒 La descarga de fichas está disponible para el personal del refugio y la Dirección.
+                      <span style={{ fontSize: '0.78rem', color: '#7c8592', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <Lock size={12} aria-hidden="true" /> La descarga de fichas está disponible para el personal del refugio y la Dirección.
                       </span>
                     )}
                   </div>

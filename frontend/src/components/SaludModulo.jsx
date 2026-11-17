@@ -1,4 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import {
+  CircleX,
+  ClipboardList,
+  Clock,
+  LoaderCircle,
+  RefreshCw,
+  Siren,
+  Stethoscope,
+  Syringe
+} from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
 
 export default function SaludModulo({ user }) {
@@ -118,7 +128,7 @@ export default function SaludModulo({ user }) {
   if (cargando) {
     return (
       <div className="portal-page-container" style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--portal-text-muted)' }}>
-        <div style={{ fontSize: '1.8rem', marginBottom: '12px' }}>⏳</div>
+        <div style={{ marginBottom: '12px' }}><LoaderCircle size={30} className="portal-spin" aria-hidden="true" /></div>
         <strong>Cargando módulo de salud...</strong>
       </div>
     );
@@ -129,7 +139,7 @@ export default function SaludModulo({ user }) {
       <div className="portal-header">
         <div>
           <h2 className="portal-header-title">
-            <span>🩺</span>
+            <Stethoscope size={26} aria-hidden="true" />
             <span>Módulo de Salud y Vacunación</span>
           </h2>
           <p className="portal-header-subtitle">
@@ -144,13 +154,13 @@ export default function SaludModulo({ user }) {
           onClick={() => setTabSalud('alertas')}
           className={`portal-subtab-btn ${tabSalud === 'alertas' ? 'active' : ''}`}
         >
-          🚨 Alertas y Pendientes ({alertas?.resumen?.totalAlertas || 0})
+          <Siren size={15} aria-hidden="true" /> Alertas y Pendientes ({alertas?.resumen?.totalAlertas || 0})
         </button>
         <button
           onClick={() => { setTabSalud('historial'); if (selectedAnimalId) verHistorialAnimal(selectedAnimalId); }}
           className={`portal-subtab-btn ${tabSalud === 'historial' ? 'active' : ''}`}
         >
-          📋 Ficha e Historial Clínico
+          <ClipboardList size={15} aria-hidden="true" /> Ficha e Historial Clínico
         </button>
         {esVeterinariaODirectora && (
           <>
@@ -158,13 +168,13 @@ export default function SaludModulo({ user }) {
               onClick={() => setTabSalud('nueva_vacuna')}
               className={`portal-subtab-btn ${tabSalud === 'nueva_vacuna' ? 'active' : ''}`}
             >
-              💉 Registrar Vacuna
+              <Syringe size={15} aria-hidden="true" /> Registrar Vacuna
             </button>
             <button
               onClick={() => setTabSalud('nueva_atencion')}
               className={`portal-subtab-btn ${tabSalud === 'nueva_atencion' ? 'active' : ''}`}
             >
-              🩺 Registrar Atención Médica
+              <Stethoscope size={15} aria-hidden="true" /> Registrar Atención Médica
             </button>
           </>
         )}
@@ -176,8 +186,8 @@ export default function SaludModulo({ user }) {
           
           {/* 1. Vencidos (Vacunas y Tratamientos) */}
           <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #f3c9c4', padding: '18px' }}>
-            <h3 style={{ color: '#d1453b', margin: '0 0 12px', fontSize: '1.05rem' }}>
-              🔴 Vencidos ({alertas?.vencidas?.length || 0})
+            <h3 style={{ color: '#d1453b', margin: '0 0 12px', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CircleX size={17} aria-hidden="true" /> Vencidos ({alertas?.vencidas?.length || 0})
             </h3>
             {alertas?.vencidas?.length === 0 ? (
               <p style={{ color: '#7c8592', fontSize: '0.85rem' }}>Sin registros vencidos.</p>
@@ -194,8 +204,8 @@ export default function SaludModulo({ user }) {
 
           {/* 2. Próximos a Vencer (<= 15 días) */}
           <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #fae2b8', padding: '18px' }}>
-            <h3 style={{ color: '#d99a3d', margin: '0 0 12px', fontSize: '1.05rem' }}>
-              🟡 Próximos a Vencer (&le; 15d) ({alertas?.proximas?.length || 0})
+            <h3 style={{ color: '#d99a3d', margin: '0 0 12px', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={17} aria-hidden="true" /> Próximos a Vencer (&le; 15d) ({alertas?.proximas?.length || 0})
             </h3>
             {alertas?.proximas?.length === 0 ? (
               <p style={{ color: '#7c8592', fontSize: '0.85rem' }}>Todo al día.</p>
@@ -212,8 +222,8 @@ export default function SaludModulo({ user }) {
 
           {/* 3. Refuerzo Requerido */}
           <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #bfdbfe', padding: '18px' }}>
-            <h3 style={{ color: '#2563eb', margin: '0 0 12px', fontSize: '1.05rem' }}>
-              🔵 Refuerzo Requerido ({alertas?.refuerzoRequerido?.length || 0})
+            <h3 style={{ color: '#2563eb', margin: '0 0 12px', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <RefreshCw size={17} aria-hidden="true" /> Refuerzo Requerido ({alertas?.refuerzoRequerido?.length || 0})
             </h3>
             {alertas?.refuerzoRequerido?.length === 0 ? (
               <p style={{ color: '#7c8592', fontSize: '0.85rem' }}>Sin refuerzos pendientes.</p>
@@ -255,7 +265,7 @@ export default function SaludModulo({ user }) {
                 Historial de {historial.animal.nombre}
               </h3>
               
-              <h4 style={{ margin: '14px 0 8px', color: '#3f6c52' }}>💉 Vacunas Registradas:</h4>
+              <h4 style={{ margin: '14px 0 8px', color: '#3f6c52', display: 'flex', alignItems: 'center', gap: '6px' }}><Syringe size={16} aria-hidden="true" /> Vacunas Registradas:</h4>
               {historial.vacunas.length === 0 ? (
                 <p style={{ fontSize: '0.85rem', color: '#7c8592' }}>Sin vacunas registradas en la ficha.</p>
               ) : (
@@ -268,7 +278,7 @@ export default function SaludModulo({ user }) {
                 </ul>
               )}
 
-              <h4 style={{ margin: '20px 0 8px', color: '#3f6c52' }}>🩺 Atenciones Médicas y Revisiones:</h4>
+              <h4 style={{ margin: '20px 0 8px', color: '#3f6c52', display: 'flex', alignItems: 'center', gap: '6px' }}><Stethoscope size={16} aria-hidden="true" /> Atenciones Médicas y Revisiones:</h4>
               {historial.atenciones.length === 0 ? (
                 <p style={{ fontSize: '0.85rem', color: '#7c8592' }}>Sin atenciones médicas previas.</p>
               ) : (

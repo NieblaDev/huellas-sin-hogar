@@ -1,4 +1,20 @@
 import React, { useState, useEffect } from "react";
+import {
+  BarChart3,
+  Bell,
+  DoorClosed,
+  Hand,
+  LoaderCircle,
+  Package,
+  PawPrint,
+  RefreshCw,
+  ShieldCheck,
+  Siren,
+  Stethoscope,
+  TrendingUp,
+  TriangleAlert,
+  Users
+} from "lucide-react";
 import { API_URL, getAuthHeaders } from "../api/config";
 
 export default function DashboardModulo({ user, onNavigate }) {
@@ -46,7 +62,7 @@ export default function DashboardModulo({ user, onNavigate }) {
           color: "var(--portal-text-muted)",
         }}
       >
-        <div style={{ fontSize: "1.8rem", marginBottom: "12px" }}>⏳</div>
+        <div style={{ marginBottom: "12px" }}><LoaderCircle size={30} className="portal-spin" aria-hidden="true" /></div>
         <strong>Cargando indicadores operativos en tiempo real...</strong>
       </div>
     );
@@ -56,7 +72,7 @@ export default function DashboardModulo({ user, onNavigate }) {
     return (
       <div className="portal-page-container">
         <div className="portal-alert portal-alert-danger">
-          <span>⚠️</span>
+          <TriangleAlert size={18} aria-hidden="true" />
           <span>{error}</span>
         </div>
       </div>
@@ -80,7 +96,7 @@ export default function DashboardModulo({ user, onNavigate }) {
       <div className="portal-header">
         <div>
           <h2 className="portal-header-title">
-            <span>👋</span>
+            <Hand size={26} aria-hidden="true" />
             <span>¡Hola, {user?.nombre || "Equipo"}!</span>
           </h2>
           <p className="portal-header-subtitle">
@@ -107,7 +123,7 @@ export default function DashboardModulo({ user, onNavigate }) {
               height: "40px",
             }}
           >
-            🔄 Refrescar
+            <RefreshCw size={14} aria-hidden="true" /> Refrescar
           </button>
           {/* Icono de notificación con contador */}
           <button
@@ -128,7 +144,7 @@ export default function DashboardModulo({ user, onNavigate }) {
               cursor: "pointer",
             }}
           >
-            🔔
+            <Bell size={20} aria-hidden="true" />
             {alertasPrioritarias?.length > 0 && (
               <span
                 style={{
@@ -360,7 +376,7 @@ export default function DashboardModulo({ user, onNavigate }) {
                 letterSpacing: "0.04em",
               }}
             >
-              🐾 Animales Albergados
+              <PawPrint size={13} aria-hidden="true" /> Animales Albergados
             </span>
             <div
               style={{
@@ -375,7 +391,7 @@ export default function DashboardModulo({ user, onNavigate }) {
                 fontSize: "1.2rem",
               }}
             >
-              🐾
+              <PawPrint size={20} aria-hidden="true" />
             </div>
           </div>
           <div
@@ -431,7 +447,7 @@ export default function DashboardModulo({ user, onNavigate }) {
                 letterSpacing: "0.04em",
               }}
             >
-              🔒 Caniles Ocupados
+              <DoorClosed size={13} aria-hidden="true" /> Caniles Ocupados
             </span>
             <div
               style={{
@@ -446,7 +462,7 @@ export default function DashboardModulo({ user, onNavigate }) {
                 fontSize: "1.2rem",
               }}
             >
-              🚪
+              <DoorClosed size={20} aria-hidden="true" />
             </div>
           </div>
           <div
@@ -514,7 +530,7 @@ export default function DashboardModulo({ user, onNavigate }) {
                 letterSpacing: "0.04em",
               }}
             >
-              📈 Porcentaje de Ocupación
+              <TrendingUp size={13} aria-hidden="true" /> Porcentaje de Ocupación
             </span>
             <div
               style={{
@@ -551,7 +567,7 @@ export default function DashboardModulo({ user, onNavigate }) {
             }}
           >
             {resumen.alertaSobrecupo
-              ? "🚨 Sobrecupo crítico (>90%)"
+              ? <><Siren size={13} aria-hidden="true" /> Sobrecupo crítico (&gt;90%)</>
               : "Dentro del umbral operacional"}
           </div>
         </div>
@@ -607,7 +623,7 @@ export default function DashboardModulo({ user, onNavigate }) {
                 fontSize: "1.2rem",
               }}
             >
-              📦
+              <Package size={20} aria-hidden="true" />
             </div>
           </div>
           <div
@@ -680,7 +696,7 @@ export default function DashboardModulo({ user, onNavigate }) {
                 fontSize: "1.2rem",
               }}
             >
-              👥
+              <Users size={20} aria-hidden="true" />
             </div>
           </div>
           <div
@@ -730,7 +746,7 @@ export default function DashboardModulo({ user, onNavigate }) {
               marginBottom: "16px",
             }}
           >
-            📊 Gráfico de Distribución y Capacidad
+            <BarChart3 size={17} aria-hidden="true" /> Gráfico de Distribución y Capacidad
           </div>
           <p
             style={{
@@ -845,7 +861,7 @@ export default function DashboardModulo({ user, onNavigate }) {
               marginBottom: "16px",
             }}
           >
-            🩺 Estado Clínico de la Población
+            <Stethoscope size={17} aria-hidden="true" /> Estado Clínico de la Población
           </div>
           <div
             style={{ display: "flex", flexDirection: "column", gap: "12px" }}
@@ -931,7 +947,7 @@ export default function DashboardModulo({ user, onNavigate }) {
               marginBottom: "12px",
             }}
           >
-            ⚠️ Insumos con Stock Bajo o Crítico
+            <TriangleAlert size={17} aria-hidden="true" /> Insumos con Stock Bajo o Crítico
           </div>
           {listadosOperativos.insumosBajoStock.length === 0 ? (
             <div
@@ -998,7 +1014,7 @@ export default function DashboardModulo({ user, onNavigate }) {
               marginBottom: "12px",
             }}
           >
-            🚨 Turnos Descubiertos de la Semana
+            <Siren size={17} aria-hidden="true" /> Turnos Descubiertos de la Semana
           </div>
           {listadosOperativos.turnosSinCubrir.length === 0 ? (
             <div
@@ -1077,7 +1093,7 @@ export default function DashboardModulo({ user, onNavigate }) {
             <div
               style={{ fontSize: "1rem", fontWeight: "800", color: "#1f2430" }}
             >
-              🛡️ Supervisión Directiva: Traslados y Actividad de Auditoría
+              <ShieldCheck size={17} aria-hidden="true" /> Supervisión Directiva: Traslados y Actividad de Auditoría
             </div>
             {onNavigate && (
               <button

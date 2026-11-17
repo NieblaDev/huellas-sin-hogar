@@ -10,7 +10,20 @@ import SaludModulo from './components/SaludModulo';
 import AdopcionesModulo from './components/adopciones/AdopcionesModulo';
 import InventarioModulo from './components/InventarioModulo';
 import VoluntariosModulo from './components/VoluntariosModulo';
+import PerfilesUsuariosModulo from './components/PerfilesUsuariosModulo';
 import Logo from './components/Logo';
+import {
+  BarChart3,
+  ClipboardList,
+  Dog,
+  DoorOpen,
+  Handshake,
+  House,
+  Package,
+  ShieldCheck,
+  Syringe,
+  Users
+} from 'lucide-react';
 import { clearStoredSession, readStoredSession } from './utils/session';
 import './styles/portal-controls.css';
 import { API_URL, getAuthHeaders } from './api/config';
@@ -66,7 +79,7 @@ export default function App() {
 
   const esDirectora = user?.rol === 'DIRECTORA';
   const puedeGestionarAdopciones = ['DIRECTORA', 'ENCARGADA_ADOPCIONES'].includes(user?.rol);
-  const puedeGestionarInventario = ['DIRECTORA', 'COORDINADOR', 'VETERINARIA', 'ENCARGADA_ADOPCIONES', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
+  const puedeGestionarInventario = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
 
   return (
     <div className="portal-staff" style={{ minHeight: '100vh', background: '#f3f4f6', display: 'flex' }}>
@@ -107,7 +120,7 @@ export default function App() {
                 onClick={() => setActiveTab('dashboard')}
                 className={`portal-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
               >
-                <span>📊</span> <span>Inicio</span>
+                <BarChart3 size={18} aria-hidden="true" /> <span>Inicio</span>
               </button>
 
               {/* Registro de Animales */}
@@ -115,7 +128,7 @@ export default function App() {
                 onClick={() => setActiveTab('animales')}
                 className={`portal-nav-btn ${activeTab === 'animales' ? 'active' : ''}`}
               >
-                <span>🐶</span> <span>Registro Animales</span>
+                <Dog size={18} aria-hidden="true" /> <span>Registro Animales</span>
               </button>
 
               {/* Caniles y Traslados */}
@@ -123,7 +136,7 @@ export default function App() {
                 onClick={() => setActiveTab('caniles')}
                 className={`portal-nav-btn ${activeTab === 'caniles' ? 'active' : ''}`}
               >
-                <span>🚪</span> <span>Caniles y Traslados</span>
+                <DoorOpen size={18} aria-hidden="true" /> <span>Caniles y Traslados</span>
               </button>
 
               {/*Gestion de Adopciones */}
@@ -133,7 +146,7 @@ export default function App() {
                   aria-current={activeTab === 'adopciones' ? 'page' : undefined}
                   className={`portal-nav-btn ${activeTab === 'adopciones' ? 'active' : ''}`}
                 >
-                  <span>🏡</span> <span>Adopciones</span>
+                  <House size={18} aria-hidden="true" /> <span>Adopciones</span>
                 </button>
               )}
 
@@ -149,7 +162,7 @@ export default function App() {
                 onClick={() => setActiveTab('cuidados')}
                 className={`portal-nav-btn ${activeTab === 'cuidados' ? 'active' : ''}`}
               >
-                <span>📋</span> <span>Rondas y Cuidados</span>
+                <ClipboardList size={18} aria-hidden="true" /> <span>Rondas y Cuidados</span>
               </button>
 
               {/*Salud y Vacunacion */}
@@ -157,7 +170,7 @@ export default function App() {
                 onClick={() => setActiveTab('salud')}
                 className={`portal-nav-btn ${activeTab === 'salud' ? 'active' : ''}`}
               >
-                <span>💉</span> <span>Salud y Vacunación</span>
+                <Syringe size={18} aria-hidden="true" /> <span>Salud y Vacunación</span>
               </button>
 
               {/* Sección: Administración */}
@@ -174,7 +187,7 @@ export default function App() {
                   aria-current={activeTab === 'inventario' ? 'page' : undefined}
                   className={`portal-nav-btn ${activeTab === 'inventario' ? 'active' : ''}`}
                 >
-                  <span>📦</span> <span>Inventario</span>
+                  <Package size={18} aria-hidden="true" /> <span>Inventario</span>
                 </button>
               )}
 
@@ -184,8 +197,19 @@ export default function App() {
                 aria-current={activeTab === 'voluntarios' ? 'page' : undefined}
                 className={`portal-nav-btn ${activeTab === 'voluntarios' ? 'active' : ''}`}
               >
-                <span>🤝</span> <span>Voluntarios y Turnos</span>
+                <Handshake size={18} aria-hidden="true" /> <span>Voluntarios y Turnos</span>
               </button>
+
+              {/* Usuarios y Perfiles — Exclusivo Dirección */}
+              {esDirectora && (
+                <button
+                  onClick={() => setActiveTab('perfiles')}
+                  aria-current={activeTab === 'perfiles' ? 'page' : undefined}
+                  className={`portal-nav-btn ${activeTab === 'perfiles' ? 'active' : ''}`}
+                >
+                  <Users size={18} aria-hidden="true" /> <span>Usuarios y Perfiles</span>
+                </button>
+              )}
 
               {/* Auditoría y Trazabilidad */}
               {esDirectora && (
@@ -193,7 +217,7 @@ export default function App() {
                   onClick={() => setActiveTab('auditoria')}
                   className={`portal-nav-btn ${activeTab === 'auditoria' ? 'active' : ''}`}
                 >
-                  <span>🛡️</span> <span>Auditoría</span>
+                  <ShieldCheck size={18} aria-hidden="true" /> <span>Auditoría</span>
                 </button>
               )}
             </nav>
@@ -267,6 +291,10 @@ export default function App() {
 
               {activeTab === 'voluntarios' && (
                 <VoluntariosModulo user={user} />
+              )}
+
+              {activeTab === 'perfiles' && esDirectora && (
+                <PerfilesUsuariosModulo user={user} />
               )}
 
               {activeTab === 'auditoria' && esDirectora && (

@@ -90,7 +90,7 @@ export default function SolicitudForm({ onSuccess, solicitud, onCancel }) {
   };
 
   return <form className="adopciones-card" onSubmit={guardar}>
-    <h3>{solicitud ? `Editar solicitud #${solicitud.id}` : 'Nueva solicitud de adopción'}</h3>
+    <h3>{solicitud ? 'Editar solicitud de adopción' : 'Nueva solicitud de adopción'}</h3>
     <p>{solicitud ? 'Corrige los datos de contacto, el animal o la motivación.' : 'Consulta la identificación para revisar solicitudes activas y devoluciones anteriores.'}</p>
     {error && <p role="alert" className="adopciones-error">{error}</p>}
     <fieldset disabled={guardando}>
@@ -105,7 +105,7 @@ export default function SolicitudForm({ onSuccess, solicitud, onCancel }) {
       <div aria-live="polite">
         {alertas.map(alerta => <p className="adopciones-alert" key={alerta.codigo}>{alerta.mensaje}</p>)}
         {!solicitud && antecedentes && !alertas.length && <p>Sin solicitudes activas ni devoluciones previas.</p>}
-        {antecedentes?.solicitudesActivas.map(s => <p key={s.id}>Solicitud activa #{s.id}: {s.animal.nombre}.</p>)}
+        {antecedentes?.solicitudesActivas.map(s => <p key={s.id}>Solicitud activa: {s.animal.nombre}.</p>)}
         {antecedentes?.devolucionesPrevias.map(d => <p key={d.id}>Devolución del {d.fecha ? new Date(d.fecha).toLocaleDateString('es-CL') : 'fecha no registrada'}: {d.motivo}</p>)}
       </div>
       <div className="adopciones-grid" style={{ marginTop: 16 }}>
@@ -117,7 +117,7 @@ export default function SolicitudForm({ onSuccess, solicitud, onCancel }) {
       {errorAnimales && <div className="adopciones-error" role="alert">{errorAnimales} <button type="button" onClick={() => setRecarga(k => k + 1)}>Reintentar carga de animales</button></div>}
       <label>Animal<select required disabled={cargandoAnimales || !!errorAnimales} value={animalId} onChange={e => setAnimalId(e.target.value)}>
         <option value="">{cargandoAnimales ? 'Cargando animales…' : 'Selecciona un animal'}</option>
-        {animales.map(animal => <option key={animal.id} value={animal.id}>{animal.nombre} · {animal.especie} · #{animal.id}</option>)}
+        {animales.map(animal => <option key={animal.id} value={animal.id}>{animal.nombre} · {animal.especie}</option>)}
       </select></label>
       {!cargandoAnimales && !errorAnimales && animales.length === 0 && <p>No hay animales disponibles para solicitar adopción.</p>}
       <label>Motivación y condiciones del hogar<textarea required minLength={10} maxLength={4000} value={motivacion} aria-describedby="ayuda-motivacion" onBlur={() => setMotivacion(v => v.trim())} onChange={e => setMotivacion(e.target.value)} /><small id="ayuda-motivacion">Mínimo 10 caracteres y máximo 4000 caracteres.</small></label>

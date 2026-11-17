@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Camera, PawPrint, Pencil, TriangleAlert } from 'lucide-react';
 import { API_URL } from '../api/config';
 
 const INITIAL_FORM = {
@@ -243,10 +244,10 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
           <div>
-            <h3 style={{ margin: 0, color: '#1f2430', fontSize: '1.2rem', fontWeight: '800' }}>
+            <h3 style={{ margin: 0, color: '#1f2430', fontSize: '1.2rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '7px' }}>
               {esEdicion
-                ? `✏️ Editar Ficha del Animal #${animalEditar.id}`
-                : '🐾 Registro de Ingreso y Creación de Ficha del Animal'}
+                ? <><Pencil size={18} aria-hidden="true" /> Editar ficha del animal</>
+                : <><PawPrint size={18} aria-hidden="true" /> Registro de Ingreso y Creación de Ficha del Animal</>}
             </h3>
             <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
               {esEdicion
@@ -276,7 +277,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
               fontWeight: '600'
             }}
           >
-            ⚠️ {error}
+            <TriangleAlert size={15} aria-hidden="true" style={{ verticalAlign: 'text-bottom', marginRight: 4 }} /> {error}
           </div>
         )}
 
@@ -314,7 +315,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
-                <span style={{ fontSize: '1.6rem' }}>📷</span>
+                <Camera size={28} color="#7c8592" aria-hidden="true" />
               )}
             </div>
             <div style={{ flex: 1 }}>
@@ -365,7 +366,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
               <input
                 type="text"
                 required
-                placeholder="Ej: Toby, Rescate #12..."
+                placeholder="Ej: Toby, rescatado en el sector norte"
                 value={formData.nombre}
                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                 style={{ width: '100%', padding: '8px 10px', boxSizing: 'border-box', borderRadius: '7px', border: '1.5px solid #e9eaed' }}
@@ -522,9 +523,9 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 onChange={(e) => setFormData({ ...formData, estadoSalud: e.target.value })}
                 style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px solid #e9eaed', background: '#fff' }}
               >
-                <option value="NORMAL">🟢 Normal</option>
-                <option value="CONDICION_ESPECIAL">🟡 Condición Especial</option>
-                <option value="CRITICO">🔴 Crítico</option>
+                <option value="NORMAL">Normal</option>
+                <option value="CONDICION_ESPECIAL">Condición Especial</option>
+                <option value="CRITICO">Crítico</option>
               </select>
             </div>
             {esEdicion && (
@@ -537,8 +538,8 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                   onChange={(e) => setFormData({ ...formData, estadoAdopcion: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px solid #e9eaed', background: '#fff' }}
                 >
-                  <option value="EN_REFUGIO">🏠 En Refugio</option>
-                  <option value="ADOPTADO">🏡 Adoptado</option>
+                  <option value="EN_REFUGIO">En Refugio</option>
+                  <option value="ADOPTADO">Adoptado</option>
                 </select>
               </div>
             )}

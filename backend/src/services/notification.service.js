@@ -7,6 +7,12 @@ export const notificationEmitter = new EventEmitter();
 const notificacionesMemoria = [];
 const MAX_NOTIFICACIONES = 50;
 
+const limpiarReferenciasInternas = (texto) => String(texto || '')
+  .replace(/#\s*\d+/g, '')
+  .replace(/\bID\s*(?:Ficha|Solicitud|Registro|Animal|Canil)\s*:?\s*\d+/gi, '')
+  .replace(/\s{2,}/g, ' ')
+  .trim();
+
 // Listener interno para trazabilidad en consola del servidor
 notificationEmitter.on('notificacion:personal', (notificacion) => {
   console.log(
@@ -35,8 +41,8 @@ export const notificarPersonalRefugio = async ({
   const nuevaNotificacion = {
     id: `notif-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
     tipo,
-    titulo,
-    mensaje,
+    titulo: limpiarReferenciasInternas(titulo),
+    mensaje: limpiarReferenciasInternas(mensaje),
     destinatarios,
     emitidoPor: usuario
       ? {
@@ -87,7 +93,7 @@ export const obtenerNotificacionesPersonal = async (limit = 15) => {
           id: `aud-${aud.id}`,
           tipo: info.tipoReporte === 'CSV' ? 'EXPORTACION_CSV' : 'EXPORTACION_PDF',
           titulo: `Exportación de ${info.tipoReporte || 'Reporte'} realizada`,
-          mensaje: `${aud.usuarioNombre || 'Usuario'} (${info.rolUsuario || 'Staff'}) exportó: ${info.recursoExportado || aud.entidad}.`,
+          mensaje: limpiarReferenciasInternas(`${aud.usuarioNombre || 'Usuario'} (${info.rolUsuario || 'Staff'}) exportó: ${info.recursoExportado || aud.entidad}.`),
           destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
           emitidoPor: {
             id: aud.usuarioId,
@@ -102,7 +108,7 @@ export const obtenerNotificacionesPersonal = async (limit = 15) => {
       return {
         id: `aud-${aud.id}`,
         tipo: 'INGRESO_ANIMAL',
-        titulo: `Nuevo ingreso registrado: ${info.nombre || `Animal #${aud.entidadId}`}`,
+        titulo: `Nuevo ingreso registrado: ${info.nombre || 'Animal sin nombre registrado'}`,
         mensaje: `${aud.usuarioNombre || 'Voluntario/Personal'} registró el ingreso de ${info.nombre || 'un animal'} (${info.especie || 'Especie'}, ${info.sexo || 'Sexo'})${info.tipoIngreso ? ` por ${info.tipoIngreso}` : ''}. Ficha del animal disponible.`,
         destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
         emitidoPor: {
