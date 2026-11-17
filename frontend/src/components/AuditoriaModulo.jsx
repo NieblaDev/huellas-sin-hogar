@@ -2,15 +2,147 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  Calendar,
+  CheckCircle2,
+  ChevronRight,
   ClipboardList,
+  Eye,
+  FileText,
+  Filter,
+  Info,
   Lock,
   Pencil,
   Plus,
   Search,
   ShieldCheck,
-  Trash2
+  Tag,
+  Trash2,
+  User,
+  X
 } from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
+
+// Diccionario amigable para nombres de campos
+const ETIQUETAS_CAMPOS = {
+  nombre: 'Nombre',
+  especie: 'Especie',
+  raza: 'Raza',
+  sexo: 'Sexo',
+  edadEstimada: 'Edad estimada (años)',
+  peso: 'Peso (kg)',
+  color: 'Color / Pelaje',
+  tamano: 'Tamaño',
+  estadoSalud: 'Estado de salud',
+  estadoAdopcion: 'Estado de adopción',
+  canilId: 'Canil asignado',
+  canil: 'Canil',
+  descripcion: 'Descripción',
+  observaciones: 'Observaciones',
+  motivoIngreso: 'Motivo de ingreso',
+  fechaIngreso: 'Fecha de ingreso',
+  activo: 'Activo',
+  esterilizado: 'Esterilizado/a',
+  microchip: 'Número de microchip',
+  vacunado: 'Vacunado',
+  desparasitado: 'Desparasitado',
+  sector: 'Sector',
+  estado: 'Estado',
+  capacidad: 'Capacidad',
+  tipo: 'Tipo',
+  destinoNombre: 'Destino (Nombre)',
+  destinoContacto: 'Contacto de destino',
+  destinoDireccion: 'Dirección de destino',
+  motivo: 'Motivo',
+  email: 'Correo electrónico',
+  rol: 'Rol asignado',
+  telefono: 'Teléfono',
+  direccion: 'Dirección',
+  identificacion: 'Identificación / RUT',
+  tipoIdentificacion: 'Tipo de identificación',
+  cantidad: 'Cantidad',
+  unidadMedida: 'Unidad de medida',
+  stockMinimo: 'Stock mínimo',
+  stockActual: 'Stock actual',
+  ubicacion: 'Ubicación'
+};
+
+// Formateador amigable para valores booleanos, nulos, fechas o enums
+const formatearValorLegible = (clave, valor) => {
+  if (valor === null || valor === undefined || valor === '') {
+    return <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No especificado</span>;
+  }
+  if (typeof valor === 'boolean') {
+    return valor ? 'Sí' : 'No';
+  }
+  if (typeof valor === 'object') {
+    if (valor.nombre) return valor.nombre;
+    if (Array.isArray(valor)) {
+      if (valor.length === 0) return <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Ninguno</span>;
+      return valor.map((v, i) => (typeof v === 'object' && v.nombre ? v.nombre : String(v))).join(', ');
+    }
+    return JSON.stringify(valor);
+  }
+
+  const str = String(valor);
+
+  // Formatear fechas ISO
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str)) {
+    const fecha = new Date(str);
+    if (!Number.isNaN(fecha.getTime())) {
+      return fecha.toLocaleString('es-CL', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  }
+
+  // Traducción o formateo de Enums comunes
+  const traducciones = {
+    CANINO: 'Perro / Canino',
+    FELINO: 'Gato / Felino',
+    OTRO: 'Otro',
+    MACHO: 'Macho',
+    HEMBRA: 'Hembra',
+    DISPONIBLE: 'Disponible',
+    EN_TRATAMIENTO: 'En tratamiento',
+    EN_REFUGIO: 'En refugio',
+    ADOPTADO: 'Adoptado',
+    FALLECIDO: 'Fallecido',
+    LIBRE: 'Libre',
+    OCUPADO: 'Ocupado',
+    CUARENTENA: 'Cuarentena',
+    MANTENIMIENTO: 'Mantenimiento',
+    BUENO: 'Bueno',
+    REGULAR: 'Regular',
+    CRITICO: 'Crítico',
+    DIRECTORA: 'Directora',
+    VETERINARIA: 'Veterinaria',
+    ENCARGADA_ADOPCIONES: 'Encargada de adopciones',
+    COORDINADOR: 'Coordinador',
+    VOLUNTARIO_AVANZADO: 'Voluntario avanzado',
+    VOLUNTARIO_NOVATO: 'Voluntario novato'
+  };
+
+  return traducciones[str] || str.replace(/_/g, ' ');
+};
+
+// Limpieza de campos que no aportan valor humano (IDs técnicos, hashes, marcas de tiempo del sistema)
+const camposIgnorados = new Set([
+  'id',
+  'password',
+  'contrasena',
+  'actualizadoEn',
+  'creadoEn',
+  'updatedAt',
+  'createdAt',
+  'usuarioId',
+  'animalId',
+  'canilOrigenId',
+  'canilDestinoId'
+]);
 
 export default function AuditoriaModulo({ user }) {
   const [auditorias, setAuditorias] = useState([]);
@@ -24,7 +156,7 @@ export default function AuditoriaModulo({ user }) {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
-  // Registro seleccionado para ver detalle de Diff (valor anterior vs nuevo)
+  // Registro seleccionado para ver detalle
   const [detalleRegistro, setDetalleRegistro] = useState(null);
   const [tabAccion, setTabAccion] = useState('TODAS'); // 'TODAS' | 'CREACION' | 'MODIFICACION' | 'BAJA_LOGICA'
 
@@ -87,7 +219,6 @@ export default function AuditoriaModulo({ user }) {
     BAJA_LOGICA: 'Baja lógica'
   };
 
-  // Descripción legible: acción realizada + nombre del registro/animal afectado
   const describirAccion = (item) => {
     const accion = accionNombres[item.accion] || item.accion;
     const nombre = item.entidadNombre;
@@ -101,27 +232,17 @@ export default function AuditoriaModulo({ user }) {
       : `${accion} de registro en ${item.entidad}`;
   };
 
-  // Evita exponer identificadores internos de la base de datos en el diff visual.
-  const limpiarTextoConIdentificadores = (texto) => String(texto)
-    .replace(/#\s*\d+/g, '')
-    .replace(/\bID\s*(?:Ficha|Solicitud|Registro|Animal|Canil)\s*:?\s*\d+/gi, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-
-  const omitirIdentificadores = (valor) => {
-    if (Array.isArray(valor)) return valor.map(omitirIdentificadores);
-    if (valor && typeof valor === 'object') {
-      return Object.fromEntries(
-        Object.entries(valor)
-          .filter(([clave]) => !/(^id$|ids?$)/i.test(clave))
-          .map(([clave, contenido]) => [clave, omitirIdentificadores(contenido)])
-      );
-    }
-    if (typeof valor === 'string') return limpiarTextoConIdentificadores(valor);
-    return valor;
-  };
-
   const auditoriasFiltradas = auditorias.filter(item => tabAccion === 'TODAS' || item.accion === tabAccion);
+
+  // Obtener la lista unificada de campos cambiados o registrados
+  const obtenerCamposRelevantes = (anterior, nuevo) => {
+    const claves = new Set([
+      ...Object.keys(anterior || {}),
+      ...Object.keys(nuevo || {})
+    ]);
+
+    return Array.from(claves).filter(c => !camposIgnorados.has(c));
+  };
 
   return (
     <div className="portal-page-container">
@@ -258,14 +379,14 @@ export default function AuditoriaModulo({ user }) {
         </div>
       </form>
 
-      {/* TABLA DE AUDITORÍA */}
+      {/* TABLA DE AUDITORÍA CON CLIC EN FILA */}
       <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e9eaed', overflow: 'hidden', boxShadow: '0 1px 3px rgba(20,24,32,0.03)' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f1f3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1f2430' }}>
-            Total de registros encontrados: {total}
+            Total de registros: {total} {auditoriasFiltradas.length !== auditorias.length && `(mostrando ${auditoriasFiltradas.length})`}
           </span>
-          <span style={{ fontSize: '0.75rem', color: '#7c8592' }}>
-            Protección de integridad: No se permite edición ni eliminación de entradas
+          <span style={{ fontSize: '0.78rem', color: '#7c8592', fontStyle: 'italic' }}>
+            Haz clic en cualquier fila para ver el detalle comparativo y trazabilidad
           </span>
         </div>
 
@@ -278,7 +399,7 @@ export default function AuditoriaModulo({ user }) {
                 <th style={{ padding: '12px 16px' }}>Entidad Afectada</th>
                 <th style={{ padding: '12px 16px' }}>Acción</th>
                 <th style={{ padding: '12px 16px' }}>Descripción de la Acción</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center' }}>Comparativa de Valores</th>
+                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Detalle</th>
               </tr>
             </thead>
             <tbody>
@@ -300,10 +421,16 @@ export default function AuditoriaModulo({ user }) {
                   const fechaObj = new Date(item.fechaHora);
 
                   return (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #f0f1f3' }}>
+                    <tr
+                      key={item.id}
+                      onClick={() => setDetalleRegistro(item)}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#f8faf8'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                      style={{ borderBottom: '1px solid #f0f1f3', cursor: 'pointer', transition: 'background 0.15s ease' }}
+                    >
                       <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
-                        <strong>{fechaObj.toLocaleDateString()}</strong>{' '}
-                        <span style={{ color: '#7c8592' }}>{fechaObj.toLocaleTimeString()}</span>
+                        <strong>{fechaObj.toLocaleDateString('es-CL')}</strong>{' '}
+                        <span style={{ color: '#7c8592' }}>{fechaObj.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</span>
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <strong>{item.usuarioNombre || 'Sistema'}</strong>
@@ -323,16 +450,17 @@ export default function AuditoriaModulo({ user }) {
                       <td style={{ padding: '12px 16px', color: '#1f2430' }}>
                         {describirAccion(item)}
                       </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <button
-                          onClick={() => setDetalleRegistro(item)}
-                          style={{
-                            background: '#f0f1f3', border: 'none', padding: '5px 12px', borderRadius: '6px',
-                            fontSize: '0.76rem', fontWeight: '700', color: '#1f2430', cursor: 'pointer'
-                          }}
-                        >
-                          Ver Diff / Detalle <Search size={12} aria-hidden="true" />
-                        </button>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          color: '#3f6c52',
+                          fontWeight: '700',
+                          fontSize: '0.78rem'
+                        }}>
+                          Ver detalle <ChevronRight size={14} aria-hidden="true" />
+                        </span>
                       </td>
                     </tr>
                   );
@@ -343,75 +471,182 @@ export default function AuditoriaModulo({ user }) {
         </div>
       </div>
 
-      {/* MODAL DETALLE DE VALOR ANTERIOR VS VALOR NUEVO */}
+      {/* MODAL DETALLE DE VALOR ANTERIOR VS VALOR NUEVO (ESTILO TRASLADOS CANILES EN LENGUAJE HUMANO) */}
       {detalleRegistro && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(20,24,32,0.6)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '16px'
         }}>
           <div style={{
-            background: '#fff', borderRadius: '18px', padding: '24px', width: '100%', maxWidth: '780px',
+            background: '#fff', borderRadius: '18px', padding: '24px', width: '100%', maxWidth: '750px',
             maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 16px 40px rgba(20,24,32,0.25)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            {/* Cabecera del modal */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
               <div>
-                <h3 style={{ margin: 0, color: '#1f2430' }}>
-                  Registro de auditoría — {detalleRegistro.entidad} ({detalleRegistro.accion})
+                <h3 style={{ margin: 0, color: '#1f2430', fontSize: '1.2rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FileText size={20} color="#3f6c52" aria-hidden="true" />
+                  Detalle del Registro de Auditoría
                 </h3>
-                <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
-                  Registrado el {new Date(detalleRegistro.fechaHora).toLocaleString()} por {detalleRegistro.usuarioNombre || 'Sistema'}
+                <span style={{ fontSize: '0.8rem', color: '#7c8592', display: 'block', marginTop: '4px' }}>
+                  {describirAccion(detalleRegistro)}
                 </span>
               </div>
               <button
                 onClick={() => setDetalleRegistro(null)}
-                style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#7c8592' }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#7c8592', padding: '4px' }}
+                aria-label="Cerrar modal"
               >
-                ✕
+                <X size={20} />
               </button>
             </div>
 
-            <p style={{ margin: '0 0 14px', fontSize: '0.78rem', color: '#7c8592' }}>
-              Los identificadores internos de la base de datos se omiten de esta vista por seguridad.
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-              {/* Valor Anterior */}
-              <div style={{ background: '#fcf8f7', border: '1px solid #f3c9c4', borderRadius: '10px', padding: '14px' }}>
-                <strong style={{ fontSize: '0.8rem', color: '#d1453b', display: 'block', marginBottom: '8px' }}>
-                  <ArrowLeft size={14} aria-hidden="true" /> VALOR ANTERIOR (Previo a la acción)
-                </strong>
-                {detalleRegistro.valorAnterior ? (
-                  <pre style={{ margin: 0, fontSize: '0.75rem', color: '#1f2430', whiteSpace: 'pre-wrap', maxHeight: '300px', overflowY: 'auto' }}>
-                    {JSON.stringify(omitirIdentificadores(detalleRegistro.valorAnterior), null, 2)}
-                  </pre>
-                ) : (
-                  <span style={{ fontSize: '0.78rem', color: '#a3aab5', fontStyle: 'italic' }}>
-                    Sin valor previo (Registro nuevo / Creación)
-                  </span>
-                )}
+            {/* Metadatos en formato tarjeta (similar a traslados caniles) */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '12px',
+              background: '#f8fafc',
+              padding: '14px 16px',
+              borderRadius: '12px',
+              border: '1px solid #e9eaed',
+              marginBottom: '20px'
+            }}>
+              <div>
+                <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: '800', color: '#7c8592', textTransform: 'uppercase' }}>
+                  Fecha y Hora
+                </span>
+                <div style={{ fontSize: '0.86rem', color: '#1f2430', marginTop: '2px', fontWeight: '600' }}>
+                  {new Date(detalleRegistro.fechaHora).toLocaleString('es-CL')}
+                </div>
               </div>
 
-              {/* Valor Nuevo */}
-              <div style={{ background: '#f5f9f6', border: '1px solid #c9dfcd', borderRadius: '10px', padding: '14px' }}>
-                <strong style={{ fontSize: '0.8rem', color: '#2f5540', display: 'block', marginBottom: '8px' }}>
-                  <ArrowRight size={14} aria-hidden="true" /> NUEVO VALOR REGISTRADO
-                </strong>
-                {detalleRegistro.valorNuevo ? (
-                  <pre style={{ margin: 0, fontSize: '0.75rem', color: '#1f2430', whiteSpace: 'pre-wrap', maxHeight: '300px', overflowY: 'auto' }}>
-                    {JSON.stringify(omitirIdentificadores(detalleRegistro.valorNuevo), null, 2)}
-                  </pre>
-                ) : (
-                  <span style={{ fontSize: '0.78rem', color: '#a3aab5', fontStyle: 'italic' }}>
-                    Sin nuevo valor
-                  </span>
-                )}
+              <div>
+                <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: '800', color: '#7c8592', textTransform: 'uppercase' }}>
+                  Usuario Responsable
+                </span>
+                <div style={{ fontSize: '0.86rem', color: '#1f2430', marginTop: '2px', fontWeight: '600' }}>
+                  {detalleRegistro.usuarioNombre || 'Sistema'}
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#7c8592' }}>
+                  {detalleRegistro.usuarioEmail || 'Automático'}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: '800', color: '#7c8592', textTransform: 'uppercase' }}>
+                  Entidad
+                </span>
+                <div style={{ fontSize: '0.86rem', color: '#1f2430', marginTop: '2px', fontWeight: '600' }}>
+                  {detalleRegistro.entidad}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: '800', color: '#7c8592', textTransform: 'uppercase' }}>
+                  Tipo de Acción
+                </span>
+                <div style={{ marginTop: '2px' }}>
+                  {(() => {
+                    const badge = accionColor[detalleRegistro.accion] || { bg: '#e9eaed', color: '#7c8592', label: detalleRegistro.accion };
+                    return (
+                      <span style={{
+                        fontSize: '0.72rem', fontWeight: '800', padding: '3px 8px', borderRadius: '6px',
+                        background: badge.bg, color: badge.color, textTransform: 'uppercase'
+                      }}>
+                        {badge.label}
+                      </span>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            {/* Comparativa estructurada en lenguaje humano */}
+            <h4 style={{ fontSize: '0.94rem', fontWeight: '800', color: '#1f2430', margin: '0 0 12px' }}>
+              Comparativa de Cambios y Valores
+            </h4>
+
+            {(() => {
+              const campos = obtenerCamposRelevantes(detalleRegistro.valorAnterior, detalleRegistro.valorNuevo);
+
+              if (campos.length === 0) {
+                return (
+                  <div style={{ padding: '24px', textAlign: 'center', background: '#f8fafc', borderRadius: '10px', color: '#7c8592', fontSize: '0.86rem' }}>
+                    No hay campos comparables registrados para esta acción.
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ border: '1px solid #e9eaed', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
+                        <th style={{ padding: '10px 14px', width: '28%', fontWeight: '800' }}>Campo / Atributo</th>
+                        <th style={{ padding: '10px 14px', width: '36%', color: '#b91c1c', fontWeight: '800' }}>
+                          <ArrowLeft size={13} style={{ verticalAlign: 'text-bottom', marginRight: '4px' }} />
+                          Valor Anterior
+                        </th>
+                        <th style={{ padding: '10px 14px', width: '36%', color: '#2f5540', fontWeight: '800' }}>
+                          <ArrowRight size={13} style={{ verticalAlign: 'text-bottom', marginRight: '4px' }} />
+                          Valor Nuevo
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {campos.map((campo) => {
+                        const valAnt = detalleRegistro.valorAnterior ? detalleRegistro.valorAnterior[campo] : null;
+                        const valNue = detalleRegistro.valorNuevo ? detalleRegistro.valorNuevo[campo] : null;
+
+                        const huboCambio = JSON.stringify(valAnt) !== JSON.stringify(valNue);
+
+                        return (
+                          <tr
+                            key={campo}
+                            style={{
+                              borderBottom: '1px solid #f1f5f9',
+                              background: huboCambio && detalleRegistro.accion === 'MODIFICACION' ? '#fffdf7' : 'transparent'
+                            }}
+                          >
+                            <td style={{ padding: '10px 14px', fontWeight: '700', color: '#334155' }}>
+                              {ETIQUETAS_CAMPOS[campo] || campo}
+                              {huboCambio && detalleRegistro.accion === 'MODIFICACION' && (
+                                <span style={{ marginLeft: '6px', fontSize: '0.68rem', color: '#b45309', background: '#fef3c7', padding: '1px 5px', borderRadius: '4px' }}>
+                                  Modificado
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: '10px 14px', color: '#475569', background: valAnt !== null && valAnt !== undefined ? '#fef2f2' : 'transparent' }}>
+                              {formatearValorLegible(campo, valAnt)}
+                            </td>
+                            <td style={{ padding: '10px 14px', color: '#1e293b', fontWeight: huboCambio ? '600' : 'normal', background: valNue !== null && valNue !== undefined ? '#f0fdf4' : 'transparent' }}>
+                              {formatearValorLegible(campo, valNue)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+
+            {/* Pie de modal */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '10px' }}>
               <button
+                type="button"
                 onClick={() => setDetalleRegistro(null)}
-                style={{ padding: '8px 18px', background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
+                style={{
+                  padding: '9px 20px',
+                  background: '#3f6c52',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '700',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
               >
                 Cerrar Detalle
               </button>
