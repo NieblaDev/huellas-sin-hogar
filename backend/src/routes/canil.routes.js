@@ -6,6 +6,7 @@ import {
   gestionarAprobacion,
   getTraslados,
   createCanil,
+  actualizarSectorCanil,
   deleteCanil
 } from '../controllers/canil.controller.js';
 import { authenticateToken, requireRole } from '../middlewares/auth.middleware.js';
@@ -15,7 +16,9 @@ import {
   trasladoExternoSchema,
   gestionAprobacionSchema,
   crearCanilSchema,
-  eliminarCanilSchema
+  eliminarCanilSchema,
+  canilIdParamSchema,
+  actualizarSectorCanilSchema
 } from '../schemas/canil.schema.js';
 
 const router = Router();
@@ -25,6 +28,15 @@ router.get('/', authenticateToken, getCaniles);
 
 // Crear un nuevo canil (disponible para staff autenticado)
 router.post('/', authenticateToken, validate(crearCanilSchema, 'body'), createCanil);
+
+// Actualizar el sector de un canil existente
+router.put(
+  '/:id/sector',
+  authenticateToken,
+  validate(canilIdParamSchema, 'params'),
+  validate(actualizarSectorCanilSchema, 'body'),
+  actualizarSectorCanil
+);
 
 // Eliminar un canil (disponible para staff autenticado)
 router.delete('/:id', authenticateToken, validate(eliminarCanilSchema, 'params'), deleteCanil);

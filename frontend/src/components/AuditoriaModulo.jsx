@@ -94,11 +94,31 @@ export default function AuditoriaModulo({ user }) {
     if (item.entidad === 'Animal') {
       return nombre
         ? `${accion} de la ficha del animal: ${nombre}`
-        : `${accion} de ficha animal #${item.entidadId ?? '—'}`;
+        : `${accion} de ficha de animal`;
     }
     return nombre
       ? `${accion} de registro en ${item.entidad} — ${nombre}`
-      : `${accion} de registro en ${item.entidad} #${item.entidadId ?? '—'}`;
+      : `${accion} de registro en ${item.entidad}`;
+  };
+
+  // Evita exponer identificadores internos de la base de datos en el diff visual.
+  const limpiarTextoConIdentificadores = (texto) => String(texto)
+    .replace(/#\s*\d+/g, '')
+    .replace(/\bID\s*(?:Ficha|Solicitud|Registro|Animal|Canil)\s*:?\s*\d+/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  const omitirIdentificadores = (valor) => {
+    if (Array.isArray(valor)) return valor.map(omitirIdentificadores);
+    if (valor && typeof valor === 'object') {
+      return Object.fromEntries(
+        Object.entries(valor)
+          .filter(([clave]) => !/(^id$|ids?$)/i.test(clave))
+          .map(([clave, contenido]) => [clave, omitirIdentificadores(contenido)])
+      );
+    }
+    if (typeof valor === 'string') return limpiarTextoConIdentificadores(valor);
+    return valor;
   };
 
   const auditoriasFiltradas = auditorias.filter(item => tabAccion === 'TODAS' || item.accion === tabAccion);
@@ -193,6 +213,7 @@ export default function AuditoriaModulo({ user }) {
             <option value="Inventario">Inventario / Insumos</option>
             <option value="Canil">Caniles / Espacios</option>
             <option value="Traslado">Traslados</option>
+            <option value="Usuario">Usuarios / Perfiles</option>
           </select>
         </div>
 
@@ -257,20 +278,19 @@ export default function AuditoriaModulo({ user }) {
                 <th style={{ padding: '12px 16px' }}>Entidad Afectada</th>
                 <th style={{ padding: '12px 16px' }}>Acción</th>
                 <th style={{ padding: '12px 16px' }}>Descripción de la Acción</th>
-                <th style={{ padding: '12px 16px' }}>ID Registro</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center' }}>Comparativa de Valores</th>
               </tr>
             </thead>
             <tbody>
               {cargando ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '30px', color: '#7c8592' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#7c8592' }}>
                     Cargando bitácora de auditoría...
                   </td>
                 </tr>
               ) : auditoriasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '30px', color: '#a3aab5' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#a3aab5' }}>
                     No se encontraron registros que coincidan con los filtros aplicados.
                   </td>
                 </tr>
@@ -302,9 +322,6 @@ export default function AuditoriaModulo({ user }) {
                       </td>
                       <td style={{ padding: '12px 16px', color: '#1f2430' }}>
                         {describirAccion(item)}
-                      </td>
-                      <td style={{ padding: '12px 16px', color: '#7c8592' }}>
-                        #{item.entidadId || '—'}
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                         <button
@@ -339,7 +356,7 @@ export default function AuditoriaModulo({ user }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <h3 style={{ margin: 0, color: '#1f2430' }}>
-                  Auditoría #{detalleRegistro.id} — {detalleRegistro.entidad} ({detalleRegistro.accion})
+                  Registro de auditoría — {detalleRegistro.entidad} ({detalleRegistro.accion})
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
                   Registrado el {new Date(detalleRegistro.fechaHora).toLocaleString()} por {detalleRegistro.usuarioNombre || 'Sistema'}
@@ -353,6 +370,10 @@ export default function AuditoriaModulo({ user }) {
               </button>
             </div>
 
+            <p style={{ margin: '0 0 14px', fontSize: '0.78rem', color: '#7c8592' }}>
+              Los identificadores internos de la base de datos se omiten de esta vista por seguridad.
+            </p>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
               {/* Valor Anterior */}
               <div style={{ background: '#fcf8f7', border: '1px solid #f3c9c4', borderRadius: '10px', padding: '14px' }}>
@@ -361,7 +382,7 @@ export default function AuditoriaModulo({ user }) {
                 </strong>
                 {detalleRegistro.valorAnterior ? (
                   <pre style={{ margin: 0, fontSize: '0.75rem', color: '#1f2430', whiteSpace: 'pre-wrap', maxHeight: '300px', overflowY: 'auto' }}>
-                    {JSON.stringify(detalleRegistro.valorAnterior, null, 2)}
+                    {JSON.stringify(omitirIdentificadores(detalleRegistro.valorAnterior), null, 2)}
                   </pre>
                 ) : (
                   <span style={{ fontSize: '0.78rem', color: '#a3aab5', fontStyle: 'italic' }}>
@@ -377,7 +398,7 @@ export default function AuditoriaModulo({ user }) {
                 </strong>
                 {detalleRegistro.valorNuevo ? (
                   <pre style={{ margin: 0, fontSize: '0.75rem', color: '#1f2430', whiteSpace: 'pre-wrap', maxHeight: '300px', overflowY: 'auto' }}>
-                    {JSON.stringify(detalleRegistro.valorNuevo, null, 2)}
+                    {JSON.stringify(omitirIdentificadores(detalleRegistro.valorNuevo), null, 2)}
                   </pre>
                 ) : (
                   <span style={{ fontSize: '0.78rem', color: '#a3aab5', fontStyle: 'italic' }}>

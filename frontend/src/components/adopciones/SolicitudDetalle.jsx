@@ -36,7 +36,7 @@ export default function SolicitudDetalle({ id }) {
     finally { setEliminando(false); }
   };
   return <article className="adopciones-card">
-    <h3>Solicitud #{solicitud.id} · {ESTADOS[solicitud.estado]}</h3>
+    <h3>Solicitud de adopción · {ESTADOS[solicitud.estado]}</h3>
     <SolicitudProgreso solicitud={solicitud} />
     {mensaje && <p role="status" className="adopciones-success">{mensaje}</p>}
     {errorAccion && <p role="alert" className="adopciones-error">{errorAccion}</p>}
@@ -58,7 +58,7 @@ export default function SolicitudDetalle({ id }) {
         <dt>Dirección</dt><dd>{postulante.direccion}</dd>
       </dl></div>
       <div><h4>Registro de solicitud</h4><dl>
-        <dt>Animal</dt><dd>{solicitud.animal.nombre} · {solicitud.animal.especie} · #{solicitud.animal.id}</dd>
+        <dt>Animal</dt><dd>{solicitud.animal.nombre} · {solicitud.animal.especie}</dd>
         <dt>Fecha</dt><dd>{fechaLocal(solicitud.creadoEn)}</dd>
         <dt>Responsable</dt><dd>{solicitud.registradoPor.nombre}</dd>
         <dt>Motivación y condiciones del hogar</dt><dd>{solicitud.motivacion}</dd>

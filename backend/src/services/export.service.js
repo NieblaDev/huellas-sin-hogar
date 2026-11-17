@@ -289,7 +289,7 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
   ops.push('BT /F2 17 Tf 40 812 Td (HUELLAS SIN HOGAR - EXPEDIENTE Y FICHA DEL ANIMAL) Tj ET');
   ops.push(
     `BT /F1 9.5 Tf 40 794 Td (${escapePdfText(
-      `Documento Oficial de Registro Clinico y Trazabilidad | ID Ficha: #${animal.id}`
+      'Documento Oficial de Registro Clinico y Trazabilidad'
     )}) Tj ET`
   );
   ops.push(
@@ -466,7 +466,7 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
     for (const ad of adopciones.slice(0, 4)) {
       if (y < 65) break;
       const fechaAd = ad.fecha ? new Date(ad.fecha).toLocaleDateString('es-CL') : 'N/A';
-      const lineaAnonima = `Solicitud #${ad.id} | Postulante: [Informacion de contacto protegida] | Etapa: ${ad.etapa} | Fecha: ${fechaAd} | Devolucion: ${
+      const lineaAnonima = `Solicitud de adopcion | Postulante: [Informacion de contacto protegida] | Etapa: ${ad.etapa} | Fecha: ${fechaAd} | Devolucion: ${
         ad.devolucion ? 'SI' : 'NO'
       }`;
       ops.push('0.12 0.14 0.19 rg');
@@ -772,7 +772,7 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
     const filas = [];
     const addRow = (cols) => filas.push(cols.map(escapeCsvCell).join(','));
     addRow(['HUELLAS SIN HOGAR - EXPEDIENTE Y FICHA DEL ANIMAL']);
-    addRow(['ID Ficha', animal.id, 'Nombre', animal.nombre, 'Causal de Ingreso', tipoIngreso]);
+    addRow(['Nombre', animal.nombre, 'Causal de Ingreso', tipoIngreso]);
     addRow(['Especie', animal.especie, 'Sexo', animal.sexo, 'Edad Aproximada', animal.edad || 'Desconocida']);
     addRow(['Raza', animal.raza || 'Desconocida', 'Peso (kg)', animal.peso ?? 0, 'Microchip', animal.chip || 'Sin chip']);
     addRow(['Estado Salud', animal.estadoSalud, 'Esterilización', animal.esterilizacion || 'Desconocido', 'Comportamiento', animal.comportamiento || 'Por evaluar']);
@@ -781,10 +781,9 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
     addRow(['Historial Médico / Notas Clínicas', notaClinica]);
     filas.push('');
     addRow(['TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (INFORMACIÓN DE CONTACTO DE POSTULANTES PROTEGIDA)']);
-    addRow(['ID Solicitud', 'Postulante', 'Etapa', 'Devolución Previa', 'Fecha']);
+    addRow(['Postulante', 'Etapa', 'Devolución Previa', 'Fecha']);
     for (const ad of animal.adopciones || []) {
       addRow([
-        ad.id,
         'Información de contacto no incluida por protección de datos',
         ad.etapa,
         ad.devolucion ? 'SÍ' : 'NO',
@@ -792,7 +791,7 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
       ]);
     }
     bufferOrContent = Buffer.from('\uFEFF' + filas.join('\r\n'), 'utf-8');
-    filename = `ficha_animal_${safeName}_${animal.id}.csv`;
+    filename = `ficha_animal_${safeName}.csv`;
     contentType = 'text/csv; charset=utf-8';
   } else {
     bufferOrContent = construirBufferPDF({
@@ -802,11 +801,11 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
       usuario: user,
       fechaGeneracion
     });
-    filename = `ficha_animal_${safeName}_${animal.id}.pdf`;
+    filename = `ficha_animal_${safeName}.pdf`;
     contentType = 'application/pdf';
   }
 
-  const recursoExportado = `Ficha del Animal #${animal.id} - ${animal.nombre} (${formato})`;
+  const recursoExportado = `Ficha del animal ${animal.nombre} (${formato})`;
 
   // Registrar evento de exportación en la bitácora de auditoría
   await registrarAuditoria({
@@ -832,7 +831,7 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
   const notificacion = await notificarPersonalRefugio({
     tipo: `EXPORTACION_${formato}`,
     titulo: `Ficha del animal (${formato}) descargada: ${animal.nombre}`,
-    mensaje: `${user?.nombre || 'Usuario'} (${user?.rol}) descargó la ficha del animal ${animal.nombre} (#${animal.id}) en formato ${formato}. Por protección de datos, la información de contacto de los postulantes no se incluye.`,
+    mensaje: `${user?.nombre || 'Usuario'} (${user?.rol}) descargó la ficha del animal ${animal.nombre} en formato ${formato}. Por protección de datos, la información de contacto de los postulantes no se incluye.`,
     destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
     usuario: user,
     metadata: {
@@ -1066,7 +1065,6 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
   if (incluirIngresos || incluirCenso) {
     addRow(['DETALLE DE INGRESOS Y CENSO DE POBLACIÓN ANIMAL']);
     addRow([
-      'ID',
       'Nombre',
       'Causal Ingreso',
       'Especie',
@@ -1090,7 +1088,6 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
       const causal = matchCausal ? matchCausal[1] : 'Rescate';
       const notaLimpia = (a.nota || '').replace(REGEX_TIPO_INGRESO, '').trim();
       addRow([
-        a.id,
         a.nombre,
         causal,
         a.especie,
@@ -1116,10 +1113,9 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
   if (incluirAdopciones || incluirDevoluciones) {
     const listaAdop = incluirDevoluciones && !incluirAdopciones ? devolucionesList : adopciones;
     addRow(['CONSOLIDADO DE ADOPCIONES Y DEVOLUCIONES (SIN DATOS PERSONALES DE POSTULANTES)']);
-    addRow(['ID Solicitud', 'Animal', 'Especie', 'Postulante', 'Etapa del Proceso', 'Devolución Registrada', 'Fecha Solicitud']);
+    addRow(['Animal', 'Especie', 'Postulante', 'Etapa del Proceso', 'Devolución Registrada', 'Fecha Solicitud']);
     for (const ad of listaAdop) {
       addRow([
-        ad.id,
         ad.animal?.nombre || '',
         ad.animal?.especie || '',
         'Información de contacto no incluida por protección de datos',
@@ -1134,10 +1130,9 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
   // SECCIÓN DETALLADA: ESTADO DE INSUMOS
   if (incluirInsumos) {
     addRow(['ESTADO DE INSUMOS E INVENTARIO DEL REFUGIO']);
-    addRow(['ID', 'Producto', 'Categoría', 'Stock Actual', 'Stock Mínimo', 'Estado Abastecimiento']);
+    addRow(['Producto', 'Categoría', 'Stock Actual', 'Stock Mínimo', 'Estado Abastecimiento']);
     for (const ins of insumos) {
       addRow([
-        ins.id,
         ins.nombre,
         ins.categoria,
         ins.stock,

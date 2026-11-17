@@ -45,12 +45,12 @@ export default function SolicitudesLista({ onVer }) {
     {resultado && <>
       <p role="status">{resultado.total} solicitud(es) encontrada(s).</p>
       {resultado.solicitudes.length > 0 && <div className="adopciones-scroll"><table>
-        <thead><tr><th scope="col">N.º / Fecha</th><th scope="col">Postulante</th><th scope="col">Animal</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead>
+        <thead><tr><th scope="col">Fecha</th><th scope="col">Postulante</th><th scope="col">Animal</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead>
         <tbody>{resultado.solicitudes.map(solicitud => <tr key={solicitud.id}>
-          <td>#{solicitud.id}<br />{fechaLocal(solicitud.creadoEn)}</td>
+          <td>{fechaLocal(solicitud.creadoEn)}</td>
           <td>{solicitud.datosPostulante.nombre}<br />{solicitud.postulante.identificacion}</td>
           <td>{solicitud.animal.nombre}</td><td>{ESTADOS[solicitud.estado]}</td>
-          <td><button onClick={() => onVer(solicitud.id)} aria-label={`Ver solicitud ${solicitud.id}`}>Ver detalle</button></td>
+          <td><button onClick={() => onVer(solicitud.id)} aria-label={`Ver detalle de la solicitud de ${solicitud.animal.nombre}`}>Ver detalle</button></td>
         </tr>)}</tbody>
       </table></div>}
       <div className="adopciones-toolbar" style={{ marginTop: 16 }}>

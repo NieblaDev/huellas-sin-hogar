@@ -56,6 +56,21 @@ export const createCanil = async (req, res) => {
   }
 };
 
+export const actualizarSectorCanil = async (req, res) => {
+  try {
+    const ip = req.ip || req.connection?.remoteAddress;
+    const { id } = req.params;
+    const resultado = await canilService.actualizarSectorCanil(
+      { canilId: id, sector: req.body.sector },
+      req.user,
+      ip
+    );
+    res.json(resultado);
+  } catch (error) {
+    res.status(400).json({ error: error.message || 'Error al actualizar el sector del canil' });
+  }
+};
+
 export const deleteCanil = async (req, res) => {
   try {
     const ip = req.ip || req.connection?.remoteAddress;

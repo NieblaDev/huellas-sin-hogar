@@ -10,6 +10,7 @@ import SaludModulo from './components/SaludModulo';
 import AdopcionesModulo from './components/adopciones/AdopcionesModulo';
 import InventarioModulo from './components/InventarioModulo';
 import VoluntariosModulo from './components/VoluntariosModulo';
+import PerfilesUsuariosModulo from './components/PerfilesUsuariosModulo';
 import Logo from './components/Logo';
 import {
   BarChart3,
@@ -20,7 +21,8 @@ import {
   House,
   Package,
   ShieldCheck,
-  Syringe
+  Syringe,
+  Users
 } from 'lucide-react';
 import { clearStoredSession, readStoredSession } from './utils/session';
 import './styles/portal-controls.css';
@@ -77,7 +79,7 @@ export default function App() {
 
   const esDirectora = user?.rol === 'DIRECTORA';
   const puedeGestionarAdopciones = ['DIRECTORA', 'ENCARGADA_ADOPCIONES'].includes(user?.rol);
-  const puedeGestionarInventario = ['DIRECTORA', 'COORDINADOR', 'VETERINARIA', 'ENCARGADA_ADOPCIONES', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
+  const puedeGestionarInventario = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
 
   return (
     <div className="portal-staff" style={{ minHeight: '100vh', background: '#f3f4f6', display: 'flex' }}>
@@ -198,6 +200,17 @@ export default function App() {
                 <Handshake size={18} aria-hidden="true" /> <span>Voluntarios y Turnos</span>
               </button>
 
+              {/* Usuarios y Perfiles — Exclusivo Dirección */}
+              {esDirectora && (
+                <button
+                  onClick={() => setActiveTab('perfiles')}
+                  aria-current={activeTab === 'perfiles' ? 'page' : undefined}
+                  className={`portal-nav-btn ${activeTab === 'perfiles' ? 'active' : ''}`}
+                >
+                  <Users size={18} aria-hidden="true" /> <span>Usuarios y Perfiles</span>
+                </button>
+              )}
+
               {/* Auditoría y Trazabilidad */}
               {esDirectora && (
                 <button
@@ -278,6 +291,10 @@ export default function App() {
 
               {activeTab === 'voluntarios' && (
                 <VoluntariosModulo user={user} />
+              )}
+
+              {activeTab === 'perfiles' && esDirectora && (
+                <PerfilesUsuariosModulo user={user} />
               )}
 
               {activeTab === 'auditoria' && esDirectora && (

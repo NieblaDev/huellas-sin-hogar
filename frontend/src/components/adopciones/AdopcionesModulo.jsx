@@ -60,13 +60,13 @@ export default function AdopcionesModulo({ user }) {
             className="portal-subtab-btn active"
             onClick={() => setVista('detalle')}
           >
-            <FileText size={15} aria-hidden="true" /> Expediente #{solicitudId}
+            <FileText size={15} aria-hidden="true" /> Expediente de adopción
           </button>
         )}
       </div>
 
       {confirmacion && <div role="status" className="adopciones-success" style={{ marginBottom: '20px' }}>
-        Solicitud #{confirmacion.solicitud.id} registrada correctamente.
+        Solicitud registrada correctamente.
         {confirmacion.alertas.map(alerta => <p key={alerta.codigo}>{alerta.mensaje}</p>)}
       </div>}
       {vista === 'lista' && <SolicitudesLista onVer={verDetalle} />}

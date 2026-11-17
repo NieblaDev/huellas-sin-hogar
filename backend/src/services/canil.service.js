@@ -327,6 +327,42 @@ export const createCanil = async ({ codigo, nombre, sector, tipo, capacidad, est
 };
 
 /**
+ * Actualizar el sector de un canil existente
+ */
+export const actualizarSectorCanil = async ({ canilId, sector }, user, ip) => {
+  const targetCanil = await prisma.canil.findUnique({
+    where: { id: Number(canilId) }
+  });
+
+  if (!targetCanil) {
+    throw new Error('El canil seleccionado no existe');
+  }
+
+  const sectorLimpio = sector.trim();
+
+  const canilActualizado = await prisma.canil.update({
+    where: { id: targetCanil.id },
+    data: { sector: sectorLimpio }
+  });
+
+  await registrarAuditoria({
+    entidad: 'Canil',
+    entidadId: targetCanil.id,
+    accion: 'MODIFICACION',
+    valorAnterior: { nombre: targetCanil.nombre, sector: targetCanil.sector },
+    valorNuevo: { nombre: canilActualizado.nombre, sector: canilActualizado.sector },
+    usuario: user,
+    ip
+  });
+
+  return {
+    success: true,
+    mensaje: `Sector del ${canilActualizado.nombre} actualizado a ${sectorLimpio}`,
+    canil: canilActualizado
+  };
+};
+
+/**
  * Eliminar un canil (solo si no tiene animal asignado)
  */
 export const deleteCanil = async ({ canilId }, user, ip) => {

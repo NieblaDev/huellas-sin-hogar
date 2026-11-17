@@ -246,7 +246,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
           <div>
             <h3 style={{ margin: 0, color: '#1f2430', fontSize: '1.2rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '7px' }}>
               {esEdicion
-                ? <><Pencil size={18} aria-hidden="true" /> Editar Ficha del Animal #{animalEditar.id}</>
+                ? <><Pencil size={18} aria-hidden="true" /> Editar ficha del animal</>
                 : <><PawPrint size={18} aria-hidden="true" /> Registro de Ingreso y Creación de Ficha del Animal</>}
             </h3>
             <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
@@ -366,7 +366,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
               <input
                 type="text"
                 required
-                placeholder="Ej: Toby, Rescate #12..."
+                placeholder="Ej: Toby, rescatado en el sector norte"
                 value={formData.nombre}
                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                 style={{ width: '100%', padding: '8px 10px', boxSizing: 'border-box', borderRadius: '7px', border: '1.5px solid #e9eaed' }}

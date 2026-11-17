@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { PawPrint } from 'lucide-react';
 
 const normalizarTexto = (valor) => String(valor ?? '')
   .toLowerCase()
@@ -47,7 +48,7 @@ function AnimalAvatar({ animal, size = 38 }) {
 
   return (
     <div style={dimensiones}>
-      <span style={{ fontSize: size >= 38 ? '1.15rem' : '0.95rem' }}>🐾</span>
+      <PawPrint size={size >= 38 ? 22 : 16} color="#7c8592" aria-hidden="true" />
     </div>
   );
 }
@@ -332,7 +333,7 @@ export default function AnimalSelect({
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             color: '#a3aab5'
           }}>
-            🐾
+            <PawPrint size={18} aria-hidden="true" />
           </div>
         )}
 
@@ -531,7 +532,7 @@ export default function AnimalSelect({
                         whiteSpace: 'nowrap'
                       }}>
                         {describirAnimal(animal)}
-                        {animal.canil ? ` · 📍 ${animal.canil.nombre}` : ' · Sin canil'}
+                        {animal.canil ? ` · ${animal.canil.nombre}` : ' · Sin canil'}
                       </div>
                     </div>
 

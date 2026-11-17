@@ -57,9 +57,9 @@ export default function SeguimientosLista({ user }) {
     {resultado && <>
       <p role="status">{resultado.total} seguimiento(s) encontrado(s).</p>
       {resultado.seguimientos.length > 0 && <div className="adopciones-scroll"><table>
-        <thead><tr><th scope="col">Seguimiento</th><th scope="col">Animal / Adoptante</th><th scope="col">Programado</th><th scope="col">Estado</th><th scope="col">Intentos</th><th scope="col">Acción</th></tr></thead>
+        <thead><tr><th scope="col">Tipo</th><th scope="col">Animal / Adoptante</th><th scope="col">Programado</th><th scope="col">Estado</th><th scope="col">Intentos</th><th scope="col">Acción</th></tr></thead>
         <tbody>{resultado.seguimientos.map(s => <tr key={s.id} className={s.alertaSinContacto ? 'seguimiento-alerta' : undefined}>
-          <td>#{s.id}<br />{TIPOS_SEGUIMIENTO[s.tipoSeguimiento]}</td>
+          <td>{TIPOS_SEGUIMIENTO[s.tipoSeguimiento]}</td>
           <td>{s.adopcion.animal.nombre}<br />{s.adopcion.postulante.nombre}</td>
           <td>{fechaLocal(s.fechaProgramada)}{s.fechaEjecucion && <><br />Realizado: {fechaLocal(s.fechaEjecucion)}</>}</td>
           <td><span className={`adopciones-badge ${s.estado.toLowerCase()}`}>{ESTADOS_SEGUIMIENTO[s.estado]}</span>
@@ -68,8 +68,8 @@ export default function SeguimientosLista({ user }) {
           <td>{s.intentosFallidos} / {s.limiteIntentos}</td>
           <td>
             {s.adopcion.devolucion && <span className="adopciones-muted">Adopción devuelta</span>}
-            {s.estado !== 'COMPLETADO' && !s.adopcion.devolucion && <button onClick={() => { setSeleccionado(s); setMensaje(''); }} aria-label={`Registrar seguimiento ${s.id}`}>Registrar / reprogramar</button>}
-            {!s.adopcion.devolucion && <button onClick={() => setDevolver(s)} aria-label={`Registrar devolución de la adopción ${s.adopcion.id}`}>Registrar devolución</button>}
+            {s.estado !== 'COMPLETADO' && !s.adopcion.devolucion && <button onClick={() => { setSeleccionado(s); setMensaje(''); }} aria-label={`Registrar seguimiento de ${s.adopcion.animal.nombre}`}>Registrar / reprogramar</button>}
+            {!s.adopcion.devolucion && <button onClick={() => setDevolver(s)} aria-label={`Registrar devolución de ${s.adopcion.animal.nombre}`}>Registrar devolución</button>}
           </td>
         </tr>)}</tbody>
       </table></div>}

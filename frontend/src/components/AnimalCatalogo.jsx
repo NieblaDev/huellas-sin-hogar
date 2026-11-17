@@ -4,9 +4,12 @@ import {
   Bell,
   ClipboardList,
   Dog,
+  DoorOpen,
+  Download,
   FileSpreadsheet,
   FileText,
   Lock,
+  Mail,
   PawPrint,
   Pencil,
   Plus,
@@ -169,7 +172,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       link.href = url;
       const safeName = (animal.nombre || 'animal').toLowerCase().replace(/[^a-z0-9]+/g, '_');
       const ext = formato.toLowerCase() === 'csv' ? 'csv' : 'pdf';
-      link.download = `ficha_animal_${safeName}_${animal.id}.${ext}`;
+      link.download = `ficha_animal_${safeName}.${ext}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -537,7 +540,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
             >
               {descargandoConsolidado
                 ? 'Generando reporte...'
-                : `⬇️ Generar y Descargar Reporte Consolidado (${configReporte.formato})`}
+                : <><Download size={15} aria-hidden="true" /> Generar y Descargar Reporte Consolidado ({configReporte.formato})</>}
             </button>
           </div>
         </form>
@@ -591,8 +594,8 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <strong style={{ fontSize: '0.92rem', color: '#1f2430' }}>
-              📬 Novedades del equipo: ingresos y descargas recientes
+            <strong style={{ fontSize: '0.92rem', color: '#1f2430', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Mail size={16} aria-hidden="true" /> Novedades del equipo: ingresos y descargas recientes
             </strong>
             <button
               type="button"
@@ -746,7 +749,9 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                         {a.especie} · {a.sexo} · {a.edad || 'Edad desconocida'}
                       </span>
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#a3aab5', fontWeight: '700' }}>#{a.id}</span>
+                    <span style={{ fontSize: '0.72rem', color: '#a3aab5', fontWeight: '700' }}>
+                      {a.chip ? 'Microchip registrado' : 'Sin microchip'}
+                    </span>
                   </div>
 
                   {/* Canil asignado en tiempo real */}
@@ -763,7 +768,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                       fontSize: '0.76rem'
                     }}
                   >
-                    <span>🚪</span>
+                    <DoorOpen size={14} aria-hidden="true" />
                     <span>
                       Ubicación: <strong>{a.canil ? `${a.canil.nombre} (${a.canil.sector})` : 'Sin canil asignado'}</strong>
                     </span>
@@ -930,7 +935,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                           borderRadius: '6px'
                         }}
                       >
-                        Ficha del Animal #{fichaSeleccionada.id} · Ingreso por {fichaSeleccionada.tipoIngreso || 'Rescate'}
+                        Ficha del animal · Ingreso por {fichaSeleccionada.tipoIngreso || 'Rescate'}
                       </span>
                       <button
                         type="button"
@@ -1041,7 +1046,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                             fontSize: '0.8rem'
                           }}
                         >
-                          <strong>Solicitud #{ad.id}</strong> — Etapa: <strong>{ad.etapa}</strong> · Devolución:{' '}
+                          <strong>Solicitud de adopción</strong> — Etapa: <strong>{ad.etapa}</strong> · Devolución:{' '}
                           <strong>{ad.devolucion ? 'Sí' : 'No'}</strong>
                         </div>
                       ))}

@@ -10,6 +10,7 @@ import cuidadosRoutes from './cuidados.routes.js';
 import saludRoutes from './salud.routes.js';
 import adopcionRoutes from './adopcion.routes.js';
 import turnoRoutes from './turno.routes.js';
+import usuarioRoutes from './usuario.routes.js';
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use('/salud', saludRoutes);
 router.use('/adopciones', adopcionRoutes);
 router.use('/turnos', turnoRoutes);
 router.use('/voluntarios', turnoRoutes);
+router.use('/usuarios', usuarioRoutes);
 
 export default router;

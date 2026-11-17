@@ -36,7 +36,7 @@ export default function DevolucionModal({ adopcionId, animal, postulante, onClos
         <div className="adopciones-toolbar"><button className="primary" onClick={onDone}>Entendido</button></div>
       </> : <form onSubmit={guardar}>
         <fieldset disabled={guardando}>
-          <p className="adopciones-muted">Adopción #{adopcionId} · {animal} · Adoptante: {postulante}</p>
+          <p className="adopciones-muted">Devolución de la adopción de {animal} · Adoptante: {postulante}</p>
           <p className="adopciones-alert">Al confirmar, {animal} reingresará al refugio conservando su ficha e historial, y la devolución quedará en los antecedentes de {postulante}.</p>
           <label>Fecha y hora de la devolución<input type="datetime-local" step="1" required value={fecha} onChange={e => setFecha(e.target.value)} /></label>
           <label>Motivo de la devolución<textarea required minLength={5} maxLength={4000} value={motivo} onChange={e => setMotivo(e.target.value)} /></label>

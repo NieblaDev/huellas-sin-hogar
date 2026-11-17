@@ -43,7 +43,7 @@ export default function SeguimientoAcciones({ seguimiento, user, onDone, onCance
 
   return <form onSubmit={guardar} className="adopciones-card seguimiento-panel" aria-label="Registrar seguimiento">
     <fieldset disabled={guardando}>
-      <legend>Seguimiento #{seguimiento.id} · {seguimiento.adopcion.animal.nombre}</legend>
+      <legend>Seguimiento de {seguimiento.adopcion.animal.nombre}</legend>
       {seguimiento.alertaSinContacto && <p className="adopciones-error" role="alert">Este caso está «Sin contacto»: se agotaron los {seguimiento.limiteIntentos} intentos. Si logras contactar al adoptante, puedes registrar el resultado.</p>}
       <div className="adopciones-grid">
         <label>¿Qué vas a registrar?

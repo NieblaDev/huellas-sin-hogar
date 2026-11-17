@@ -52,7 +52,7 @@ export default function SolicitudEtapas({ solicitud, onUpdated }) {
     <h4>{disponibles.length ? 'Actualizar progreso de la adopción' : 'Historial del proceso de adopción'}</h4>
     {solicitud.estado === 'APROBADA' && <p>Aprobada, pendiente de entrega. Confirma la adopción exitosa cuando el animal haya sido entregado al adoptante.</p>}
     {solicitud.visitaOmitida && <p className="adopciones-alert">Visita omitida: {solicitud.motivoOmisionVisita}</p>}
-    {solicitud.adopcion && <p className="adopciones-success">Adopción #{solicitud.adopcion.id} concretada el {fechaLocal(solicitud.adopcion.fecha)} por {solicitud.adopcion.responsable?.nombre || 'Responsable no registrado'}. Estado del animal: {solicitud.animal.estadoAdopcion === 'ADOPTADO' ? 'Adoptado' : 'En refugio'}.</p>}
+    {solicitud.adopcion && <p className="adopciones-success">Adopción concretada el {fechaLocal(solicitud.adopcion.fecha)} por {solicitud.adopcion.responsable?.nombre || 'Responsable no registrado'}. Estado del animal: {solicitud.animal.estadoAdopcion === 'ADOPTADO' ? 'Adoptado' : 'En refugio'}.</p>}
     {disponibles.length > 0 && <form onSubmit={guardar}>
       <fieldset disabled={guardando}>
         <div className="adopciones-grid">

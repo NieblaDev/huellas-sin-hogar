@@ -351,7 +351,7 @@ export const updateAnimal = async (id, data, user, ip) => {
   const notificacion = await notificarPersonalRefugio({
     tipo: 'ACTUALIZACION_ANIMAL',
     titulo: `Ficha del animal actualizada: ${actualizado.nombre}`,
-    mensaje: `${user?.nombre || 'Miembro del equipo'} (${user?.rol || 'Staff'}) actualizó la ficha del animal ${actualizado.nombre} (#${actualizado.id}).`,
+    mensaje: `${user?.nombre || 'Miembro del equipo'} (${user?.rol || 'Staff'}) actualizó la ficha del animal ${actualizado.nombre}.`,
     destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
     usuario: user,
     metadata: {

@@ -33,3 +33,11 @@ export const crearCanilSchema = z.object({
 export const eliminarCanilSchema = z.object({
   id: z.string().regex(/^\d+$/, 'ID de canil inválido').transform(Number)
 });
+
+export const canilIdParamSchema = z.object({
+  id: z.string().regex(/^\d+$/, 'ID de canil inválido').transform(Number)
+});
+
+export const actualizarSectorCanilSchema = z.object({
+  sector: z.string().trim().min(1, 'El sector es obligatorio').max(100, 'El sector no puede superar los 100 caracteres')
+});
