@@ -832,36 +832,6 @@ export default function CanilesModulo({ user }) {
       {/* CONTENIDO SEGÚN TAB */}
       {tab === 'mapa' && (
         <div>
-          {/* KPI CARDS RESUMEN */}
-          {resumen && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '24px' }}>
-              <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 20px', border: '1px solid #e9eaed' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#7c8592', textTransform: 'uppercase' }}>Caniles Libres</span>
-                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#3f6c52', marginTop: '4px' }}>{resumen.libres}</div>
-                <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>Disponibles para ingreso</span>
-              </div>
-              <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 20px', border: '1px solid #e9eaed' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#7c8592', textTransform: 'uppercase' }}>Caniles Ocupados</span>
-                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#b37416', marginTop: '4px' }}>{resumen.ocupados}</div>
-                <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>Con animal alojado</span>
-              </div>
-              <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 20px', border: '1px solid #e9eaed' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#7c8592', textTransform: 'uppercase' }}>En Cuarentena</span>
-                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#d1453b', marginTop: '4px' }}>{resumen.cuarentena}</div>
-                <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>Observación médica</span>
-              </div>
-              <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 20px', border: '1px solid #e9eaed' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#7c8592', textTransform: 'uppercase' }}>Ocupación Total</span>
-                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: resumen.alertaSobrecupo ? '#d1453b' : '#1f2430', marginTop: '4px' }}>
-                  {resumen.porcentajeOcupacion}%
-                </div>
-                <span style={{ fontSize: '0.78rem', color: resumen.alertaSobrecupo ? '#d1453b' : '#7c8592' }}>
-                  {resumen.alertaSobrecupo ? <><TriangleAlert size={13} aria-hidden="true" /> &gt; 90% (Sobrecupo)</> : 'Operación normal'}
-                </span>
-              </div>
-            </div>
-          )}
-
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.9rem', color: '#7c8592', fontWeight: '600' }}>
               Haz clic en cualquier canil para reubicar, asignar o liberar un animal.
