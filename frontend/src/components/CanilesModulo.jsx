@@ -1096,7 +1096,7 @@ export default function CanilesModulo({ user }) {
 
       {/* TAB SOLICITAR TRASLADO EXTERNO */}
       {tab === 'solicitar' && (
-        <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e9eaed', padding: '26px', maxWidth: '640px', margin: '0 auto' }}>
+        <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e9eaed', padding: '26px', margin: '0 auto' }}>
           <h3 style={{ margin: '0 0 8px', color: '#1f2430' }}>Solicitar Traslado Externo</h3>
           <p style={{ color: '#7c8592', fontSize: '0.84rem', margin: '0 0 18px' }}>
             Para traslados hacia protectoras aliadas u hogares temporales. Requiere aprobación obligatoria por la Directora.

@@ -298,18 +298,6 @@ export default function InventarioModulo({ user }) {
         >
           <Siren size={15} aria-hidden="true" /> Alertas de Stock ({alertas.totalAlertas || 0})
         </button>
-        <button
-          onClick={() => abrirModalMovimiento()}
-          className="portal-subtab-btn"
-        >
-          <ArrowLeftRight size={15} aria-hidden="true" /> Registrar Movimiento
-        </button>
-        <button
-          onClick={abrirModalCrearInsumo}
-          className="portal-subtab-btn"
-        >
-          <Plus size={15} aria-hidden="true" /> Nuevo Insumo
-        </button>
       </div>
 
       {/* TARJETAS RESUMEN OPERACIONAL */}
@@ -332,11 +320,6 @@ export default function InventarioModulo({ user }) {
           <div style={{ fontSize: '0.78rem', color: '#7c8592' }}>Vencen en los próximos 30 días</div>
         </div>
 
-        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #c7dfc7', padding: '18px' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#3f6c52' }}>Control de Saldo</div>
-          <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#3f6c52', marginTop: '10px' }}>Atómico 100%</div>
-          <div style={{ fontSize: '0.78rem', color: '#7c8592' }}>Prohibición de saldos negativos activa</div>
-        </div>
       </div>
 
       {/* BARRA DE FILTROS Y BÚSQUEDA */}

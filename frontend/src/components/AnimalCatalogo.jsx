@@ -14,7 +14,8 @@ import {
   Pencil,
   Plus,
   Search,
-  Stethoscope
+  Stethoscope,
+  Trash2
 } from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
 
@@ -23,11 +24,11 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   const [cargando, setCargando] = useState(true);
   const [search, setSearch] = useState('');
   const [especie, setEspecie] = useState('');
-  const [tabAnimales, setTabAnimales] = useState('catalogo'); // 'catalogo' | 'reportes' | 'notificaciones'
+  const [tabAnimales, setTabAnimales] = useState('catalogo'); // 'catalogo' | 'reportes'
 
   // Notificaciones del personal del refugio
   const [notificaciones, setNotificaciones] = useState([]);
-  const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
+  const [notificacionesOpen, setNotificacionesOpen] = useState(false);
   const [avisoReciente, setAvisoReciente] = useState(null);
 
   // Modal de Ficha del Animal y Exportación de Expediente
@@ -37,7 +38,6 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   const [descargandoId, setDescargandoId] = useState(null);
 
   // Panel de Configuración de Reportes Consolidados
-  const [mostrarConfigReporte, setMostrarConfigReporte] = useState(false);
   const [descargandoConsolidado, setDescargandoConsolidado] = useState(false);
   const [configReporte, setConfigReporte] = useState({
     fechaDesde: '',
@@ -246,7 +246,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   };
 
   const handleDelete = async (id, nombre, e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     if (!window.confirm(`¿Deseas dar de baja a ${nombre}? Su ficha dejará de mostrarse en el catálogo, pero su historial se conservará.`)) return;
 
     try {
@@ -256,6 +256,9 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       });
       if (!res.ok) throw new Error('No pudimos dar de baja al animal. Inténtalo nuevamente.');
       setAnimales(animales.filter((a) => a.id !== id));
+      if (fichaSeleccionada?.id === id) {
+        setFichaSeleccionada(null);
+      }
     } catch (err) {
       alert(err.message);
     }
@@ -295,6 +298,137 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
           >
             <Plus size={16} aria-hidden="true" /> Registrar ingreso de animal
           </button>
+
+          {/* Campanita de novedades y notificaciones */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setNotificacionesOpen((v) => !v)}
+              aria-label="Novedades y notificaciones"
+              aria-expanded={notificacionesOpen}
+              title="Novedades y notificaciones del refugio"
+              style={{
+                position: 'relative',
+                background: notificacionesOpen ? '#eef3ec' : '#fff',
+                border: `1.5px solid ${notificacionesOpen ? '#3f6c52' : '#e9eaed'}`,
+                borderRadius: '8px',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <Bell size={20} aria-hidden="true" />
+              {notificaciones.length > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    minWidth: '18px',
+                    height: '18px',
+                    padding: '0 4px',
+                    borderRadius: '9px',
+                    background: '#d1453b',
+                    color: '#fff',
+                    fontSize: '0.68rem',
+                    fontWeight: '800',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  {notificaciones.length}
+                </span>
+              )}
+            </button>
+
+            {notificacionesOpen && (
+              <>
+                <div
+                  onClick={() => setNotificacionesOpen(false)}
+                  style={{ position: 'fixed', inset: 0, zIndex: 400 }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '48px',
+                    right: 0,
+                    width: 'min(400px, calc(100vw - 48px))',
+                    background: '#fff',
+                    border: '1px solid #e9eaed',
+                    borderRadius: '14px',
+                    boxShadow: '0 12px 32px rgba(20,24,32,0.14)',
+                    zIndex: 401,
+                    overflow: 'hidden'
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '14px 16px',
+                      borderBottom: '1px solid #f0f1f3'
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '0.78rem',
+                        fontWeight: '800',
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                        color: '#1f2430',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Mail size={15} aria-hidden="true" /> Novedades y Notificaciones
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#7c8592', fontWeight: '600' }}>
+                      {notificaciones.length} reciente(s)
+                    </span>
+                  </div>
+
+                  <div style={{ maxHeight: '340px', overflowY: 'auto', padding: '10px' }}>
+                    {notificaciones.length === 0 ? (
+                      <div style={{ padding: '24px 12px', textAlign: 'center', color: '#7c8592', fontSize: '0.84rem' }}>
+                        <Bell size={24} aria-hidden="true" style={{ marginBottom: '6px', opacity: 0.5 }} />
+                        <div>No hay notificaciones recientes.</div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {notificaciones.map((n) => (
+                          <div
+                            key={n.id}
+                            style={{
+                              padding: '10px 12px',
+                              background: n.tipo === 'INGRESO_ANIMAL' ? '#f5f9f6' : '#edeffb',
+                              borderLeft: `4px solid ${n.tipo === 'INGRESO_ANIMAL' ? '#3f6c52' : '#4550c0'}`,
+                              borderRadius: '8px',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                              <strong style={{ color: '#1f2430' }}>{n.titulo}</strong>
+                              <span style={{ fontSize: '0.7rem', color: '#7c8592', whiteSpace: 'nowrap' }}>
+                                {new Date(n.fechaHora).toLocaleDateString('es-CL')}
+                              </span>
+                            </div>
+                            <div style={{ color: '#555e6d', marginTop: '3px', fontSize: '0.78rem' }}>{n.mensaje}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -302,11 +436,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       <div className="portal-subtabs" style={{ flexShrink: 0 }}>
         <button
           type="button"
-          onClick={() => {
-            setTabAnimales('catalogo');
-            setMostrarConfigReporte(false);
-            setMostrarNotificaciones(false);
-          }}
+          onClick={() => setTabAnimales('catalogo')}
           className={`portal-subtab-btn ${tabAnimales === 'catalogo' ? 'active' : ''}`}
         >
           <PawPrint size={15} aria-hidden="true" /> Catálogo de Animales ({animales.length})
@@ -319,232 +449,13 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
               alert('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.');
               return;
             }
-            const nuevoEstado = tabAnimales === 'reportes' ? 'catalogo' : 'reportes';
-            setTabAnimales(nuevoEstado);
-            setMostrarConfigReporte(nuevoEstado === 'reportes');
-            setMostrarNotificaciones(false);
+            setTabAnimales('reportes');
           }}
           className={`portal-subtab-btn ${tabAnimales === 'reportes' ? 'active' : ''}`}
         >
           <BarChart3 size={15} aria-hidden="true" /> Reportes Consolidados (PDF/CSV) {!esDirectora && <Lock size={12} aria-label="Solo Dirección" />}
         </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            const nuevoEstado = tabAnimales === 'notificaciones' ? 'catalogo' : 'notificaciones';
-            setTabAnimales(nuevoEstado);
-            setMostrarNotificaciones(nuevoEstado === 'notificaciones');
-            setMostrarConfigReporte(false);
-          }}
-          className={`portal-subtab-btn ${tabAnimales === 'notificaciones' ? 'active' : ''}`}
-        >
-          <Bell size={15} aria-hidden="true" /> Novedades y Notificaciones
-          {notificaciones.length > 0 && (
-            <span
-              style={{
-                background: tabAnimales === 'notificaciones' ? '#fff' : '#d1453b',
-                color: tabAnimales === 'notificaciones' ? 'var(--portal-primary)' : '#fff',
-                borderRadius: '999px',
-                padding: '1px 6px',
-                fontSize: '0.72rem',
-                fontWeight: 800
-              }}
-            >
-              {notificaciones.length}
-            </span>
-          )}
-        </button>
       </div>
-
-      {/* MÓDULO DE CONFIGURACIÓN Y EXPORTACIÓN DE REPORTES CONSOLIDADOS (SOLO DIRECTORA) */}
-      {esDirectora && mostrarConfigReporte && (
-        <form
-          onSubmit={handleExportConsolidado}
-          style={{
-            background: '#fff',
-            border: '1.5px solid #c5cbf5',
-            borderRadius: '16px',
-            padding: '20px 22px',
-            marginBottom: '22px',
-            boxShadow: '0 4px 16px rgba(69,80,192,0.08)',
-            flexShrink: 0,
-            maxHeight: '45vh',
-            overflowY: 'auto'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-            <div>
-              <strong style={{ fontSize: '1rem', color: '#1f2430', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <BarChart3 size={18} aria-hidden="true" /> Reportes de gestión del refugio
-              </strong>
-              <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
-                Elige el período, el tipo de información (ingresos, adopciones, devoluciones, censo o insumos), los filtros y el formato de descarga.
-              </span>
-            </div>
-            <span
-              style={{
-                fontSize: '0.72rem',
-                fontWeight: '800',
-                background: '#fbeae8',
-                color: '#d1453b',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                border: '1px solid #f3c9c4',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-              title="Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en los documentos exportados."
-            >
-              <Lock size={12} aria-hidden="true" /> Sin datos personales de postulantes
-            </span>
-          </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-              gap: '12px',
-              marginBottom: '14px'
-            }}
-          >
-            <div>
-              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
-                Fecha Desde
-              </label>
-              <input
-                type="date"
-                value={configReporte.fechaDesde}
-                onChange={(e) => setConfigReporte({ ...configReporte, fechaDesde: e.target.value })}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', boxSizing: 'border-box', fontSize: '0.84rem' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
-                Fecha Hasta
-              </label>
-              <input
-                type="date"
-                value={configReporte.fechaHasta}
-                onChange={(e) => setConfigReporte({ ...configReporte, fechaHasta: e.target.value })}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', boxSizing: 'border-box', fontSize: '0.84rem' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
-                Tipo de Información
-              </label>
-              <select
-                value={configReporte.tipoInformacion}
-                onChange={(e) => setConfigReporte({ ...configReporte, tipoInformacion: e.target.value })}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.84rem' }}
-              >
-                <option value="TODOS">Consolidado Completo (Todos)</option>
-                <option value="INGRESOS">Balance de Ingresos</option>
-                <option value="ADOPCIONES">Balance de Adopciones</option>
-                <option value="DEVOLUCIONES">Balance de Devoluciones</option>
-                <option value="CENSO">Censo y Capacidad</option>
-                <option value="INSUMOS">Estado de Insumos</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
-                Filtro Especie
-              </label>
-              <select
-                value={configReporte.especie}
-                onChange={(e) => setConfigReporte({ ...configReporte, especie: e.target.value })}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.84rem' }}
-              >
-                <option value="">Todas las especies</option>
-                <option value="Perro">Perro (Canina)</option>
-                <option value="Gato">Gato (Felina)</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
-                Filtro Causal Ingreso
-              </label>
-              <select
-                value={configReporte.tipoIngreso}
-                onChange={(e) => setConfigReporte({ ...configReporte, tipoIngreso: e.target.value })}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.84rem' }}
-              >
-                <option value="">Todas las causales</option>
-                <option value="Rescate">Rescate</option>
-                <option value="Abandono">Abandono</option>
-                <option value="Decomiso">Decomiso</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px', textTransform: 'uppercase' }}>
-                Formato Estándar
-              </label>
-              <select
-                value={configReporte.formato}
-                onChange={(e) => setConfigReporte({ ...configReporte, formato: e.target.value })}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', background: '#fff', fontWeight: '700', fontSize: '0.84rem' }}
-              >
-                <option value="CSV">CSV (Planilla / Datos)</option>
-                <option value="PDF">PDF (Documento Oficial)</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-            <button
-              type="button"
-              onClick={() =>
-                setConfigReporte({
-                  fechaDesde: '',
-                  fechaHasta: '',
-                  tipoInformacion: 'TODOS',
-                  especie: '',
-                  estadoSalud: '',
-                  tipoIngreso: '',
-                  formato: 'CSV'
-                })
-              }
-              style={{
-                padding: '8px 14px',
-                background: '#f8f9fa',
-                color: '#7c8592',
-                border: '1px solid #e9eaed',
-                borderRadius: '7px',
-                fontWeight: '700',
-                fontSize: '0.82rem',
-                cursor: 'pointer'
-              }}
-            >
-              Limpiar Filtros
-            </button>
-            <button
-              type="submit"
-              disabled={descargandoConsolidado}
-              style={{
-                padding: '8px 18px',
-                background: '#4550c0',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '7px',
-                fontWeight: '700',
-                fontSize: '0.84rem',
-                cursor: 'pointer'
-              }}
-            >
-              {descargandoConsolidado
-                ? 'Generando reporte...'
-                : <><Download size={15} aria-hidden="true" /> Generar y Descargar Reporte Consolidado ({configReporte.formato})</>}
-            </button>
-          </div>
-        </form>
-      )}
 
       {/* BANNER EN TIEMPO REAL DE NOTIFICACIÓN AL PERSONAL DEL REFUGIO */}
       {avisoReciente && (
@@ -578,66 +489,184 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
         </div>
       )}
 
-      {/* PANEL DESPLEGABLE DE NOTIFICACIONES DEL PERSONAL DEL REFUGIO */}
-      {mostrarNotificaciones && (
-        <div
-          style={{
-            background: '#fff',
-            border: '1px solid #c9dfcd',
-            borderRadius: '14px',
-            padding: '16px 20px',
-            marginBottom: '20px',
-            boxShadow: '0 4px 12px rgba(20,24,32,0.05)',
-            flexShrink: 0,
-            maxHeight: '38vh',
-            overflowY: 'auto'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <strong style={{ fontSize: '0.92rem', color: '#1f2430', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Mail size={16} aria-hidden="true" /> Novedades del equipo: ingresos y descargas recientes
-            </strong>
-            <button
-              type="button"
-              onClick={() => setMostrarNotificaciones(false)}
-              style={{ background: 'none', border: 'none', color: '#7c8592', cursor: 'pointer', fontSize: '0.8rem' }}
-            >
-              Cerrar ✕
-            </button>
-          </div>
-          {notificaciones.length === 0 ? (
-            <div style={{ fontSize: '0.82rem', color: '#7c8592' }}>No hay notificaciones recientes.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
-              {notificaciones.map((n) => (
-                <div
-                  key={n.id}
-                  style={{
-                    padding: '9px 12px',
-                    background: n.tipo === 'INGRESO_ANIMAL' ? '#f5f9f6' : '#edeffb',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '12px'
-                  }}
-                >
-                  <div>
-                    <strong style={{ color: '#1f2430' }}>{n.titulo}</strong>
-                    <div style={{ color: '#555e6d', marginTop: '2px' }}>{n.mensaje}</div>
-                  </div>
-                  <span style={{ fontSize: '0.72rem', color: '#7c8592', whiteSpace: 'nowrap' }}>
-                    {new Date(n.fechaHora).toLocaleString()}
-                  </span>
-                </div>
-              ))}
+      {/* CONTENIDO SEGÚN LA PESTAÑA ACTIVA */}
+      {tabAnimales === 'reportes' ? (
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '6px', marginRight: '-6px', paddingBottom: '16px' }}>
+          <div
+            style={{
+              background: '#fff',
+              border: '1.5px solid #e9eaed',
+              borderRadius: '16px',
+              padding: '26px 28px',
+              boxShadow: '0 2px 8px rgba(20,24,32,0.04)',
+              margin: '0 auto'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1f2430', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <BarChart3 size={22} color="#3f6c52" aria-hidden="true" /> Reportes de Gestión del Refugio
+                </h3>
+                <p style={{ margin: '6px 0 0', fontSize: '0.86rem', color: '#7c8592' }}>
+                  Genera balances integrados de ingresos, adopciones, devoluciones, censo y stock de insumos.
+                </p>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.74rem',
+                  fontWeight: '800',
+                  background: '#fbeae8',
+                  color: '#d1453b',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #f3c9c4',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+                title="Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en los documentos exportados."
+              >
+                <Lock size={13} aria-hidden="true" /> Sin datos personales de postulantes
+              </span>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* BUSCADOR Y FILTROS */}
+            <form onSubmit={handleExportConsolidado}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '16px',
+                  marginBottom: '22px'
+                }}
+              >
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    Fecha Desde
+                  </label>
+                  <input
+                    type="date"
+                    value={configReporte.fechaDesde}
+                    onChange={(e) => setConfigReporte({ ...configReporte, fechaDesde: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', boxSizing: 'border-box', fontSize: '0.86rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    Fecha Hasta
+                  </label>
+                  <input
+                    type="date"
+                    value={configReporte.fechaHasta}
+                    onChange={(e) => setConfigReporte({ ...configReporte, fechaHasta: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', boxSizing: 'border-box', fontSize: '0.86rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    Tipo de Información
+                  </label>
+                  <select
+                    value={configReporte.tipoInformacion}
+                    onChange={(e) => setConfigReporte({ ...configReporte, tipoInformacion: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.86rem' }}
+                  >
+                    <option value="TODOS">Consolidado Completo (Todos)</option>
+                    <option value="INGRESOS">Balance de Ingresos</option>
+                    <option value="ADOPCIONES">Balance de Adopciones</option>
+                    <option value="DEVOLUCIONES">Balance de Devoluciones</option>
+                    <option value="CENSO">Censo y Capacidad</option>
+                    <option value="INSUMOS">Estado de Insumos</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    Filtro Especie
+                  </label>
+                  <select
+                    value={configReporte.especie}
+                    onChange={(e) => setConfigReporte({ ...configReporte, especie: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.86rem' }}
+                  >
+                    <option value="">Todas las especies</option>
+                    <option value="Perro">Perro (Canina)</option>
+                    <option value="Gato">Gato (Felina)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    Filtro Causal Ingreso
+                  </label>
+                  <select
+                    value={configReporte.tipoIngreso}
+                    onChange={(e) => setConfigReporte({ ...configReporte, tipoIngreso: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.86rem' }}
+                  >
+                    <option value="">Todas las causales</option>
+                    <option value="Rescate">Rescate</option>
+                    <option value="Abandono">Abandono</option>
+                    <option value="Decomiso">Decomiso</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    Formato de Exportación
+                  </label>
+                  <select
+                    value={configReporte.formato}
+                    onChange={(e) => setConfigReporte({ ...configReporte, formato: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', background: '#fff', fontWeight: '700', fontSize: '0.86rem' }}
+                  >
+                    <option value="CSV">Planilla CSV (Datos / Excel)</option>
+                    <option value="PDF">Documento Oficial PDF</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid #f0f1f3', paddingTop: '18px' }}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setConfigReporte({
+                      fechaDesde: '',
+                      fechaHasta: '',
+                      tipoInformacion: 'TODOS',
+                      especie: '',
+                      estadoSalud: '',
+                      tipoIngreso: '',
+                      formato: 'CSV'
+                    })
+                  }
+                  className="portal-btn portal-btn-secondary"
+                  style={{ minHeight: '40px', padding: '8px 16px' }}
+                >
+                  Restablecer Filtros
+                </button>
+                <button
+                  type="submit"
+                  disabled={descargandoConsolidado}
+                  className="portal-btn portal-btn-primary"
+                  style={{ minHeight: '40px', padding: '8px 22px' }}
+                >
+                  {descargandoConsolidado ? (
+                    'Generando reporte...'
+                  ) : (
+                    <>
+                      <Download size={16} aria-hidden="true" /> Generar y Descargar Reporte ({configReporte.formato})
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* BUSCADOR Y FILTROS DEL CATÁLOGO */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', flexShrink: 0 }}>
         <input
           type="text"
@@ -841,6 +870,8 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
         </div>
       )}
       </div>
+      </>
+      )}
 
       {/* MODAL DE FICHA DEL ANIMAL */}
       {(fichaSeleccionada || cargandoFicha) && (
@@ -1015,20 +1046,22 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                   <div style={{ fontSize: '0.76rem', fontWeight: '800', textTransform: 'uppercase', color: '#7c8592', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <ClipboardList size={14} aria-hidden="true" /> Trazabilidad de Adopciones y Devoluciones
                   </div>
-                  <div
-                    style={{
-                      background: '#fbeae8',
-                      border: '1px solid #f3c9c4',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      fontSize: '0.78rem',
-                      color: '#d1453b',
-                      marginBottom: '8px'
-                    }}
-                  >
-                    <Lock size={12} aria-hidden="true" /> Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en
-                    los documentos exportados.
-                  </div>
+                  {fichaSeleccionada.adopciones && fichaSeleccionada.adopciones.length > 0 && (
+                    <div
+                      style={{
+                        background: '#fbeae8',
+                        border: '1px solid #f3c9c4',
+                        padding: '9px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.78rem',
+                        color: '#d1453b',
+                        marginBottom: '8px'
+                      }}
+                    >
+                      <Lock size={12} aria-hidden="true" /> Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en
+                      los documentos exportados.
+                    </div>
+                  )}
                   {!fichaSeleccionada.adopciones || fichaSeleccionada.adopciones.length === 0 ? (
                     <div style={{ fontSize: '0.82rem', color: '#7c8592', padding: '4px 0' }}>
                       No existen solicitudes de adopción asociadas a este animal.
@@ -1126,6 +1159,27 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                         <Lock size={12} aria-hidden="true" /> La descarga de fichas está disponible para el personal del refugio y la Dirección.
                       </span>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleDelete(fichaSeleccionada.id, fichaSeleccionada.nombre, e)}
+                      title="Dar de baja al animal"
+                      style={{
+                        background: '#fbeae8',
+                        border: '1px solid #f3c9c4',
+                        color: '#d1453b',
+                        padding: '9px 14px',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Trash2 size={14} aria-hidden="true" /> Dar de Baja
+                    </button>
                   </div>
 
                   {/* <button

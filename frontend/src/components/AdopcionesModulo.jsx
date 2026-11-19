@@ -1099,7 +1099,7 @@ export default function AdopcionesModulo({ user }) {
       {/* PESTAÑA: FORMULARIO DE SOLICITUD (CREAR / EDITAR)                */}
       {/* ============================================================== */}
       {(tab === 'crear' || editandoSolicitud) && (
-        <div className="portal-card" style={{ maxWidth: '850px', margin: '0 auto' }}>
+        <div className="portal-card" style={{}}>
           <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--portal-border)', paddingBottom: '14px' }}>
             <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
               {editandoSolicitud ? 'Editar Solicitud de Adopción' : 'Nueva Solicitud de Adopción'}
