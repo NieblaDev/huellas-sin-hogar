@@ -66,14 +66,14 @@ export const crearSolicitud = async (data, responsable, ip) => {
     try {
       return await prisma.$transaction(async tx => {
         const animal = await tx.animal.findFirst({ where: { id: data.animalId, activo: true, estadoAdopcion: 'EN_REFUGIO' }, select: { id: true } });
-        if (!animal) throw new AdopcionError(404, 'El animal seleccionado no existe o está dado de baja');
+        if (!animal) throw new AdopcionError(404, 'El animal elegido ya no está disponible. Elige otro de la lista.');
         if (await tx.adopcion.findFirst({ where: { animalId: data.animalId, ...adopcionVigente }, select: { id: true } })) {
-          throw new AdopcionError(409, 'El animal ya tiene una adopción vigente');
+          throw new AdopcionError(409, 'Este animal ya fue adoptado y no puede recibir nuevas solicitudes.');
         }
         let postulante = await buscarPostulante(tx, data.postulante);
         const antecedentes = await consultarAntecedentes(tx, postulante);
-        if (postulante && !postulante.activo) throw new AdopcionError(409, 'El postulante está dado de baja', antecedentes.alertas);
-        if (antecedentes.solicitudesActivas.length) throw new AdopcionError(409, 'El postulante ya tiene una solicitud activa', antecedentes.alertas);
+        if (postulante && !postulante.activo) throw new AdopcionError(409, 'Esta persona fue dada de baja y no puede postular por ahora.', antecedentes.alertas);
+        if (antecedentes.solicitudesActivas.length) throw new AdopcionError(409, 'Esta persona ya tiene una solicitud en curso. Debe terminar ese proceso antes de postular otra vez.', antecedentes.alertas);
         const { tipoIdentificacion, identificacion, ...contacto } = data.postulante;
         const anterior = postulante;
         postulante = postulante
@@ -98,19 +98,20 @@ export const crearSolicitud = async (data, responsable, ip) => {
       if (error.code === 'P2034' || error.code === 'P2002') {
         if (intento < 2) continue;
         const antecedentes = await obtenerAntecedentes(data.postulante);
-        throw new AdopcionError(409, 'No se pudo registrar por un conflicto concurrente. Consulta las solicitudes antes de reintentar.', antecedentes.alertas);
+        throw new AdopcionError(409, 'Alguien más estaba registrando al mismo tiempo. Revisa el listado de solicitudes y, si no aparece, inténtalo de nuevo.', antecedentes.alertas);
       }
-      if (error.code === 'P2003') throw new AdopcionError(409, 'El animal o responsable ya no está disponible');
+      if (error.code === 'P2003') throw new AdopcionError(409, 'El animal elegido ya no está disponible. Actualiza la lista e inténtalo de nuevo.');
       throw error;
     }
   }
 };
 
-export const listarSolicitudes = async ({ estado, search, pagina, limite }) => {
+export const listarSolicitudes = async ({ estado, search, orden, desde, hasta, pagina, limite }) => {
   const rut = search && normalizarIdentificacion(search);
   const rutConFormato = /^\d{7,8}[\dK]$/.test(rut || '') ? `${Number(rut.slice(0, -1)).toLocaleString('es-CL')}-${rut.slice(-1)}` : search;
   const where = {
     ...(estado && { estado }),
+    ...((desde || hasta) && { creadoEn: { ...(desde && { gte: new Date(desde) }), ...(hasta && { lte: new Date(hasta) }) } }),
     ...(search && { OR: [
       { postulante: { nombre: { contains: search, mode: 'insensitive' } } },
       { postulante: { rut: { contains: search.trim(), mode: 'insensitive' } } },
@@ -120,8 +121,10 @@ export const listarSolicitudes = async ({ estado, search, pagina, limite }) => {
       { animal: { nombre: { contains: search, mode: 'insensitive' } } }
     ] })
   };
+  // Por defecto, las solicitudes más recientes aparecen primero.
+  const sentido = orden === 'antigua' ? 'asc' : 'desc';
   const [solicitudes, total] = await prisma.$transaction([
-    prisma.solicitudAdopcion.findMany({ where, include: solicitudInclude, orderBy: [{ creadoEn: 'desc' }, { id: 'desc' }], skip: (pagina - 1) * limite, take: limite }),
+    prisma.solicitudAdopcion.findMany({ where, include: solicitudInclude, orderBy: [{ creadoEn: sentido }, { id: sentido }], skip: (pagina - 1) * limite, take: limite }),
     prisma.solicitudAdopcion.count({ where })
   ], { isolationLevel: 'RepeatableRead' });
   return { solicitudes: solicitudes.map(presentarSolicitud), total, pagina, limite };
@@ -129,7 +132,7 @@ export const listarSolicitudes = async ({ estado, search, pagina, limite }) => {
 
 export const obtenerSolicitud = async id => {
   const solicitud = await prisma.solicitudAdopcion.findUnique({ where: { id }, include: { ...solicitudInclude, etapas: { include: { responsable: { select: usuarioResumen } }, orderBy: [{ registradoEn: 'asc' }, { id: 'asc' }] }, adopcion: { include: { responsable: { select: usuarioResumen } } } } });
-  if (!solicitud) throw new AdopcionError(404, 'Solicitud no encontrada');
+  if (!solicitud) throw new AdopcionError(404, 'No encontramos esta solicitud. Puede que ya no exista.');
   return { solicitud: presentarSolicitud(solicitud), antecedentes: await consultarAntecedentes(prisma, solicitud.postulante) };
 };
 

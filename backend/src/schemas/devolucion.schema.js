@@ -7,7 +7,7 @@ export const registrarDevolucionSchema = z.object({
   estadoAnimal: z.string().trim().min(3, 'Describe el estado de salud y condición del animal al reingreso (mínimo 3 caracteres).').max(4000, 'El estado del animal admite hasta 4000 caracteres.'),
   observacionesPostulante: z.string().trim().max(4000, 'Las observaciones sobre el postulante admiten hasta 4000 caracteres.').optional(),
   canilId: z.number().int().positive().max(2147483647).optional(),
-  actualizadoEn: z.string().datetime({ message: 'Indica la fecha de actualización de la adopción.' }).optional()
+  actualizadoEn: z.string().datetime({ message: 'No pudimos confirmar que estés viendo los datos más recientes. Cierra esta ventana y ábrela de nuevo.' }).optional()
 }).strict();
 
 export const devolucionIdSchema = z.object({

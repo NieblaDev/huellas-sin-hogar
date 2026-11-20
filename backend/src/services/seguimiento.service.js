@@ -62,7 +62,7 @@ export const obtenerSeguimiento = async id => {
     where: { id: Number(id) },
     include: incluirRelaciones
   });
-  if (!seguimiento) throw new AdopcionError(404, 'Seguimiento no encontrado');
+  if (!seguimiento) throw new AdopcionError(404, 'No encontramos este seguimiento. Puede que ya no exista.');
   return seguimiento;
 };
 
@@ -75,15 +75,15 @@ export const registrarSeguimiento = async (id, data, responsable, ip) => {
       include: { adopcion: true }
     });
 
-    if (!anterior) throw new AdopcionError(404, 'Seguimiento no encontrado');
+    if (!anterior) throw new AdopcionError(404, 'No encontramos este seguimiento. Puede que ya no exista.');
     if (anterior.adopcion.devolucion) {
-      throw new AdopcionError(409, 'No se puede registrar seguimiento a una adopción devuelta.');
+      throw new AdopcionError(409, 'Esta adopción ya fue devuelta, por lo que no admite más seguimientos.');
     }
     if (anterior.estado === 'COMPLETADO') {
-      throw new AdopcionError(409, 'El seguimiento ya fue registrado y completado previamente.');
+      throw new AdopcionError(409, 'Este seguimiento ya fue registrado antes.');
     }
     if (data.actualizadoEn && anterior.actualizadoEn.toISOString() !== data.actualizadoEn) {
-      throw new AdopcionError(409, 'El seguimiento cambió. Recarga los datos antes de continuar.');
+      throw new AdopcionError(409, 'Otra persona modificó este seguimiento mientras lo veías. Ciérralo y ábrelo de nuevo para ver los cambios.');
     }
 
     const fecha = new Date(data.fecha);
@@ -150,15 +150,15 @@ export const reprogramarSeguimiento = async (id, data, responsable, ip) => {
       include: { adopcion: true }
     });
 
-    if (!anterior) throw new AdopcionError(404, 'Seguimiento no encontrado');
+    if (!anterior) throw new AdopcionError(404, 'No encontramos este seguimiento. Puede que ya no exista.');
     if (anterior.adopcion.devolucion) {
-      throw new AdopcionError(409, 'No se puede gestionar seguimiento de una adopción devuelta.');
+      throw new AdopcionError(409, 'Esta adopción ya fue devuelta, por lo que no admite más seguimientos.');
     }
     if (anterior.estado === 'COMPLETADO') {
-      throw new AdopcionError(409, 'No se puede reprogramar un seguimiento que ya fue completado.');
+      throw new AdopcionError(409, 'Este seguimiento ya fue completado, así que no se puede reprogramar.');
     }
     if (data.actualizadoEn && anterior.actualizadoEn.toISOString() !== data.actualizadoEn) {
-      throw new AdopcionError(409, 'El seguimiento cambió. Recarga los datos antes de continuar.');
+      throw new AdopcionError(409, 'Otra persona modificó este seguimiento mientras lo veías. Ciérralo y ábrelo de nuevo para ver los cambios.');
     }
 
     const fechaIntento = new Date(data.fechaIntento);
@@ -167,10 +167,10 @@ export const reprogramarSeguimiento = async (id, data, responsable, ip) => {
       throw new AdopcionError(400, 'La fecha del intento fallido no puede estar en el futuro.');
     }
     if (fechaReprogramada.getTime() <= Date.now()) {
-      throw new AdopcionError(400, 'La fecha reprogramada debe ser una fecha futura.');
+      throw new AdopcionError(400, 'La nueva fecha debe ser posterior a este momento.');
     }
     if (fechaReprogramada.getTime() <= fechaIntento.getTime()) {
-      throw new AdopcionError(400, 'La fecha reprogramada debe ser posterior al intento fallido.');
+      throw new AdopcionError(400, 'La nueva fecha debe ser posterior al intento que acabas de registrar.');
     }
 
     const nuevoIntentosFallidos = anterior.intentosFallidos + 1;
@@ -234,8 +234,8 @@ export const programarSeguimientoManual = async (data, responsable, ip) => {
     where: { id: adopcionId },
     include: { animal: true }
   });
-  if (!adopcion) throw new AdopcionError(404, 'Adopción no encontrada');
-  if (adopcion.devolucion) throw new AdopcionError(409, 'No se puede programar seguimiento a una adopción devuelta.');
+  if (!adopcion) throw new AdopcionError(404, 'No encontramos esta adopción. Puede que ya no exista.');
+  if (adopcion.devolucion) throw new AdopcionError(409, 'Esta adopción ya fue devuelta, por lo que no admite más seguimientos.');
 
   const configMax = await prisma.configuracionSistema.findUnique({ where: { clave: 'SEGUIMIENTO_MAX_INTENTOS' } });
   const limiteIntentos = configMax ? parseInt(configMax.valor, 10) || 3 : 3;

@@ -23,14 +23,14 @@ export const actualizarEtapa = async (id, data, responsable, ip) => {
       const anterior = await tx.solicitudAdopcion.findUnique({ where: { id }, include: {
         postulante: true, adopcion: true, etapas: { orderBy: [{ registradoEn: 'asc' }, { id: 'asc' }] }
       } });
-      if (!anterior) throw new AdopcionError(404, 'Solicitud no encontrada');
-      if (anterior.actualizadoEn.toISOString() !== data.actualizadoEn) throw new AdopcionError(409, 'La solicitud cambió. Recarga su detalle antes de continuar.');
+      if (!anterior) throw new AdopcionError(404, 'No encontramos esta solicitud. Puede que ya no exista.');
+      if (anterior.actualizadoEn.toISOString() !== data.actualizadoEn) throw new AdopcionError(409, 'Otra persona modificó esta solicitud mientras la veías. Ciérrala y ábrela de nuevo para ver los cambios.');
       const transicion = transiciones[data.accion];
-      if (!transicion?.desde.includes(anterior.estado) || anterior.adopcion) throw new AdopcionError(409, 'La acción no está permitida en la etapa actual.');
-      if (!['RECHAZAR', 'CANCELAR'].includes(data.accion) && !anterior.postulante.activo) throw new AdopcionError(409, 'El postulante está dado de baja.');
+      if (!transicion?.desde.includes(anterior.estado) || anterior.adopcion) throw new AdopcionError(409, 'Esa acción no se puede realizar en la etapa en que está la solicitud.');
+      if (!['RECHAZAR', 'CANCELAR'].includes(data.accion) && !anterior.postulante.activo) throw new AdopcionError(409, 'Esta persona fue dada de baja y no puede continuar el proceso.');
       const evaluacion = anterior.etapas.filter(e => e.accion === 'EVALUAR').at(-1);
       if (['AGENDAR_VISITA', 'REGISTRAR_VISITA', 'OMITIR_VISITA', 'APROBAR'].includes(data.accion) && evaluacion?.resultadoEvaluacion !== 'CUMPLE') {
-        throw new AdopcionError(409, 'Antes de continuar, registra una evaluación con resultado Cumple.');
+        throw new AdopcionError(409, 'Antes de continuar, registra una evaluación con resultado «Cumple requisitos».');
       }
       let estadoNuevo = transicion.hasta;
       if (data.accion === 'EVALUAR') {
@@ -42,7 +42,7 @@ export const actualizarEtapa = async (id, data, responsable, ip) => {
       }
       const fecha = new Date(data.fecha);
       const ultimaReal = anterior.etapas.filter(e => e.accion !== 'AGENDAR_VISITA').at(-1);
-      if (segundo(fecha) < segundo(ultimaReal?.fecha || anterior.creadoEn)) throw new AdopcionError(400, 'La fecha no puede ser anterior al último paso registrado ni a la solicitud.');
+      if (segundo(fecha) < segundo(ultimaReal?.fecha || anterior.creadoEn)) throw new AdopcionError(400, 'La fecha no puede ser anterior al último paso registrado ni a la fecha de la solicitud.');
       if (data.accion === 'AGENDAR_VISITA' ? segundo(fecha) < segundo(new Date()) : fecha.getTime() > Date.now()) {
         throw new AdopcionError(400, data.accion === 'AGENDAR_VISITA' ? 'Agenda la visita para una fecha futura.' : 'La fecha de una acción realizada no puede estar en el futuro.');
       }
@@ -56,7 +56,7 @@ export const actualizarEtapa = async (id, data, responsable, ip) => {
         await tx.$queryRaw`SELECT id FROM animales WHERE id = ${anterior.animalId} FOR UPDATE`;
         const animal = await tx.animal.findUnique({ where: { id: anterior.animalId } });
         if (!animal?.activo || animal.estadoAdopcion === 'ADOPTADO' || await tx.adopcion.findFirst({ where: { animalId: anterior.animalId, ...vigente } })) {
-          throw new AdopcionError(409, 'El animal ya no está disponible para adopción.');
+          throw new AdopcionError(409, 'Este animal ya no está disponible para adopción.');
         }
         if (data.accion === 'ENTREGAR') {
           // Registro, ficha, canil e historial se confirman juntos o se revierten juntos.
@@ -98,7 +98,7 @@ export const actualizarEtapa = async (id, data, responsable, ip) => {
       return { solicitud, adopcion };
     }, { isolationLevel: 'Serializable' });
   } catch (error) {
-    if (['P2034', 'P2002', 'P2003'].includes(error.code) || (error.code === 'P2010' && ['40001', '40P01'].includes(error.meta?.code))) throw new AdopcionError(409, 'Hubo un cambio simultáneo. Recarga la solicitud antes de reintentar.');
+    if (['P2034', 'P2002', 'P2003'].includes(error.code) || (error.code === 'P2010' && ['40001', '40P01'].includes(error.meta?.code))) throw new AdopcionError(409, 'Alguien más hizo un cambio al mismo tiempo. Cierra la solicitud, ábrela de nuevo e inténtalo otra vez.');
     throw error;
   }
 };

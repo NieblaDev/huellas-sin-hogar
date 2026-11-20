@@ -27,7 +27,7 @@ export const registrarDevolucion = async (data, responsable, ip) => {
       include: { animal: true, postulante: true, registroDevolucion: true }
     });
 
-    if (!adopcion) throw new AdopcionError(404, 'Adopción no encontrada');
+    if (!adopcion) throw new AdopcionError(404, 'No encontramos esta adopción. Puede que ya no exista.');
     if (adopcion.devolucion || adopcion.registroDevolucion) {
       throw new AdopcionError(409, 'Esta adopción ya tiene una devolución registrada.');
     }
@@ -45,15 +45,15 @@ export const registrarDevolucion = async (data, responsable, ip) => {
 
     await tx.$queryRaw`SELECT id FROM animales WHERE id = ${adopcion.animalId} FOR UPDATE`;
     const animal = await tx.animal.findUnique({ where: { id: adopcion.animalId } });
-    if (!animal) throw new AdopcionError(404, 'Animal no encontrado');
+    if (!animal) throw new AdopcionError(404, 'No encontramos al animal de esta adopción.');
 
     let canilAsignado = null;
     if (data.canilId) {
       const canilId = Number(data.canilId);
       await tx.$queryRaw`SELECT id FROM caniles WHERE id = ${canilId} FOR UPDATE`;
       const canil = await tx.canil.findUnique({ where: { id: canilId } });
-      if (!canil) throw new AdopcionError(404, 'Canil no encontrado');
-      if (canil.estado !== 'LIBRE') throw new AdopcionError(409, 'El canil seleccionado no está libre.');
+      if (!canil) throw new AdopcionError(404, 'No encontramos el canil elegido.');
+      if (canil.estado !== 'LIBRE') throw new AdopcionError(409, 'El canil elegido no está libre. Elige otro.');
       canilAsignado = canil;
     }
 
@@ -191,6 +191,6 @@ export const obtenerDevolucion = async id => {
     where: { id: Number(id) },
     include: incluirRelaciones
   });
-  if (!devolucion) throw new AdopcionError(404, 'Devolución no encontrada');
+  if (!devolucion) throw new AdopcionError(404, 'No encontramos esta devolución. Puede que ya no exista.');
   return devolucion;
 };

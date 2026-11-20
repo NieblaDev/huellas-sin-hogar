@@ -33,13 +33,13 @@ export const canalContactoSchema = z.string().trim().refine(val => {
   const normalizado = normalizarClaveCanal(val);
   return normalizado in CANAL_MAP;
 }, {
-  message: 'Canal de contacto no válido. Opciones: llamada telefónica, WhatsApp, correo electrónico, visita domiciliaria u otro.'
+  message: 'Elige cómo hiciste el contacto: llamada telefónica, WhatsApp, correo, visita presencial, videollamada u otro.'
 }).transform(val => CANAL_MAP[normalizarClaveCanal(val)]);
 
 // Programar seguimiento (15 días, 30 días o extraordinario)
 export const programarSeguimientoSchema = z.object({
   adopcionId: z.number().int().positive().max(2147483647),
-  fechaProgramada: z.string().datetime({ offset: true, message: 'Indica una fecha programada válida en formato ISO.' }),
+  fechaProgramada: z.string().datetime({ offset: true, message: 'Indica una fecha y hora válidas para el seguimiento.' }),
   tipoSeguimiento: z.enum(TIPOS_SEGUIMIENTO).default('EXTRAORDINARIO'),
   diasProgramados: z.number().int().min(1).max(365).optional(),
   observaciones: z.string().trim().max(4000, 'Las observaciones admiten hasta 4000 caracteres.').optional()
@@ -52,17 +52,17 @@ export const registrarSeguimientoSchema = z.object({
   estadoAnimal: z.string().trim().min(3, 'Describe el estado del animal con al menos 3 caracteres.').max(4000, 'El estado del animal admite hasta 4000 caracteres.'),
   resultado: z.string().trim().min(3, 'Indica el resultado del seguimiento (mínimo 3 caracteres).').max(100, 'El resultado admite hasta 100 caracteres.'),
   observaciones: z.string().trim().max(4000, 'Las observaciones admiten hasta 4000 caracteres.').optional(),
-  actualizadoEn: z.string().datetime({ message: 'Indica la fecha de actualización para control de concurrencia.' }).optional()
+  actualizadoEn: z.string().datetime({ message: 'No pudimos confirmar que estés viendo los datos más recientes. Cierra esta ventana y ábrela de nuevo.' }).optional()
 }).strict();
 
 // Registrar intento fallido y reprogramar fecha
 export const reprogramarIntentoSchema = z.object({
   fechaIntento: z.string().datetime({ offset: true, message: 'Indica la fecha y hora del intento.' }).default(() => new Date().toISOString()),
   canalContacto: canalContactoSchema,
-  resultado: z.string().trim().min(3, 'Indica el resultado del intento (ej. NO_RESPONDE, BUZON_DE_VOZ).').max(100).default('NO_RESPONDE'),
-  observaciones: z.string().trim().min(3, 'Indica observaciones del intento fallido (mínimo 3 caracteres).').max(4000),
-  fechaReprogramada: z.string().datetime({ offset: true, message: 'Indica una fecha futura para el próximo intento.' }),
-  actualizadoEn: z.string().datetime({ message: 'Indica la fecha de actualización para control de concurrencia.' }).optional()
+  resultado: z.string().trim().min(3, 'Cuenta brevemente qué pasó en el intento (por ejemplo: no contestó o fue al buzón de voz).').max(100).default('NO_RESPONDE'),
+  observaciones: z.string().trim().min(3, 'Anota una observación sobre el intento (al menos 3 caracteres).').max(4000),
+  fechaReprogramada: z.string().datetime({ offset: true, message: 'Indica una fecha y hora válidas para el próximo intento.' }),
+  actualizadoEn: z.string().datetime({ message: 'No pudimos confirmar que estés viendo los datos más recientes. Cierra esta ventana y ábrela de nuevo.' }).optional()
 }).strict().superRefine((data, ctx) => {
   const intento = new Date(data.fechaIntento);
   const reprogramada = new Date(data.fechaReprogramada);
@@ -70,7 +70,7 @@ export const reprogramarIntentoSchema = z.object({
     ctx.addIssue({
       code: 'custom',
       path: ['fechaReprogramada'],
-      message: 'La fecha reprogramada debe ser posterior a la fecha del intento fallido.'
+      message: 'La nueva fecha debe ser posterior al intento que acabas de registrar.'
     });
   }
 });
