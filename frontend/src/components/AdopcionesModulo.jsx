@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import AnimalSelect from './ui/AnimalSelect';
 import {
   AlertTriangle,
   Calendar,
@@ -30,6 +31,7 @@ import {
   Users,
   X
 } from 'lucide-react';
+import { formatearErrorApi } from '../utils/errores';
 import {
   listarSolicitudes,
   obtenerSolicitud,
@@ -253,16 +255,23 @@ export default function AdopcionesModulo({ user }) {
   // Carga inicial y cambios de filtros en Solicitudes
   useEffect(() => {
     if (tab === 'lista' && tienePermisoAdopciones) {
-      cargarSolicitudes();
+      const controller = new AbortController();
+      const timer = setTimeout(() => cargarSolicitudes(controller.signal), 300);
+      return () => {
+        clearTimeout(timer);
+        controller.abort();
+      };
     }
-  }, [tab, paginaSolicitudes, filtroEstado]);
+  }, [tab, tienePermisoAdopciones, paginaSolicitudes, filtroEstado, filtroTexto]);
 
   // Carga inicial en Seguimientos
   useEffect(() => {
     if (tab === 'seguimientos' && tienePermisoAdopciones) {
-      cargarSeguimientos();
+      const controller = new AbortController();
+      cargarSeguimientos(controller.signal);
+      return () => controller.abort();
     }
-  }, [tab, paginaSeguimientos, filtroEstadoSeguimiento, filtroAlertaSeguimiento]);
+  }, [tab, tienePermisoAdopciones, paginaSeguimientos, filtroEstadoSeguimiento, filtroAlertaSeguimiento]);
 
   // Carga de animales cuando se ingresa a crear solicitud
   useEffect(() => {
@@ -289,28 +298,23 @@ export default function AdopcionesModulo({ user }) {
   }
 
   // --- MÉTODOS DE SOLICITUDES ---
-  const cargarSolicitudes = async (pagina = paginaSolicitudes) => {
+  const cargarSolicitudes = async (signal) => {
     setSolicitudesCargando(true);
     setSolicitudesError('');
     try {
       const params = {
-        pagina,
+        pagina: paginaSolicitudes,
         ...(filtroTexto.trim() && { search: filtroTexto.trim() }),
         ...(filtroEstado && { estado: filtroEstado })
       };
-      const res = await listarSolicitudes(params);
+      const res = await listarSolicitudes(params, signal);
+      if (signal?.aborted) return;
       setSolicitudesData(res);
     } catch (err) {
-      setSolicitudesError(err.message || 'Error al cargar solicitudes');
+      if (!signal?.aborted) setSolicitudesError(formatearErrorApi(err, 'Error al cargar solicitudes'));
     } finally {
-      setSolicitudesCargando(false);
+      if (!signal?.aborted) setSolicitudesCargando(false);
     }
-  };
-
-  const handleBuscarSolicitudes = (e) => {
-    e.preventDefault();
-    setPaginaSolicitudes(1);
-    cargarSolicitudes(1);
   };
 
   const verExpediente = (id) => {
@@ -336,7 +340,7 @@ export default function AdopcionesModulo({ user }) {
       setObservacionesEtapa('');
       setMotivoOmisionEtapa('');
     } catch (err) {
-      setDetalleError(err.message || 'Error al cargar expediente');
+      setDetalleError(formatearErrorApi(err, 'Error al cargar expediente'));
     } finally {
       setDetalleCargando(false);
     }
@@ -365,7 +369,7 @@ export default function AdopcionesModulo({ user }) {
       setTimeout(() => setMensajeExito(null), 4000);
       await cargarDetalleSolicitud(detalleData.solicitud.id);
     } catch (err) {
-      setErrorEtapa([err.message, ...(err.detalles || []).map(d => d.mensaje)].join(' '));
+      setErrorEtapa(formatearErrorApi(err));
     } finally {
       setGuardandoEtapa(false);
     }
@@ -381,7 +385,7 @@ export default function AdopcionesModulo({ user }) {
       setTimeout(() => setMensajeExito(null), 4000);
       await cargarDetalleSolicitud(detalleData.solicitud.id);
     } catch (err) {
-      setErrorEtapa(err.message || 'Error al eliminar la solicitud');
+      setErrorEtapa(formatearErrorApi(err, 'Error al eliminar la solicitud'));
     } finally {
       setEliminando(false);
     }
@@ -395,7 +399,7 @@ export default function AdopcionesModulo({ user }) {
       const data = await listarAnimalesDisponibles();
       setAnimalesDisponibles(data);
     } catch (err) {
-      setErrorAnimales(err.message || 'Error al listar animales disponibles');
+      setErrorAnimales(formatearErrorApi(err, 'Error al listar animales disponibles'));
     } finally {
       setCargandoAnimales(false);
     }
@@ -458,7 +462,7 @@ export default function AdopcionesModulo({ user }) {
         }));
       }
     } catch (err) {
-      setErrorFormSolicitud([err.message, ...(err.detalles || []).map(d => d.mensaje)].join('. '));
+      setErrorFormSolicitud(formatearErrorApi(err));
     } finally {
       setConsultandoAntecedentes(false);
     }
@@ -494,7 +498,7 @@ export default function AdopcionesModulo({ user }) {
         verExpediente(res.solicitud.id);
       }
     } catch (err) {
-      setErrorFormSolicitud([err.message, ...(err.detalles || []).map(d => `${d.campo || ''}: ${d.mensaje}`)].join('. '));
+      setErrorFormSolicitud(formatearErrorApi(err));
       if (err.alertas) setAlertasPostulante(err.alertas);
     } finally {
       setGuardandoSolicitud(false);
@@ -502,28 +506,23 @@ export default function AdopcionesModulo({ user }) {
   };
 
   // --- MÉTODOS DE SEGUIMIENTOS ---
-  const cargarSeguimientos = async (pagina = paginaSeguimientos) => {
+  const cargarSeguimientos = async (signal) => {
     setSeguimientosCargando(true);
     setSeguimientosError('');
     try {
       const params = {
-        pagina,
+        pagina: paginaSeguimientos,
         ...(filtroEstadoSeguimiento && { estado: filtroEstadoSeguimiento }),
         ...(filtroAlertaSeguimiento && { alertaSinContacto: filtroAlertaSeguimiento })
       };
-      const res = await listarSeguimientos(params);
+      const res = await listarSeguimientos(params, signal);
+      if (signal?.aborted) return;
       setSeguimientosData(res);
     } catch (err) {
-      setSeguimientosError(err.message || 'Error al cargar seguimientos');
+      if (!signal?.aborted) setSeguimientosError(formatearErrorApi(err, 'Error al cargar seguimientos'));
     } finally {
-      setSeguimientosCargando(false);
+      if (!signal?.aborted) setSeguimientosCargando(false);
     }
-  };
-
-  const handleBuscarSeguimientos = (e) => {
-    e.preventDefault();
-    setPaginaSeguimientos(1);
-    cargarSeguimientos(1);
   };
 
   const abrirModalAccionSeguimiento = (seguimiento) => {
@@ -575,7 +574,7 @@ export default function AdopcionesModulo({ user }) {
       setSeguimientoAccionModal(null);
       await cargarSeguimientos();
     } catch (err) {
-      setErrorSeguimientoAccion([err.message, ...(err.detalles || []).map(d => d.mensaje)].join(' '));
+      setErrorSeguimientoAccion(formatearErrorApi(err));
     } finally {
       setGuardandoSeguimientoAccion(false);
     }
@@ -619,7 +618,7 @@ export default function AdopcionesModulo({ user }) {
         cargarSeguimientos();
       }
     } catch (err) {
-      setErrorDevolucion([err.message, ...(err.detalles || []).map(d => d.mensaje)].join(' '));
+      setErrorDevolucion(formatearErrorApi(err));
     } finally {
       setGuardandoDevolucion(false);
     }
@@ -709,7 +708,7 @@ export default function AdopcionesModulo({ user }) {
       {tab === 'lista' && (
         <div>
           <div className="portal-card" style={{ marginBottom: '20px' }}>
-            <form onSubmit={handleBuscarSolicitudes} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div style={{ flex: '1 1 280px' }}>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--portal-text-muted)', marginBottom: '6px' }}>
                   Buscar por postulante, RUT o animal
@@ -719,7 +718,10 @@ export default function AdopcionesModulo({ user }) {
                   <input
                     type="text"
                     value={filtroTexto}
-                    onChange={(e) => setFiltroTexto(e.target.value)}
+                    onChange={(e) => {
+                      setFiltroTexto(e.target.value);
+                      setPaginaSolicitudes(1);
+                    }}
                     placeholder="Ej. Juan Pérez, 12.345.678-9, Luna..."
                     className="portal-input"
                     style={{ width: '100%', paddingLeft: '36px' }}
@@ -733,7 +735,10 @@ export default function AdopcionesModulo({ user }) {
                 </label>
                 <select
                   value={filtroEstado}
-                  onChange={(e) => setFiltroEstado(e.target.value)}
+                  onChange={(e) => {
+                    setFiltroEstado(e.target.value);
+                    setPaginaSolicitudes(1);
+                  }}
                   className="portal-select"
                   style={{ width: '100%' }}
                 >
@@ -744,10 +749,7 @@ export default function AdopcionesModulo({ user }) {
                 </select>
               </div>
 
-              <button type="submit" className="portal-btn portal-btn-primary" disabled={solicitudesCargando}>
-                <Search size={15} aria-hidden="true" /> Filtrar
-              </button>
-            </form>
+            </div>
           </div>
 
           {solicitudesError && (
@@ -888,14 +890,17 @@ export default function AdopcionesModulo({ user }) {
               </div>
             </div>
 
-            <form onSubmit={handleBuscarSeguimientos} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div style={{ flex: '1 1 200px' }}>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--portal-text-muted)', marginBottom: '6px' }}>
                   Estado
                 </label>
                 <select
                   value={filtroEstadoSeguimiento}
-                  onChange={(e) => setFiltroEstadoSeguimiento(e.target.value)}
+                  onChange={(e) => {
+                    setFiltroEstadoSeguimiento(e.target.value);
+                    setPaginaSeguimientos(1);
+                  }}
                   className="portal-select"
                   style={{ width: '100%' }}
                 >
@@ -912,7 +917,10 @@ export default function AdopcionesModulo({ user }) {
                 </label>
                 <select
                   value={filtroAlertaSeguimiento}
-                  onChange={(e) => setFiltroAlertaSeguimiento(e.target.value)}
+                  onChange={(e) => {
+                    setFiltroAlertaSeguimiento(e.target.value);
+                    setPaginaSeguimientos(1);
+                  }}
                   className="portal-select"
                   style={{ width: '100%' }}
                 >
@@ -921,10 +929,7 @@ export default function AdopcionesModulo({ user }) {
                 </select>
               </div>
 
-              <button type="submit" className="portal-btn portal-btn-primary" disabled={seguimientosCargando}>
-                <Search size={15} aria-hidden="true" /> Filtrar
-              </button>
-            </form>
+            </div>
           </div>
 
           {seguimientosError && (
@@ -1268,24 +1273,16 @@ export default function AdopcionesModulo({ user }) {
               </h4>
               <div style={{ marginBottom: '14px' }}>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--portal-text-muted)', marginBottom: '6px' }}>
-                  Animal Disponible para Adopción
+                  Animal Disponible para Adopción *
                 </label>
-                <select
-                  required
+                <AnimalSelect
+                  animales={animalesDisponibles}
                   value={formAnimalId}
-                  onChange={(e) => setFormAnimalId(e.target.value)}
-                  className="portal-select"
-                  style={{ width: '100%' }}
-                >
-                  <option value="">
-                    {cargandoAnimales ? 'Cargando animales...' : 'Selecciona un animal disponible'}
-                  </option>
-                  {animalesDisponibles.map(animal => (
-                    <option key={animal.id} value={animal.id}>
-                      {animal.nombre} · {animal.especie} ({animal.sexo || 'N/A'})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(animalId) => setFormAnimalId(animalId)}
+                  placeholder={cargandoAnimales ? 'Cargando animales...' : '— Selecciona un animal disponible —'}
+                  emptyMessage="No hay animales disponibles para adopción"
+                  searchPlaceholder="Buscar por nombre, especie o sexo..."
+                />
                 {errorAnimales && (
                   <p style={{ color: '#d1453b', fontSize: '0.78rem', margin: '4px 0 0' }}>{errorAnimales}</p>
                 )}
@@ -1434,7 +1431,7 @@ export default function AdopcionesModulo({ user }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '18px' }}>
                   <div>
                     <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>
-                      Expediente de Adopción #{detalleData.solicitud.id}
+                      Expediente de Adopción — {detalleData.solicitud.datosPostulante?.nombre || 'Postulante'}
                     </h3>
                     <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--portal-text-muted)' }}>
                       Ingresada el {formatearFecha(detalleData.solicitud.creadoEn, true)} por {detalleData.solicitud.registradoPor?.nombre || 'Personal'}

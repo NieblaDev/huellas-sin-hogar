@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import AnimalSelect from './ui/AnimalSelect';
+import { formatearErrorApi } from '../utils/errores';
 import {
   ArrowDown,
   ArrowLeftRight,
@@ -182,14 +184,14 @@ export default function InventarioModulo({ user }) {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || data.detalles?.[0]?.mensaje || 'Error al guardar insumo');
+        throw new Error(formatearErrorApi(data));
       }
 
       alert(insumoEditar ? 'Insumo actualizado exitosamente' : 'Insumo registrado en el inventario');
       setModalInsumoOpen(false);
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -227,14 +229,14 @@ export default function InventarioModulo({ user }) {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || data.detalles?.[0]?.mensaje || 'Error al registrar movimiento');
+        throw new Error(formatearErrorApi(data));
       }
 
       alert('Movimiento registrado con éxito. El stock fue actualizado en tiempo real.');
       setModalMovimientoOpen(false);
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -618,18 +620,13 @@ export default function InventarioModulo({ user }) {
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#3478c4', marginBottom: '6px' }}>
                     <PawPrint size={13} aria-hidden="true" /> Animal Vinculado al Tratamiento Clínico *
                   </label>
-                  <select
+                  <AnimalSelect
+                    animales={animales}
                     value={formMovimiento.animalId}
-                    onChange={e => setFormMovimiento(prev => ({ ...prev, animalId: e.target.value }))}
-                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbe0f8', fontSize: '0.88rem' }}
-                  >
-                    <option value="">— Seleccionar animal albergado —</option>
-                    {animales.map(a => (
-                      <option key={a.id} value={a.id}>
-                        {a.nombre} ({a.especie} · Estado: {a.estadoSalud})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={animalId => setFormMovimiento(prev => ({ ...prev, animalId }))}
+                    placeholder="— Seleccionar animal albergado —"
+                    searchPlaceholder="Buscar por nombre, especie o estado..."
+                  />
                 </div>
               )}
 

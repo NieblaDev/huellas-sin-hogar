@@ -110,6 +110,44 @@
 }
 
 /* Contenedor Unificado de Página para todas las pestañas */
+.portal-sidebar-header {
+  display: grid;
+  grid-template-columns: minmax(38px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px 18px 16px;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.portal-sidebar-header.is-collapsed {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 18px 8px 12px;
+}
+
+.portal-sidebar-toggle {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+}
+
+.portal-sidebar-toggle:hover {
+  background: #e8f0e8;
+  color: #2f5540;
+}
+
+.portal-sidebar-toggle:focus-visible {
+  outline: 2px solid #3f6c52;
+  outline-offset: 2px;
+}
+
 .portal-page-container {
   max-width: var(--portal-max-width);
   margin: 0 auto;

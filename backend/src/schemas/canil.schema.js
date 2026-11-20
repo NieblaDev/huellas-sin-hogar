@@ -1,14 +1,14 @@
 import { z } from 'zod';
 
 export const asignarCanilSchema = z.object({
-  canilId: z.number().int().positive('ID de canil inválido'),
-  animalId: z.number().int().positive('ID de animal inválido').nullable().optional(),
+  canilId: z.number().int().positive('Debe seleccionar un canil válido'),
+  animalId: z.number().int().positive('Debe seleccionar un animal válido').nullable().optional(),
   motivo: z.string().min(3, 'El motivo del movimiento es obligatorio').optional().nullable(),
   estado: z.enum(['LIBRE', 'OCUPADO', 'CUARENTENA', 'MANTENIMIENTO']).default('OCUPADO')
 });
 
 export const trasladoExternoSchema = z.object({
-  animalId: z.number().int().positive('ID de animal obligatorio'),
+  animalId: z.number().int().positive('Debe seleccionar un animal válido para el traslado'),
   tipo: z.enum(['PROTECTORA_ALIADA', 'HOGAR_TEMPORAL']),
   motivo: z.string().min(3, 'El motivo del traslado es obligatorio'),
   destinoNombre: z.string().min(2, 'El nombre del destino es obligatorio'),
@@ -31,11 +31,11 @@ export const crearCanilSchema = z.object({
 });
 
 export const eliminarCanilSchema = z.object({
-  id: z.string().regex(/^\d+$/, 'ID de canil inválido').transform(Number)
+  id: z.string().regex(/^\d+$/, 'Selecciona un canil válido.').transform(Number)
 });
 
 export const canilIdParamSchema = z.object({
-  id: z.string().regex(/^\d+$/, 'ID de canil inválido').transform(Number)
+  id: z.string().regex(/^\d+$/, 'Selecciona un canil válido.').transform(Number)
 });
 
 export const actualizarSectorCanilSchema = z.object({

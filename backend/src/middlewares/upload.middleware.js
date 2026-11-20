@@ -51,6 +51,9 @@ export const uploadSingle = (campo = 'foto') => (req, res, next) => {
     if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ error: 'La imagen supera el tamaño máximo permitido (10 MB).' });
     }
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: 'Selecciona una sola foto en formato JPG o PNG.' });
+    }
     return res.status(400).json({ error: err.message || 'No se pudo procesar la imagen.' });
   });
 };

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import AnimalSelect from './ui/AnimalSelect';
+import { formatearErrorApi } from '../utils/errores';
 import {
   Circle,
   CircleAlert,
@@ -47,9 +49,10 @@ export default function CuidadosModulo({ user }) {
         fetch(`${API_URL}/animals`, { headers: getAuthHeaders() })
       ]);
       const dataTareas = await resTareas.json();
-      const dataAnimales = await resAnimales.json();
+      const respuestaAnimales = await resAnimales.json();
+      const dataAnimales = Array.isArray(respuestaAnimales) ? respuestaAnimales : [];
       setTareas(dataTareas.tareas || []);
-      setAnimales(dataAnimales || []);
+      setAnimales(dataAnimales);
       if (dataAnimales?.length > 0 && !selectedAnimalId) {
         setSelectedAnimalId(dataAnimales[0].id);
       }
@@ -66,10 +69,10 @@ export default function CuidadosModulo({ user }) {
     try {
       const res = await fetch(`${API_URL}/cuidados/animal/${id}`, { headers: getAuthHeaders() });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al cargar historial');
+      if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al cargar historial'));
       setHistorialAnimal(data);
     } catch (e) {
-      alert(e.message);
+      alert(formatearErrorApi(e));
     }
   };
 
@@ -96,7 +99,7 @@ export default function CuidadosModulo({ user }) {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.detalles?.[0]?.mensaje || data.error || 'Error al registrar indicación');
+        throw new Error(formatearErrorApi(data));
       }
 
       alert('Indicación registrada en el historial del animal y publicada en el panel de tareas del turno.');
@@ -113,7 +116,7 @@ export default function CuidadosModulo({ user }) {
       await cargarInicial();
       await cargarHistorial(selectedAnimalId);
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -129,13 +132,13 @@ export default function CuidadosModulo({ user }) {
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al registrar cumplimiento');
+      if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al registrar cumplimiento'));
 
       alert('Tarea marcada como completada en la bitácora del turno.');
       setObservacionModal({ open: false, tareaId: null, texto: '' });
       cargarInicial();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -278,15 +281,18 @@ export default function CuidadosModulo({ user }) {
             <label style={{ fontSize: '0.85rem', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
               Seleccionar Animal con Ficha Activa:
             </label>
-            <select
-              value={selectedAnimalId}
-              onChange={(e) => cargarHistorial(e.target.value)}
-              style={{ padding: '10px', borderRadius: '8px', border: '1.5px solid #e9eaed', width: '100%', maxWidth: '360px', background: '#fff' }}
-            >
-              {animales.map((a) => (
-                <option key={a.id} value={a.id}>{a.nombre} ({a.especie})</option>
-              ))}
-            </select>
+            <div style={{ maxWidth: '380px' }}>
+              <AnimalSelect
+                animales={animales}
+                value={selectedAnimalId}
+                onChange={(id) => {
+                  setSelectedAnimalId(id);
+                  if (id) cargarHistorial(id);
+                }}
+                placeholder="— Seleccionar animal albergado —"
+                searchPlaceholder="Buscar por nombre o especie..."
+              />
+            </div>
           </div>
 
           {historialAnimal && (
@@ -324,15 +330,13 @@ export default function CuidadosModulo({ user }) {
 
           <div style={{ marginBottom: '14px' }}>
             <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: '700', marginBottom: '4px' }}>Animal (Ficha Activa):</label>
-            <select
+            <AnimalSelect
+              animales={animales}
               value={selectedAnimalId}
-              onChange={(e) => setSelectedAnimalId(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e9eaed', background: '#fff' }}
-            >
-              {animales.map((a) => (
-                <option key={a.id} value={a.id}>{a.nombre} ({a.especie})</option>
-              ))}
-            </select>
+              onChange={(id) => setSelectedAnimalId(id)}
+              placeholder="— Seleccionar animal para la indicación —"
+              searchPlaceholder="Buscar por nombre o especie..."
+            />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>

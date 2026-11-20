@@ -14,6 +14,8 @@ import PerfilesUsuariosModulo from './components/PerfilesUsuariosModulo';
 import Logo from './components/Logo';
 import {
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Dog,
   DoorOpen,
@@ -35,6 +37,23 @@ export default function App() {
   const [animalEditar, setAnimalEditar] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [canilesList, setCanilesList] = useState([]);
+  const [sidebarRetraida, setSidebarRetraida] = useState(() => {
+    try {
+      return localStorage.getItem('portal_sidebar_retraida') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebar = () => {
+    setSidebarRetraida(prev => {
+      const nuevo = !prev;
+      try {
+        localStorage.setItem('portal_sidebar_retraida', String(nuevo));
+      } catch {}
+      return nuevo;
+    });
+  };
 
   useEffect(() => {
     const session = readStoredSession(localStorage);
@@ -89,125 +108,195 @@ export default function App() {
         </div>
       ) : (
         <>
-          {/* SIDEBAR DE NAVEGACIÓN — FIEL AL PROTOTIPO */}
+          {/* SIDEBAR DE NAVEGACIÓN — RETRAÍBLE CON UN CLICK */}
           <aside style={{
-            width: '252px', height: '100vh', background: '#ffffff', borderRight: '1px solid #e9eaed',
-            display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, zIndex: 100
+            width: sidebarRetraida ? '72px' : '252px',
+            height: '100vh',
+            background: '#ffffff',
+            borderRight: '1px solid #e9eaed',
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            zIndex: 100,
+            transition: 'width 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+            overflowX: 'hidden'
           }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '11px', padding: '22px 20px 20px',
-              borderBottom: '1px solid #f0f1f3'
-            }}>
-              <div style={{
-                width: '38px', height: '38px', borderRadius: '11px', background: '#e8f0e8',
-                color: '#3f6c52', display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <Logo size={24} />
+            <div className={`portal-sidebar-header${sidebarRetraida ? ' is-collapsed' : ''}`}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '11px',
+                  background: '#e8f0e8',
+                  color: '#3f6c52',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Logo size={24} />
+                </div>
+                {!sidebarRetraida && (
+                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    <h1 style={{ fontSize: '0.98rem', fontWeight: '800', color: '#1f2430', lineHeight: 1.2, margin: 0 }}>
+                      Huellas Sin Hogar
+                    </h1>
+                    <span style={{ fontSize: '0.68rem', color: '#a3aab5', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: '600' }}>
+                      Portal del Staff
+                    </span>
+                  </div>
+                )}
               </div>
-              <div>
-                <h1 style={{ fontSize: '0.98rem', fontWeight: '800', color: '#1f2430', lineHeight: 1.2, margin: 0 }}>
-                  Huellas Sin Hogar
-                </h1>
-                <span style={{ fontSize: '0.68rem', color: '#a3aab5', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: '600' }}>
-                  Portal del Staff
-                </span>
-              </div>
+
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="portal-sidebar-toggle"
+                aria-expanded={!sidebarRetraida}
+                aria-controls="portal-sidebar-nav"
+                title={sidebarRetraida ? "Expandir barra lateral" : "Retraer barra lateral"}
+                aria-label={sidebarRetraida ? "Expandir barra lateral" : "Retraer barra lateral"}
+              >
+                {sidebarRetraida ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              </button>
             </div>
 
-            <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
+            <nav id="portal-sidebar-nav" aria-label="Navegación principal" style={{ flex: 1, padding: sidebarRetraida ? '12px 8px' : '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
               {/* Inicio / Panel de Indicadores */}
               <button
                 onClick={() => setActiveTab('dashboard')}
+                title="Inicio"
                 className={`portal-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+                style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
-                <BarChart3 size={18} aria-hidden="true" /> <span>Inicio</span>
+                <BarChart3 size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Inicio</span>}
               </button>
 
               {/* Registro de Animales */}
               <button
                 onClick={() => setActiveTab('animales')}
+                title="Registro Animales"
                 className={`portal-nav-btn ${activeTab === 'animales' ? 'active' : ''}`}
+                style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
-                <Dog size={18} aria-hidden="true" /> <span>Registro Animales</span>
+                <Dog size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Registro Animales</span>}
               </button>
 
               {/* Caniles y Traslados */}
               <button
                 onClick={() => setActiveTab('caniles')}
+                title="Caniles y Traslados"
                 className={`portal-nav-btn ${activeTab === 'caniles' ? 'active' : ''}`}
+                style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
-                <DoorOpen size={18} aria-hidden="true" /> <span>Caniles y Traslados</span>
+                <DoorOpen size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Caniles y Traslados</span>}
               </button>
 
-              {/*Gestion de Adopciones */}
+              {/* Gestion de Adopciones */}
               {puedeGestionarAdopciones && (
                 <button
                   onClick={() => setActiveTab('adopciones')}
+                  title="Adopciones"
                   aria-current={activeTab === 'adopciones' ? 'page' : undefined}
                   className={`portal-nav-btn ${activeTab === 'adopciones' ? 'active' : ''}`}
+                  style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
                 >
-                  <House size={18} aria-hidden="true" /> <span>Adopciones</span>
+                  <House size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Adopciones</span>}
                 </button>
               )}
 
               {/* Sección: Bienestar */}
-              <div style={{ borderTop: '1px solid var(--portal-border)', marginTop: '10px', paddingTop: '12px', paddingBottom: '2px', paddingLeft: '14px' }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--portal-text-light)' }}>
-                  Bienestar
-                </span>
+              <div style={{
+                borderTop: '1px solid var(--portal-border)',
+                marginTop: '10px',
+                paddingTop: '12px',
+                paddingBottom: '2px',
+                paddingLeft: sidebarRetraida ? '0' : '14px',
+                textAlign: sidebarRetraida ? 'center' : 'left'
+              }}>
+                {!sidebarRetraida ? (
+                  <span style={{ fontSize: '0.68rem', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--portal-text-light)' }}>
+                    Bienestar
+                  </span>
+                ) : (
+                  <div style={{ height: '1px', background: 'transparent' }} />
+                )}
               </div>
 
               {/* Necesidades Diarias y Notas de Cuidado */}
               <button
                 onClick={() => setActiveTab('cuidados')}
+                title="Rondas y Cuidados"
                 className={`portal-nav-btn ${activeTab === 'cuidados' ? 'active' : ''}`}
+                style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
-                <ClipboardList size={18} aria-hidden="true" /> <span>Rondas y Cuidados</span>
+                <ClipboardList size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Rondas y Cuidados</span>}
               </button>
 
-              {/*Salud y Vacunacion */}
+              {/* Salud y Vacunación */}
               <button
                 onClick={() => setActiveTab('salud')}
+                title="Salud y Vacunación"
                 className={`portal-nav-btn ${activeTab === 'salud' ? 'active' : ''}`}
+                style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
-                <Syringe size={18} aria-hidden="true" /> <span>Salud y Vacunación</span>
+                <Syringe size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Salud y Vacunación</span>}
               </button>
 
               {/* Sección: Administración */}
-              <div style={{ borderTop: '1px solid var(--portal-border)', marginTop: '10px', paddingTop: '12px', paddingBottom: '2px', paddingLeft: '14px' }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--portal-text-light)' }}>
-                  Administración
-                </span>
+              <div style={{
+                borderTop: '1px solid var(--portal-border)',
+                marginTop: '10px',
+                paddingTop: '12px',
+                paddingBottom: '2px',
+                paddingLeft: sidebarRetraida ? '0' : '14px',
+                textAlign: sidebarRetraida ? 'center' : 'left'
+              }}>
+                {!sidebarRetraida ? (
+                  <span style={{ fontSize: '0.68rem', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--portal-text-light)' }}>
+                    Administración
+                  </span>
+                ) : (
+                  <div style={{ height: '1px', background: 'transparent' }} />
+                )}
               </div>
 
               {/* Inventario de Insumos */}
               {puedeGestionarInventario && (
                 <button
                   onClick={() => setActiveTab('inventario')}
+                  title="Inventario"
                   aria-current={activeTab === 'inventario' ? 'page' : undefined}
                   className={`portal-nav-btn ${activeTab === 'inventario' ? 'active' : ''}`}
+                  style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
                 >
-                  <Package size={18} aria-hidden="true" /> <span>Inventario</span>
+                  <Package size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Inventario</span>}
                 </button>
               )}
 
               {/* Voluntarios y Turnos */}
               <button
                 onClick={() => setActiveTab('voluntarios')}
+                title="Voluntarios y Turnos"
                 aria-current={activeTab === 'voluntarios' ? 'page' : undefined}
                 className={`portal-nav-btn ${activeTab === 'voluntarios' ? 'active' : ''}`}
+                style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
-                <Handshake size={18} aria-hidden="true" /> <span>Voluntarios y Turnos</span>
+                <Handshake size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Voluntarios y Turnos</span>}
               </button>
 
               {/* Usuarios y Perfiles — Exclusivo Dirección */}
               {esDirectora && (
                 <button
                   onClick={() => setActiveTab('perfiles')}
+                  title="Usuarios y Perfiles"
                   aria-current={activeTab === 'perfiles' ? 'page' : undefined}
                   className={`portal-nav-btn ${activeTab === 'perfiles' ? 'active' : ''}`}
+                  style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
                 >
-                  <Users size={18} aria-hidden="true" /> <span>Usuarios y Perfiles</span>
+                  <Users size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Usuarios y Perfiles</span>}
                 </button>
               )}
 
@@ -215,40 +304,81 @@ export default function App() {
               {esDirectora && (
                 <button
                   onClick={() => setActiveTab('auditoria')}
+                  title="Auditoría"
                   className={`portal-nav-btn ${activeTab === 'auditoria' ? 'active' : ''}`}
+                  style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
                 >
-                  <ShieldCheck size={18} aria-hidden="true" /> <span>Auditoría</span>
+                  <ShieldCheck size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Auditoría</span>}
                 </button>
               )}
             </nav>
 
             {/* Usuario autenticado y Salir */}
-            <div style={{ padding: '16px 20px', borderTop: '1px solid #f0f1f3', background: '#fafbfc', marginTop: 'auto' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontWeight: '800', fontSize: '0.84rem', color: '#1f2430', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {user.nombre}
+            <div style={{ padding: sidebarRetraida ? '12px 8px' : '16px 20px', borderTop: '1px solid #f0f1f3', background: '#fafbfc', marginTop: 'auto' }}>
+              {!sidebarRetraida ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <div style={{ overflow: 'hidden' }}>
+                    <div style={{ fontWeight: '800', fontSize: '0.84rem', color: '#1f2430', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {user.nombre}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#7c8592', fontWeight: '600' }}>
+                      {user.rol}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#7c8592', fontWeight: '600' }}>
-                    {user.rol}
-                  </div>
+                  <button
+                    onClick={handleLogout}
+                    title="Cerrar sesión"
+                    style={{
+                      background: '#fbeae8', border: '1px solid #f3c9c4', color: '#d1453b',
+                      padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.75rem', flexShrink: 0
+                    }}
+                  >
+                    Salir
+                  </button>
                 </div>
-                <button
-                  onClick={handleLogout}
-                  title="Cerrar sesión"
-                  style={{
-                    background: '#fbeae8', border: '1px solid #f3c9c4', color: '#d1453b',
-                    padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.75rem', flexShrink: 0
-                  }}
-                >
-                  Salir
-                </button>
-              </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    title={`${user.nombre} (${user.rol})`}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: '#e8f0e8',
+                      color: '#3f6c52',
+                      fontWeight: '800',
+                      fontSize: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'default'
+                    }}
+                  >
+                    {(user.nombre || 'U')[0].toUpperCase()}
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    title="Cerrar sesión"
+                    style={{
+                      background: '#fbeae8', border: '1px solid #f3c9c4', color: '#d1453b',
+                      padding: '4px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.7rem', width: '100%', textAlign: 'center'
+                    }}
+                  >
+                    Salir
+                  </button>
+                </div>
+              )}
             </div>
           </aside>
 
           {/* ÁREA PRINCIPAL */}
-          <main style={{ marginLeft: '252px', flex: 1, minHeight: '100vh', boxSizing: 'border-box' }}>
+          <main style={{
+            marginLeft: sidebarRetraida ? '72px' : '252px',
+            flex: 1,
+            minHeight: '100vh',
+            boxSizing: 'border-box',
+            transition: 'margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1)'
+          }}>
             {/* key={activeTab} remonta el panel y reproduce la transición al cambiar de sección */}
             <div key={activeTab} className="portal-tab-panel">
               {activeTab === 'dashboard' && (

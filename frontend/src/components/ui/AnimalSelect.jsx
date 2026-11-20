@@ -7,9 +7,15 @@ const normalizarTexto = (valor) => String(valor ?? '')
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '');
 
+const ESTADOS_SALUD = {
+  NORMAL: 'Normal',
+  CONDICION_ESPECIAL: 'Condición especial',
+  CRITICO: 'Crítico'
+};
+
 const describirAnimal = (animal) => {
   if (!animal) return '';
-  return [animal.especie, animal.sexo, animal.estadoSalud]
+  return [animal.especie, animal.sexo, ESTADOS_SALUD[animal.estadoSalud]]
     .filter(Boolean)
     .join(' · ');
 };
@@ -100,11 +106,10 @@ export default function AnimalSelect({
     return animales.filter(animal => {
       const campos = [
         animal.nombre,
-        animal.codigo,
         animal.especie,
         animal.raza,
         animal.sexo,
-        animal.estadoSalud,
+        ESTADOS_SALUD[animal.estadoSalud],
         animal.canil?.nombre,
         animal.canil?.sector
       ];

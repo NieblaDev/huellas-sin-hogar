@@ -4,7 +4,7 @@ export const crearTurnoSchema = z.object({
   diaSemana: z.string().min(3, 'El día de la semana es requerido (ej: Lunes, Martes)'),
   franja: z.string().min(2, 'La franja horaria es requerida (ej: Mañana, Tarde)'),
   area: z.string().min(2, 'El área de servicio es obligatoria (ej: Paseos, Limpieza, Atención Veterinaria)'),
-  fecha: z.string().datetime({ message: 'La fecha debe ser una cadena ISO válida' }).optional().nullable(),
+  fecha: z.string().datetime({ message: 'La fecha debe ser válida' }).optional().nullable(),
   esCritica: z.boolean().default(false),
   cupoMaximo: z.number().int().min(1, 'El cupo mínimo debe ser de al menos 1 voluntario').default(2),
   horaInicio: z.string().optional().nullable(),
@@ -37,7 +37,7 @@ export const solicitarPermutaSchema = z.object({
 
 export const responderPermutaSchema = z.object({
   accion: z.enum(['APROBAR', 'RECHAZAR'], {
-    errorMap: () => ({ message: 'La acción debe ser APROBAR o RECHAZAR' })
+    errorMap: () => ({ message: 'Indica si quieres aprobar o rechazar la permuta.' })
   }),
   observacion: z.string().optional().nullable()
 });

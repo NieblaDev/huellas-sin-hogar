@@ -1,3 +1,4 @@
+import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from "react";
 import {
   BarChart3,
@@ -41,12 +42,12 @@ export default function DashboardModulo({ user, onNavigate }) {
       }
       if (!res.ok) {
         throw new Error(
-          body?.error || `Error ${res.status}: ${res.statusText}`,
+          formatearErrorApi(body, 'No se pudieron cargar las métricas del refugio.'),
         );
       }
       setData(body);
     } catch (err) {
-      setError(err.message);
+      setError(formatearErrorApi(err));
     } finally {
       setCargando(false);
     }

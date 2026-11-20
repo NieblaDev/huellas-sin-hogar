@@ -1,3 +1,4 @@
+import { formatearErrorApi } from '../utils/errores';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Ban,
@@ -88,11 +89,6 @@ const ListaPermisos = ({ items = [], tipo }) => {
   );
 };
 
-const mensajeError = data => [
-  data?.error,
-  ...(data?.detalles || []).map(detalle => detalle.mensaje)
-].filter(Boolean).join(' ');
-
 const formatearFecha = valor => valor ? new Date(valor).toLocaleDateString('es-CL') : 'Sin registro';
 
 export default function PerfilesUsuariosModulo({ user }) {
@@ -128,14 +124,14 @@ export default function PerfilesUsuariosModulo({ user }) {
         cache: 'no-store'
       });
       const data = await respuesta.json();
-      if (!respuesta.ok) throw new Error(mensajeError(data) || 'No se pudieron cargar los perfiles.');
+      if (!respuesta.ok) throw new Error(formatearErrorApi(data, 'No se pudieron cargar los perfiles.'));
       setDatos({
         usuarios: data.usuarios || [],
         perfiles: data.perfiles || [],
         resumen: data.resumen || { total: 0, activos: 0, inactivos: 0 }
       });
     } catch (err) {
-      if (err.name !== 'AbortError') setError(err.message);
+      if (err.name !== 'AbortError') setError(formatearErrorApi(err));
     } finally {
       if (!signal?.aborted) setCargando(false);
     }
@@ -203,7 +199,7 @@ export default function PerfilesUsuariosModulo({ user }) {
         })
       });
       const data = await respuesta.json();
-      if (!respuesta.ok) throw new Error(mensajeError(data) || 'No se pudo crear el perfil.');
+      if (!respuesta.ok) throw new Error(formatearErrorApi(data, 'No se pudo crear el perfil.'));
 
       setModalCrear(false);
       setForm(FORM_INICIAL);
@@ -211,7 +207,7 @@ export default function PerfilesUsuariosModulo({ user }) {
       setError('');
       await cargarDatos();
     } catch (err) {
-      setFormError(err.message);
+      setFormError(formatearErrorApi(err));
     } finally {
       setGuardando(false);
     }
@@ -227,7 +223,7 @@ export default function PerfilesUsuariosModulo({ user }) {
         headers: getAuthHeaders()
       });
       const data = await respuesta.json();
-      if (!respuesta.ok) throw new Error(mensajeError(data) || 'No se pudo eliminar el perfil.');
+      if (!respuesta.ok) throw new Error(formatearErrorApi(data, 'No se pudo eliminar el perfil.'));
 
       setPerfilAEliminar(null);
       setExito(data.mensaje || 'Perfil eliminado correctamente.');
@@ -235,7 +231,7 @@ export default function PerfilesUsuariosModulo({ user }) {
       setEstadoPerfil('activos');
       await cargarDatos();
     } catch (err) {
-      setErrorAccion(err.message);
+      setErrorAccion(formatearErrorApi(err));
     } finally {
       setEliminando(false);
     }

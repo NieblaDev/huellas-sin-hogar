@@ -1,3 +1,4 @@
+import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
@@ -13,7 +14,6 @@ import {
   Lock,
   Pencil,
   Plus,
-  Search,
   ShieldCheck,
   Tag,
   Trash2,
@@ -22,7 +22,25 @@ import {
 } from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
 
-// Diccionario amigable para nombres de campos
+const ETIQUETAS_ENTIDADES = {
+  SolicitudAdopcion: 'Solicitud de adopción',
+  EtapaAdopcion: 'Etapa de adopción',
+  SeguimientoAdopcion: 'Seguimiento de adopción',
+  Adopcion: 'Adopción',
+  ConfiguracionSistema: 'Configuración del sistema',
+  Devolucion: 'Devolución',
+  IndicacionCuidado: 'Indicación de cuidado',
+  BitacoraCuidado: 'Bitácora de cuidado',
+  VacunaAnimal: 'Vacuna',
+  AtencionClinica: 'Atención clínica',
+  CuarentenaAnimal: 'Cuarentena',
+  PermutaTurnos: 'Permuta de turnos',
+  BitacoraTurnos: 'Bitácora de turnos'
+};
+
+const etiquetaEntidad = entidad => ETIQUETAS_ENTIDADES[entidad] || entidad;
+
+// Campos de auditoría que se pueden mostrar con una etiqueta legible.
 const ETIQUETAS_CAMPOS = {
   nombre: 'Nombre',
   especie: 'Especie',
@@ -34,7 +52,6 @@ const ETIQUETAS_CAMPOS = {
   tamano: 'Tamaño',
   estadoSalud: 'Estado de salud',
   estadoAdopcion: 'Estado de adopción',
-  canilId: 'Canil asignado',
   canil: 'Canil',
   descripcion: 'Descripción',
   observaciones: 'Observaciones',
@@ -63,7 +80,39 @@ const ETIQUETAS_CAMPOS = {
   unidadMedida: 'Unidad de medida',
   stockMinimo: 'Stock mínimo',
   stockActual: 'Stock actual',
-  ubicacion: 'Ubicación'
+  ubicacion: 'Ubicación',
+  animal: 'Animal',
+  diagnostico: 'Diagnóstico',
+  codigo: 'Código',
+  chip: 'Número de microchip',
+  edad: 'Edad',
+  tipoIngreso: 'Tipo de ingreso',
+  historialMedico: 'Historial médico',
+  nota: 'Nota',
+  categoria: 'Categoría',
+  lote: 'Lote',
+  fechaVencimiento: 'Fecha de vencimiento',
+  stock: 'Stock',
+  unidad: 'Unidad de medida',
+  fecha: 'Fecha',
+  estadoAnterior: 'Estado anterior',
+  estadoNuevo: 'Estado nuevo',
+  estadoPlanificacion: 'Estado de la planificación',
+  animalAnterior: 'Animal anterior',
+  animalAsignado: 'Animal asignado',
+  voluntario: 'Voluntario',
+  aprobadoPor: 'Aprobado por',
+  resueltoPor: 'Resuelto por',
+  comentario: 'Comentario',
+  cupoMaximo: 'Cupo máximo',
+  tareasRealizadas: 'Tareas realizadas',
+  incidentes: 'Incidentes',
+  instruccion: 'Instrucción de cuidado',
+  fechaInicio: 'Fecha de inicio',
+  fechaFin: 'Fecha de término',
+  nombreVacuna: 'Vacuna',
+  fechaAplicacion: 'Fecha de aplicación',
+  resultado: 'Resultado'
 };
 
 // Formateador amigable para valores booleanos, nulos, fechas o enums
@@ -75,12 +124,11 @@ const formatearValorLegible = (clave, valor) => {
     return valor ? 'Sí' : 'No';
   }
   if (typeof valor === 'object') {
-    if (valor.nombre) return valor.nombre;
     if (Array.isArray(valor)) {
-      if (valor.length === 0) return <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Ninguno</span>;
-      return valor.map((v, i) => (typeof v === 'object' && v.nombre ? v.nombre : String(v))).join(', ');
+      const nombres = valor.map(item => item?.nombre).filter(Boolean);
+      return nombres.join(', ') || 'Sin detalles disponibles';
     }
-    return JSON.stringify(valor);
+    return valor.nombre || 'Sin detalles disponibles';
   }
 
   const str = String(valor);
@@ -129,21 +177,6 @@ const formatearValorLegible = (clave, valor) => {
   return traducciones[str] || str.replace(/_/g, ' ');
 };
 
-// Limpieza de campos que no aportan valor humano (IDs técnicos, hashes, marcas de tiempo del sistema)
-const camposIgnorados = new Set([
-  'id',
-  'password',
-  'contrasena',
-  'actualizadoEn',
-  'creadoEn',
-  'updatedAt',
-  'createdAt',
-  'usuarioId',
-  'animalId',
-  'canilOrigenId',
-  'canilDestinoId'
-]);
-
 export default function AuditoriaModulo({ user }) {
   const [auditorias, setAuditorias] = useState([]);
   const [total, setTotal] = useState(0);
@@ -161,10 +194,17 @@ export default function AuditoriaModulo({ user }) {
   const [tabAccion, setTabAccion] = useState('TODAS'); // 'TODAS' | 'CREACION' | 'MODIFICACION' | 'BAJA_LOGICA'
 
   useEffect(() => {
-    fetchAuditorias();
-  }, []);
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      fetchAuditorias(controller.signal);
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [filtroUsuario, filtroEntidad, fechaDesde, fechaHasta]);
 
-  const fetchAuditorias = async () => {
+  const fetchAuditorias = async (signal) => {
     setCargando(true);
     setError(null);
     try {
@@ -175,7 +215,7 @@ export default function AuditoriaModulo({ user }) {
       if (fechaHasta) params.append('fechaHasta', fechaHasta);
 
       const res = await fetch(`${API_URL}/auditoria?${params.toString()}`, {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(), signal
       });
 
       if (res.status === 403) {
@@ -185,18 +225,14 @@ export default function AuditoriaModulo({ user }) {
       if (!res.ok) throw new Error('Error al consultar bitácora de auditoría');
 
       const data = await res.json();
+      if (signal.aborted) return;
       setAuditorias(data.registros || []);
       setTotal(data.total || 0);
     } catch (err) {
-      setError(err.message);
+      if (!signal.aborted) setError(formatearErrorApi(err));
     } finally {
-      setCargando(false);
+      if (!signal.aborted) setCargando(false);
     }
-  };
-
-  const handleFiltrar = (e) => {
-    e.preventDefault();
-    fetchAuditorias();
   };
 
   const handleLimpiarFiltros = () => {
@@ -204,7 +240,6 @@ export default function AuditoriaModulo({ user }) {
     setFiltroEntidad('');
     setFechaDesde('');
     setFechaHasta('');
-    setTimeout(fetchAuditorias, 0);
   };
 
   const accionColor = {
@@ -228,8 +263,8 @@ export default function AuditoriaModulo({ user }) {
         : `${accion} de ficha de animal`;
     }
     return nombre
-      ? `${accion} de registro en ${item.entidad} — ${nombre}`
-      : `${accion} de registro en ${item.entidad}`;
+      ? `${accion} de registro en ${etiquetaEntidad(item.entidad)} — ${nombre}`
+      : `${accion} de registro en ${etiquetaEntidad(item.entidad)}`;
   };
 
   const auditoriasFiltradas = auditorias.filter(item => tabAccion === 'TODAS' || item.accion === tabAccion);
@@ -241,7 +276,7 @@ export default function AuditoriaModulo({ user }) {
       ...Object.keys(nuevo || {})
     ]);
 
-    return Array.from(claves).filter(c => !camposIgnorados.has(c));
+    return Array.from(claves).filter(c => Object.hasOwn(ETIQUETAS_CAMPOS, c));
   };
 
   return (
@@ -302,7 +337,7 @@ export default function AuditoriaModulo({ user }) {
       )}
 
       {/* BARRA DE FILTROS */}
-      <form onSubmit={handleFiltrar} style={{
+      <div style={{
         background: '#fff', borderRadius: '14px', border: '1px solid #e9eaed', padding: '18px 20px',
         marginBottom: '22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', alignItems: 'flex-end'
       }}>
@@ -364,12 +399,6 @@ export default function AuditoriaModulo({ user }) {
 
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
-            type="submit"
-            style={{ flex: 1, padding: '9px', background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '7px', fontWeight: '700', fontSize: '0.84rem', cursor: 'pointer' }}
-          >
-            <Search size={15} aria-hidden="true" /> Filtrar
-          </button>
-          <button
             type="button"
             onClick={handleLimpiarFiltros}
             style={{ padding: '9px 12px', background: '#f8f9fa', color: '#7c8592', border: '1.5px solid #e9eaed', borderRadius: '7px', fontWeight: '700', fontSize: '0.84rem', cursor: 'pointer' }}
@@ -377,7 +406,7 @@ export default function AuditoriaModulo({ user }) {
             Limpiar
           </button>
         </div>
-      </form>
+      </div>
 
       {/* TABLA DE AUDITORÍA CON CLIC EN FILA */}
       <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e9eaed', overflow: 'hidden', boxShadow: '0 1px 3px rgba(20,24,32,0.03)' }}>
@@ -437,7 +466,7 @@ export default function AuditoriaModulo({ user }) {
                         <div style={{ fontSize: '0.74rem', color: '#7c8592' }}>{item.usuarioEmail || 'Automático'}</div>
                       </td>
                       <td style={{ padding: '12px 16px', fontWeight: '700', color: '#1f2430' }}>
-                        {item.entidad}
+                        {etiquetaEntidad(item.entidad)}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
@@ -538,7 +567,7 @@ export default function AuditoriaModulo({ user }) {
                   Entidad
                 </span>
                 <div style={{ fontSize: '0.86rem', color: '#1f2430', marginTop: '2px', fontWeight: '600' }}>
-                  {detalleRegistro.entidad}
+                  {etiquetaEntidad(detalleRegistro.entidad)}
                 </div>
               </div>
 
@@ -610,7 +639,7 @@ export default function AuditoriaModulo({ user }) {
                             }}
                           >
                             <td style={{ padding: '10px 14px', fontWeight: '700', color: '#334155' }}>
-                              {ETIQUETAS_CAMPOS[campo] || campo}
+                              {ETIQUETAS_CAMPOS[campo]}
                               {huboCambio && detalleRegistro.accion === 'MODIFICACION' && (
                                 <span style={{ marginLeft: '6px', fontSize: '0.68rem', color: '#b45309', background: '#fef3c7', padding: '1px 5px', borderRadius: '4px' }}>
                                   Modificado

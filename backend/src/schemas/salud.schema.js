@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
 export const registrarVacunaSchema = z.object({
-  animalId: z.number().int().positive('ID de animal requerido'),
+  animalId: z.number().int().positive('Debe seleccionar un animal válido'),
   nombreVacuna: z.string().min(2, 'Nombre de vacuna requerido'),
   dosis: z.string().min(1, 'Dosis requerida (ej: 1ra Dosis, Refuerzo Anual)'),
   lote: z.string().optional().nullable(),
   fechaAplicacion: z.string().datetime().optional(),
-  fechaVencimiento: z.string().datetime({ message: 'Fecha de vencimiento requerida en formato ISO' }),
+  fechaVencimiento: z.string().datetime({ message: 'Ingresa una fecha de vencimiento válida.' }),
   observaciones: z.string().optional().nullable()
 });
 

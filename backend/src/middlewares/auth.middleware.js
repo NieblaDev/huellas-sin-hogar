@@ -4,17 +4,17 @@ import prisma from '../config/prisma.js';
 export const authenticateToken = async (req, res, next) => {
   const authorization = req.headers.authorization || '';
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : null;
-  if (!token) return res.status(401).json({ error: 'Token requerido' });
+  if (!token) return res.status(401).json({ error: 'Inicia sesión para continuar.' });
 
   let payload;
   try {
     payload = jwt.verify(token, process.env.JWT_SECRET || 'huellas_secret_key_2026');
   } catch {
-    return res.status(403).json({ error: 'Token inválido o expirado' });
+    return res.status(403).json({ error: 'Tu sesión expiró o ya no es válida. Vuelve a iniciar sesión.' });
   }
 
   if (!Number.isInteger(payload?.id) || payload.id <= 0) {
-    return res.status(403).json({ error: 'Token inválido o expirado' });
+    return res.status(403).json({ error: 'Tu sesión expiró o ya no es válida. Vuelve a iniciar sesión.' });
   }
 
   try {
@@ -46,7 +46,7 @@ export const requireRole = (...rolesPermitidos) => (req, res, next) => {
 
   if (!rolesPermitidos.includes(req.user.rol)) {
     return res.status(403).json({
-      error: `Acceso denegado: Se requiere rol [${rolesPermitidos.join(', ')}]. Tu rol actual es '${req.user.rol}'`
+      error: 'Tu perfil no tiene permisos para realizar esta acción.'
     });
   }
 

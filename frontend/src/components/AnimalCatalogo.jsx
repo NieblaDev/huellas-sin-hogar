@@ -1,3 +1,4 @@
+import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from 'react';
 import {
   BarChart3,
@@ -62,12 +63,20 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   const puedeExportarExpediente = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'].includes(rolUsuario);
 
   useEffect(() => {
-    fetchAnimals();
+    const controller = new AbortController();
+    const timer = setTimeout(() => fetchAnimals(controller.signal), 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [search, especie, reloadKey]);
+
+  useEffect(() => {
     fetchNotificaciones();
     if (fichaSeleccionada?.id) {
       abrirFichaAnimal(fichaSeleccionada.id, true);
     }
-  }, [search, especie, reloadKey]);
+  }, [reloadKey]);
 
   // Cierra la foto ampliada si se cierra la ficha o con la tecla Escape
   useEffect(() => {
@@ -95,19 +104,20 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
     return () => window.removeEventListener('refugio:notificacion', handler);
   }, []);
 
-  const fetchAnimals = async () => {
+  const fetchAnimals = async (signal) => {
     setCargando(true);
     try {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (especie) params.append('especie', especie);
-      const res = await fetch(`${API_URL}/animals?${params.toString()}`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API_URL}/animals?${params.toString()}`, { headers: getAuthHeaders(), signal });
       const data = await res.json();
+      if (signal?.aborted) return;
       setAnimales(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error(err);
+      if (!signal?.aborted) console.error(err);
     } finally {
-      setCargando(false);
+      if (!signal?.aborted) setCargando(false);
     }
   };
 
@@ -128,10 +138,10 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
     try {
       const res = await fetch(`${API_URL}/animals/${animalId}`, { headers: getAuthHeaders() });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al cargar la ficha del animal');
+      if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al cargar la ficha del animal'));
       setFichaSeleccionada(data);
     } catch (err) {
-      if (!silencioso) alert(err.message);
+      if (!silencioso) alert(formatearErrorApi(err));
     } finally {
       if (!silencioso) setCargandoFicha(false);
     }
@@ -162,7 +172,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `No pudimos generar la ficha en ${formato}. Inténtalo nuevamente.`);
+        throw new Error(formatearErrorApi(errData, `No pudimos generar la ficha en ${formato}. Inténtalo nuevamente.`));
       }
 
       const notifHeader = res.headers.get('X-Notification-Message');
@@ -185,7 +195,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       setTimeout(() => setAvisoReciente(null), 6500);
       fetchNotificaciones();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     } finally {
       setDescargandoId(null);
     }
@@ -216,7 +226,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'No pudimos generar el reporte. Inténtalo nuevamente en unos minutos.');
+        throw new Error(formatearErrorApi(errData, 'No pudimos generar el reporte. Inténtalo nuevamente en unos minutos.'));
       }
 
       const notifHeader = res.headers.get('X-Notification-Message');
@@ -239,7 +249,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       setTimeout(() => setAvisoReciente(null), 6500);
       fetchNotificaciones();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     } finally {
       setDescargandoConsolidado(false);
     }
@@ -260,7 +270,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
         setFichaSeleccionada(null);
       }
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 

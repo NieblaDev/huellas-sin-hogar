@@ -134,5 +134,6 @@ export const obtenerSolicitud = async id => {
 };
 
 export const listarAnimalesDisponibles = () => prisma.animal.findMany({
-  where: { activo: true, estadoAdopcion: 'EN_REFUGIO', adopciones: { none: adopcionVigente } }, select: animalResumen, orderBy: { nombre: 'asc' }
+  where: { activo: true, estadoAdopcion: 'EN_REFUGIO', adopciones: { none: adopcionVigente } }, select: { ...animalResumen, fotoUrl: true, sexo: true, canil: { select: { nombre: true, sector: true } } },
+  orderBy: { nombre: 'asc' }
 });

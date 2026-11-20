@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import AnimalSelect from './ui/AnimalSelect';
+import { formatearErrorApi } from '../utils/errores';
 import {
   CircleX,
   ClipboardList,
@@ -49,9 +51,10 @@ export default function SaludModulo({ user }) {
         fetch(`${API_URL}/animals`, { headers: getAuthHeaders() })
       ]);
       const dataAlertas = await resAlertas.json();
-      const dataAnimales = await resAnimales.json();
+      const respuestaAnimales = await resAnimales.json();
+      const dataAnimales = Array.isArray(respuestaAnimales) ? respuestaAnimales : [];
       setAlertas(dataAlertas);
-      setAnimales(dataAnimales || []);
+      setAnimales(dataAnimales);
       if (dataAnimales?.length > 0) setSelectedAnimalId(dataAnimales[0].id);
     } catch (e) {
       console.error(e);
@@ -89,13 +92,13 @@ export default function SaludModulo({ user }) {
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al registrar vacuna');
+      if (!res.ok) throw new Error(formatearErrorApi(data));
       alert('Vacuna registrada correctamente en la ficha y alerta configurada.');
       setVacunaForm({ nombreVacuna: '', dosis: '1ra Dosis', lote: '', fechaVencimiento: '', observaciones: '' });
       cargarDatos();
       verHistorialAnimal(selectedAnimalId);
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -115,13 +118,13 @@ export default function SaludModulo({ user }) {
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al registrar atención');
+      if (!res.ok) throw new Error(formatearErrorApi(data));
       alert('Atención médica registrada exitosamente en la ficha del animal.');
       setAtencionForm({ motivo: 'Revisión periódica', diagnostico: '', temperatura: '', pesoActual: '' });
       cargarDatos();
       verHistorialAnimal(selectedAnimalId);
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -248,15 +251,18 @@ export default function SaludModulo({ user }) {
             <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1f2430', display: 'block', marginBottom: '6px' }}>
               Seleccionar Animal Activo:
             </label>
-            <select
-              value={selectedAnimalId}
-              onChange={e => verHistorialAnimal(e.target.value)}
-              style={{ padding: '10px', borderRadius: '8px', border: '1.5px solid #e9eaed', width: '100%', maxWidth: '350px', background: '#fff' }}
-            >
-              {animales.map(a => (
-                <option key={a.id} value={a.id}>{a.nombre} ({a.especie} - {a.raza || 'Mestizo'})</option>
-              ))}
-            </select>
+            <div style={{ maxWidth: '380px' }}>
+              <AnimalSelect
+                animales={animales}
+                value={selectedAnimalId}
+                onChange={id => {
+                  setSelectedAnimalId(id);
+                  if (id) verHistorialAnimal(id);
+                }}
+                placeholder="— Seleccionar animal albergado —"
+                searchPlaceholder="Buscar por nombre o especie..."
+              />
+            </div>
           </div>
 
           {historial && (
@@ -308,13 +314,13 @@ export default function SaludModulo({ user }) {
           
           <div style={{ marginBottom: '14px' }}>
             <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: '700', marginBottom: '4px' }}>Animal:</label>
-            <select
+            <AnimalSelect
+              animales={animales}
               value={selectedAnimalId}
-              onChange={e => setSelectedAnimalId(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e9eaed', background: '#fff' }}
-            >
-              {animales.map(a => <option key={a.id} value={a.id}>{a.nombre} ({a.especie})</option>)}
-            </select>
+              onChange={id => setSelectedAnimalId(id)}
+              placeholder="— Seleccionar animal para la vacuna —"
+              searchPlaceholder="Buscar por nombre o especie..."
+            />
           </div>
 
           <div style={{ marginBottom: '14px' }}>
@@ -377,13 +383,13 @@ export default function SaludModulo({ user }) {
 
           <div style={{ marginBottom: '14px' }}>
             <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: '700', marginBottom: '4px' }}>Animal:</label>
-            <select
+            <AnimalSelect
+              animales={animales}
               value={selectedAnimalId}
-              onChange={e => setSelectedAnimalId(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e9eaed', background: '#fff' }}
-            >
-              {animales.map(a => <option key={a.id} value={a.id}>{a.nombre} ({a.especie})</option>)}
-            </select>
+              onChange={id => setSelectedAnimalId(id)}
+              placeholder="— Seleccionar animal para la atención —"
+              searchPlaceholder="Buscar por nombre o especie..."
+            />
           </div>
 
           <div style={{ marginBottom: '14px' }}>

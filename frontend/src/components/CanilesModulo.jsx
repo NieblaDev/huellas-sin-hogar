@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
 import AnimalSelect from './ui/AnimalSelect';
+import { formatearErrorApi } from '../utils/errores';
 
 const ETIQUETAS_TIPO_TRASLADO = {
   INTERNO_CANIL: 'Movimiento interno entre caniles',
@@ -236,7 +237,7 @@ export default function CanilesModulo({ user }) {
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error al actualizar la ocupación del canil');
+        if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al actualizar la ocupación del canil'));
         mensajes.push(data.mensaje);
       }
 
@@ -248,7 +249,7 @@ export default function CanilesModulo({ user }) {
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error al actualizar el sector');
+        if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al actualizar el sector'));
         mensajes.push(data.mensaje);
       }
 
@@ -257,7 +258,7 @@ export default function CanilesModulo({ user }) {
       setModalCanilOpen(false);
       await cargarDatos();
     } catch (err) {
-      setErrorModal(err.message);
+      setErrorModal(formatearErrorApi(err));
     } finally {
       setGuardando(false);
     }
@@ -291,7 +292,7 @@ export default function CanilesModulo({ user }) {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al solicitar traslado');
+      if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al solicitar traslado'));
 
       setMensajeExito('Traslado registrado. Notificado a Directora para aprobación.');
       setTimeout(() => setMensajeExito(null), 4000);
@@ -306,7 +307,7 @@ export default function CanilesModulo({ user }) {
       setTab('traslados');
       await cargarDatos();
     } catch (err) {
-      setErrorExterno(err.message);
+      setErrorExterno(formatearErrorApi(err));
     }
   };
 
@@ -355,7 +356,7 @@ export default function CanilesModulo({ user }) {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al crear canil');
+      if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al crear canil'));
 
       setMensajeExito(data.message || 'Canil creado con éxito');
       setTimeout(() => setMensajeExito(null), 4000);
@@ -365,7 +366,7 @@ export default function CanilesModulo({ user }) {
       setErrorNuevoCanil(null);
       await cargarDatos();
     } catch (err) {
-      setErrorNuevoCanil(err.message);
+      setErrorNuevoCanil(formatearErrorApi(err));
     } finally {
       setCreandoCanil(false);
     }
@@ -380,7 +381,7 @@ export default function CanilesModulo({ user }) {
         headers: getAuthHeaders()
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al eliminar canil');
+      if (!res.ok) throw new Error(formatearErrorApi(data));
 
       setMensajeExito(data.mensaje || 'Canil eliminado correctamente');
       setTimeout(() => setMensajeExito(null), 4000);
@@ -388,7 +389,7 @@ export default function CanilesModulo({ user }) {
       setEliminarCanil(null);
       await cargarDatos();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     } finally {
       setEliminandoCanil(false);
     }
@@ -411,7 +412,7 @@ export default function CanilesModulo({ user }) {
         body: JSON.stringify({ aprobar, comentario: comentarioLimpio || null })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al procesar aprobación');
+      if (!res.ok) throw new Error(formatearErrorApi(data));
 
       setMensajeExito(data.message || (aprobar ? 'Traslado aprobado correctamente' : 'Traslado rechazado'));
       setTimeout(() => setMensajeExito(null), 4000);
@@ -420,7 +421,7 @@ export default function CanilesModulo({ user }) {
       setErrorAprobacion(null);
       await cargarDatos();
     } catch (err) {
-      setErrorAprobacion(err.message);
+      setErrorAprobacion(formatearErrorApi(err));
     } finally {
       setProcesandoAprobacion(false);
     }

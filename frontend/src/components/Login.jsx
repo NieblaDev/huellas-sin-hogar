@@ -1,3 +1,4 @@
+import { formatearErrorApi } from '../utils/errores';
 import React, { useState } from 'react';
 import { Crown, Handshake, Star, Stethoscope, Wrench } from 'lucide-react';
 import { API_URL } from '../api/config';
@@ -54,12 +55,12 @@ export default function Login({ onLoginSuccess }) {
         body: JSON.stringify({ email: loginEmail, password: loginPass })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Credenciales incorrectas');
+      if (!res.ok) throw new Error(formatearErrorApi(data, 'Credenciales incorrectas'));
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       onLoginSuccess(data.user);
     } catch (err) {
-      setError(err.message);
+      setError(formatearErrorApi(err));
     } finally {
       setCargando(false);
     }

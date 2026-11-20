@@ -1,3 +1,4 @@
+import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from 'react';
 import { Camera, PawPrint, Pencil, TriangleAlert } from 'lucide-react';
 import { API_URL } from '../api/config';
@@ -186,14 +187,8 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const msgDetalle = data.detalles?.map((d) => d.mensaje).join(' · ');
-        throw new Error(
-          msgDetalle ||
-            data.error ||
-            (esEdicion
-              ? 'No pudimos actualizar la ficha del animal. Inténtalo nuevamente.'
-              : 'No pudimos registrar el ingreso. Inténtalo nuevamente.')
-        );
+        const alternativo = esEdicion ? 'No se pudo actualizar la ficha.' : 'No se pudo registrar el animal.';
+        throw new Error(formatearErrorApi(data, alternativo));
       }
 
       if (data.notificacion) {
@@ -208,7 +203,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err.message);
+      setError(formatearErrorApi(err));
     } finally {
       setGuardando(false);
     }

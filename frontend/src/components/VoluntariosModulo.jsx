@@ -11,12 +11,14 @@ import {
   Crown,
   Handshake,
   Lock,
+  Plus,
   ShieldCheck,
   TriangleAlert,
   User,
   Users
 } from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
+import { formatearErrorApi } from '../utils/errores';
 
 export default function VoluntariosModulo({ user }) {
   const [tabActual, setTabActual] = useState('matriz'); // 'matriz' | 'permutas' | 'bitacora' | 'directorio'
@@ -113,12 +115,12 @@ export default function VoluntariosModulo({ user }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al inscribirse en el turno');
+        throw new Error(formatearErrorApi(data, 'Error al inscribirse en el turno'));
       }
       alert(`¡Inscripción exitosa! Quedas asignado al turno de ${turno.area} (${turno.diaSemana} - ${turno.franja}).`);
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -133,12 +135,12 @@ export default function VoluntariosModulo({ user }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al cancelar inscripción');
+        throw new Error(formatearErrorApi(data, 'Error al cancelar inscripción'));
       }
       alert('Inscripción cancelada.');
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -155,14 +157,14 @@ export default function VoluntariosModulo({ user }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al asignar voluntario');
+        throw new Error(formatearErrorApi(data, 'Error al asignar voluntario'));
       }
       alert('Voluntario asignado al turno por el Coordinador.');
       setModalAsignarCoordOpen(false);
       setVoluntarioAAsignarId('');
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -176,12 +178,12 @@ export default function VoluntariosModulo({ user }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al confirmar planificación');
+        throw new Error(formatearErrorApi(data, 'Error al confirmar planificación'));
       }
       alert(data.mensaje);
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -196,13 +198,13 @@ export default function VoluntariosModulo({ user }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al crear turno');
+        throw new Error(formatearErrorApi(data, 'Error al crear turno'));
       }
       alert('Nuevo turno añadido a la matriz semanal');
       setModalTurnoOpen(false);
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -224,13 +226,13 @@ export default function VoluntariosModulo({ user }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al solicitar permuta');
+        throw new Error(formatearErrorApi(data, 'Error al solicitar permuta'));
       }
       alert('Solicitud de permuta enviada. Se encuentra pendiente de validación y aprobación por el compañero destinatario.');
       setModalPermutaOpen(false);
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -247,12 +249,12 @@ export default function VoluntariosModulo({ user }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al procesar respuesta');
+        throw new Error(formatearErrorApi(data, 'Error al procesar respuesta'));
       }
       alert(accion === 'APROBAR' ? '¡Permuta aprobada por ambas partes! Los turnos fueron intercambiados automáticamente en la matriz.' : 'Permuta rechazada.');
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -269,14 +271,14 @@ export default function VoluntariosModulo({ user }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al registrar bitácora');
+        throw new Error(formatearErrorApi(data, 'Error al registrar bitácora'));
       }
       alert('Registro de asistencia y bitácora guardado exitosamente.');
       setModalBitacoraOpen(false);
       setFormBitacora({ tareasRealizadas: '', incidentes: '', observaciones: '' });
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      alert(formatearErrorApi(err));
     }
   };
 
@@ -298,51 +300,17 @@ export default function VoluntariosModulo({ user }) {
         </div>
 
         <div className="portal-header-actions">
-          {/* Botones de acción del Coordinador */}
           {esCoordinador && (
             <>
               <button
-                onClick={handleConfirmarPlanificacion}
-                style={{
-                  background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px',
-                  padding: '10px 16px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '6px'
-                }}
-              >
-                <Lock size={15} aria-hidden="true" /> Confirmar Planificación Semanal
-              </button>
-
-              <button
+                type="button"
                 onClick={() => setModalTurnoOpen(true)}
-                style={{
-                  background: '#ffffff', color: '#1f2430', border: '1.5px solid #dcdfe4', borderRadius: '8px',
-                  padding: '10px 16px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '6px'
-                }}
+                className="portal-btn portal-btn-primary"
               >
-                <span>+</span> Crear Turno
+                <Plus size={16} aria-hidden="true" /> Crear Turno
               </button>
             </>
           )}
-
-          <button
-            onClick={() => {
-              if (misTurnos.length === 0) return alert('Debes tener al menos un turno asignado para solicitar una permuta.');
-              setFormPermuta({
-                turnoOrigenId: misTurnos[0].id,
-                destinatarioId: '',
-                turnoDestinoId: '',
-                motivo: ''
-              });
-              setModalPermutaOpen(true);
-            }}
-            style={{
-              background: '#ffffff', color: '#3f6c52', border: '1.5px solid #3f6c52', borderRadius: '8px',
-              padding: '10px 16px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer'
-            }}
-          >
-            ⇄ Solicitar Permuta
-          </button>
         </div>
       </div>
 
@@ -564,7 +532,7 @@ export default function VoluntariosModulo({ user }) {
                                             fontWeight: '800', cursor: 'pointer'
                                           }}
                                         >
-                                          + Inscribirme
+                                          <Plus size={14} aria-hidden="true" /> Inscribirme
                                         </button>
                                       )}
                                     </div>
@@ -598,6 +566,20 @@ export default function VoluntariosModulo({ user }) {
               </tbody>
             </table>
           </div>
+          {esCoordinador && (
+            <>
+              <button
+                onClick={handleConfirmarPlanificacion}
+                style={{
+                  background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px',
+                  padding: '10px 16px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '6px'
+                }}
+              >
+                <Lock size={15} aria-hidden="true" /> Confirmar Planificación Semanal
+              </button>
+            </>
+          )}
         </div>
       )}
 
