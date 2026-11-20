@@ -36,11 +36,19 @@ export const crearSolicitudSchema = z.object({
 export const solicitudIdSchema = z.object({ id: z.coerce.number().int().positive().max(2147483647) }).strict();
 
 export const listarSolicitudesSchema = z.object({
-  estado: z.enum(ESTADOS_SOLICITUD).optional(),
-  search: z.string().trim().max(120).optional(),
+  estado: z.enum(ESTADOS_SOLICITUD, { errorMap: () => ({ message: 'Elige un estado de la lista.' }) }).optional(),
+  search: z.string().trim().max(120, 'La búsqueda admite hasta 120 caracteres.').optional(),
+  // Orden por fecha de solicitud: reciente (por defecto) o antigua.
+  orden: z.enum(['reciente', 'antigua'], { errorMap: () => ({ message: 'Elige si quieres ver primero las solicitudes más recientes o las más antiguas.' }) }).optional(),
+  desde: z.string().datetime({ offset: true, message: 'Indica una fecha de inicio válida.' }).optional(),
+  hasta: z.string().datetime({ offset: true, message: 'Indica una fecha de término válida.' }).optional(),
   pagina: z.coerce.number().int().min(1).max(1000000).default(1),
   limite: z.coerce.number().int().min(1).max(50).default(20)
-}).strict();
+}).strict().superRefine((data, ctx) => {
+  if (data.desde && data.hasta && new Date(data.desde) > new Date(data.hasta)) {
+    ctx.addIssue({ code: 'custom', path: ['hasta'], message: 'La fecha final no puede ser anterior a la fecha inicial.' });
+  }
+});
 
 export const editarSolicitudSchema = crearSolicitudSchema.extend({ actualizadoEn: z.string().datetime() });
 export const eliminarSolicitudSchema = z.object({ actualizadoEn: z.string().datetime() }).strict();

@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import AnimalSelect from './ui/AnimalSelect';
+import ModalAdopcion from './adopciones/ModalAdopcion';
+import AnimalCardPicker from './adopciones/AnimalCardPicker';
+import { folioSeguimiento, folioSolicitud } from './adopciones/folios';
+import './adopciones/adopciones.css';
 import {
   AlertTriangle,
   Calendar,
@@ -167,7 +170,9 @@ const opcionesEtapasDisponibles = solicitud => {
 };
 
 export default function AdopcionesModulo({ user }) {
-  const [tab, setTab] = useState('lista'); // 'lista' | 'seguimientos' | 'crear' | 'detalle'
+  const [tab, setTab] = useState('lista'); // 'lista' | 'seguimientos'
+  // Ventanas modales sobre el listado: null | 'crear' | 'detalle'
+  const [modalSolicitud, setModalSolicitud] = useState(null);
   const [mensajeExito, setMensajeExito] = useState(null);
 
   // Estados para Solicitudes
@@ -176,7 +181,11 @@ export default function AdopcionesModulo({ user }) {
   const [solicitudesError, setSolicitudesError] = useState('');
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
+  const [ordenSolicitudes, setOrdenSolicitudes] = useState('reciente'); // 'reciente' | 'antigua'
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
   const [paginaSolicitudes, setPaginaSolicitudes] = useState(1);
+  const [recargaSolicitudes, setRecargaSolicitudes] = useState(0);
 
   // Detalle de solicitud y expediente
   const [solicitudSeleccionadaId, setSolicitudSeleccionadaId] = useState(null);
@@ -252,17 +261,17 @@ export default function AdopcionesModulo({ user }) {
 
   const tienePermisoAdopciones = ['DIRECTORA', 'ENCARGADA_ADOPCIONES'].includes(user?.rol);
 
-  // Carga inicial y cambios de filtros en Solicitudes
+  // La búsqueda se actualiza sola mientras se escribe (con una pausa mínima para no saturar al servidor)
   useEffect(() => {
     if (tab === 'lista' && tienePermisoAdopciones) {
       const controller = new AbortController();
-      const timer = setTimeout(() => cargarSolicitudes(controller.signal), 300);
+      const timer = setTimeout(() => cargarSolicitudes(controller.signal), solicitudesData ? 200 : 0);
       return () => {
         clearTimeout(timer);
         controller.abort();
       };
     }
-  }, [tab, tienePermisoAdopciones, paginaSolicitudes, filtroEstado, filtroTexto]);
+  }, [tab, tienePermisoAdopciones, paginaSolicitudes, filtroEstado, filtroTexto, ordenSolicitudes, fechaDesde, fechaHasta, recargaSolicitudes]);
 
   // Carga inicial en Seguimientos
   useEffect(() => {
@@ -273,19 +282,19 @@ export default function AdopcionesModulo({ user }) {
     }
   }, [tab, tienePermisoAdopciones, paginaSeguimientos, filtroEstadoSeguimiento, filtroAlertaSeguimiento]);
 
-  // Carga de animales cuando se ingresa a crear solicitud
+  // Carga de animales cuando se abre la ventana de nueva solicitud
   useEffect(() => {
-    if (tab === 'crear' && tienePermisoAdopciones) {
+    if (modalSolicitud === 'crear' && tienePermisoAdopciones) {
       cargarAnimalesDisponibles();
     }
-  }, [tab]);
+  }, [modalSolicitud]);
 
-  // Cargar detalle cuando se selecciona una solicitud
+  // Cargar detalle cuando se abre una solicitud
   useEffect(() => {
-    if (solicitudSeleccionadaId && tab === 'detalle' && tienePermisoAdopciones) {
+    if (solicitudSeleccionadaId && modalSolicitud === 'detalle' && tienePermisoAdopciones) {
       cargarDetalleSolicitud(solicitudSeleccionadaId);
     }
-  }, [solicitudSeleccionadaId, tab]);
+  }, [solicitudSeleccionadaId, modalSolicitud]);
 
   if (!tienePermisoAdopciones) {
     return (
@@ -298,31 +307,60 @@ export default function AdopcionesModulo({ user }) {
   }
 
   // --- MÉTODOS DE SOLICITUDES ---
+  const hayFiltrosSolicitudes = Boolean(
+    filtroTexto.trim() || filtroEstado || fechaDesde || fechaHasta || ordenSolicitudes !== 'reciente'
+  );
+
+  const limpiarFiltrosSolicitudes = () => {
+    setFiltroTexto('');
+    setFiltroEstado('');
+    setOrdenSolicitudes('reciente');
+    setFechaDesde('');
+    setFechaHasta('');
+    setPaginaSolicitudes(1);
+  };
+
   const cargarSolicitudes = async (signal) => {
     setSolicitudesCargando(true);
     setSolicitudesError('');
     try {
       const params = {
         pagina: paginaSolicitudes,
+        orden: ordenSolicitudes,
         ...(filtroTexto.trim() && { search: filtroTexto.trim() }),
-        ...(filtroEstado && { estado: filtroEstado })
+        ...(filtroEstado && { estado: filtroEstado }),
+        ...(fechaDesde && { desde: new Date(`${fechaDesde}T00:00:00`).toISOString() }),
+        ...(fechaHasta && { hasta: new Date(`${fechaHasta}T23:59:59.999`).toISOString() })
       };
       const res = await listarSolicitudes(params, signal);
       if (signal?.aborted) return;
       setSolicitudesData(res);
     } catch (err) {
-      if (!signal?.aborted) setSolicitudesError(formatearErrorApi(err, 'Error al cargar solicitudes'));
+      if (!signal?.aborted) setSolicitudesError(formatearErrorApi(err, 'No pudimos cargar las solicitudes. Intenta nuevamente.'));
     } finally {
       if (!signal?.aborted) setSolicitudesCargando(false);
     }
   };
+
+  const refrescarSolicitudes = () => setRecargaSolicitudes(k => k + 1);
 
   const verExpediente = (id) => {
     setSolicitudSeleccionadaId(id);
     setEditandoSolicitud(false);
     setConfirmarEliminar(false);
     setErrorEtapa('');
-    setTab('detalle');
+    setModalSolicitud('detalle');
+  };
+
+  const cerrarModalSolicitud = () => {
+    setModalSolicitud(null);
+    setEditandoSolicitud(false);
+    setConfirmarEliminar(false);
+    setErrorFormSolicitud('');
+    setErrorEtapa('');
+    setDetalleData(null);
+    setSolicitudSeleccionadaId(null);
+    refrescarSolicitudes();
   };
 
   const cargarDetalleSolicitud = async (id) => {
@@ -367,6 +405,7 @@ export default function AdopcionesModulo({ user }) {
 
       setMensajeExito(mensaje);
       setTimeout(() => setMensajeExito(null), 4000);
+      refrescarSolicitudes();
       await cargarDetalleSolicitud(detalleData.solicitud.id);
     } catch (err) {
       setErrorEtapa(formatearErrorApi(err));
@@ -419,7 +458,7 @@ export default function AdopcionesModulo({ user }) {
     setAntecedentes(null);
     setAlertasPostulante([]);
     setErrorFormSolicitud('');
-    setTab('crear');
+    setModalSolicitud('crear');
   };
 
   const abrirEditarSolicitud = () => {
@@ -495,6 +534,7 @@ export default function AdopcionesModulo({ user }) {
         const res = await crearSolicitud(payload);
         setMensajeExito('Solicitud registrada exitosamente.');
         setTimeout(() => setMensajeExito(null), 4000);
+        refrescarSolicitudes();
         verExpediente(res.solicitud.id);
       }
     } catch (err) {
@@ -611,12 +651,13 @@ export default function AdopcionesModulo({ user }) {
       setExitoDevolucion(true);
       setMensajeExito(`Devolución de ${modalDevolucion.animalNombre} registrada con éxito.`);
       setTimeout(() => setMensajeExito(null), 4000);
-      if (tab === 'detalle' && solicitudSeleccionadaId) {
+      if (modalSolicitud === 'detalle' && solicitudSeleccionadaId) {
         cargarDetalleSolicitud(solicitudSeleccionadaId);
       }
       if (tab === 'seguimientos') {
         cargarSeguimientos();
       }
+      refrescarSolicitudes();
     } catch (err) {
       setErrorDevolucion(formatearErrorApi(err));
     } finally {
@@ -624,491 +665,8 @@ export default function AdopcionesModulo({ user }) {
     }
   };
 
-  return (
-    <div className="portal-page-container">
-      <div className="portal-header" style={{ marginBottom: '16px' }}>
-        <div>
-          <h2 className="portal-header-title">
-            <House size={26} aria-hidden="true" />
-            <span>Gestión de Adopciones</span>
-          </h2>
-          <p className="portal-header-subtitle">
-            Evaluación de postulantes, trazabilidad de solicitudes, seguimientos post-adopción y devoluciones
-          </p>
-        </div>
-
-        <div className="portal-header-actions">
-          {/* Botón de Nueva Solicitud en formato verde primario */}
-          <button
-            type="button"
-            onClick={abrirCrearSolicitud}
-            className="portal-btn portal-btn-primary"
-          >
-            <Plus size={16} aria-hidden="true" /> Nueva Solicitud
-          </button>
-        </div>
-      </div>
-
-      {/* Pestañas Subnavegación */}
-      <div className="portal-subtabs portal-subtabs-sticky">
-        <button
-          type="button"
-          onClick={() => setTab('lista')}
-          className={`portal-subtab-btn ${tab === 'lista' ? 'active' : ''}`}
-        >
-          <ClipboardList size={15} aria-hidden="true" /> Consultar Solicitudes
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('seguimientos')}
-          className={`portal-subtab-btn ${tab === 'seguimientos' ? 'active' : ''}`}
-        >
-          <PhoneCall size={15} aria-hidden="true" /> Seguimientos Post-Adopción
-        </button>
-        <button
-          type="button"
-          onClick={abrirCrearSolicitud}
-          className={`portal-subtab-btn ${tab === 'crear' ? 'active' : ''}`}
-        >
-          <FilePenLine size={15} aria-hidden="true" /> Formulario de Solicitud
-        </button>
-        {tab === 'detalle' && (
-          <button
-            type="button"
-            onClick={() => setTab('detalle')}
-            className="portal-subtab-btn active"
-          >
-            <FileText size={15} aria-hidden="true" /> Expediente de Adopción
-          </button>
-        )}
-      </div>
-
-      {mensajeExito && (
-        <div className="portal-alert portal-alert-success" style={{ marginBottom: '18px', fontWeight: '600' }}>
-          <Check size={18} aria-hidden="true" /> {mensajeExito}
-        </div>
-      )}
-
-      {/* ============================================================== */}
-      {/* PESTAÑA: CONSULTAR SOLICITUDES                                  */}
-      {/* ============================================================== */}
-      {tab === 'lista' && (
-        <div>
-          <div className="portal-card" style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <div style={{ flex: '1 1 280px' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--portal-text-muted)', marginBottom: '6px' }}>
-                  Buscar por postulante, RUT o animal
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Search size={16} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--portal-text-muted)' }} />
-                  <input
-                    type="text"
-                    value={filtroTexto}
-                    onChange={(e) => {
-                      setFiltroTexto(e.target.value);
-                      setPaginaSolicitudes(1);
-                    }}
-                    placeholder="Ej. Juan Pérez, 12.345.678-9, Luna..."
-                    className="portal-input"
-                    style={{ width: '100%', paddingLeft: '36px' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ flex: '0 1 220px' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--portal-text-muted)', marginBottom: '6px' }}>
-                  Estado de Solicitud
-                </label>
-                <select
-                  value={filtroEstado}
-                  onChange={(e) => {
-                    setFiltroEstado(e.target.value);
-                    setPaginaSolicitudes(1);
-                  }}
-                  className="portal-select"
-                  style={{ width: '100%' }}
-                >
-                  <option value="">Todos los estados</option>
-                  {Object.entries(ESTADOS_SOLICITUD).map(([clave, info]) => (
-                    <option key={clave} value={clave}>{info.etiqueta}</option>
-                  ))}
-                </select>
-              </div>
-
-            </div>
-          </div>
-
-          {solicitudesError && (
-            <div className="portal-alert portal-alert-danger" style={{ marginBottom: '16px' }}>
-              <AlertTriangle size={16} /> {solicitudesError}
-            </div>
-          )}
-
-          {solicitudesCargando ? (
-            <div className="portal-card" style={{ textAlign: 'center', padding: '40px', color: 'var(--portal-text-muted)' }}>
-              Cargando solicitudes de adopción...
-            </div>
-          ) : !solicitudesData?.solicitudes?.length ? (
-            <div className="portal-card" style={{ textAlign: 'center', padding: '40px', color: 'var(--portal-text-muted)' }}>
-              <ClipboardList size={36} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
-              <p style={{ fontWeight: 600, margin: 0 }}>No se encontraron solicitudes con los criterios seleccionados.</p>
-            </div>
-          ) : (
-            <div className="portal-card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="portal-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--portal-border)' }}>
-                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Fecha</th>
-                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Postulante</th>
-                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Animal</th>
-                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Estado</th>
-                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800, textAlign: 'right' }}>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {solicitudesData.solicitudes.map(solicitud => {
-                      const estadoInfo = ESTADOS_SOLICITUD[solicitud.estado] || { etiqueta: solicitud.estado, bg: '#eee', color: '#555' };
-                      return (
-                        <tr key={solicitud.id} style={{ borderBottom: '1px solid var(--portal-border)', transition: 'background 0.2s' }}>
-                          <td style={{ padding: '14px 16px', fontSize: '0.86rem', color: 'var(--portal-text-muted)', whiteSpace: 'nowrap' }}>
-                            {formatearFecha(solicitud.creadoEn, true)}
-                          </td>
-                          <td style={{ padding: '14px 16px' }}>
-                            <div style={{ fontWeight: 700, color: 'var(--portal-text-main)', fontSize: '0.9rem' }}>
-                              {solicitud.datosPostulante?.nombre}
-                            </div>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)' }}>
-                              {solicitud.postulante?.identificacion || solicitud.datosPostulante?.identificacion}
-                            </div>
-                          </td>
-                          <td style={{ padding: '14px 16px', fontWeight: 600 }}>
-                            {solicitud.animal?.nombre}
-                            <span style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)', marginLeft: 6 }}>
-                              ({solicitud.animal?.especie})
-                            </span>
-                          </td>
-                          <td style={{ padding: '14px 16px' }}>
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                padding: '3px 10px',
-                                borderRadius: '999px',
-                                fontSize: '0.76rem',
-                                fontWeight: 700,
-                                background: estadoInfo.bg,
-                                color: estadoInfo.color
-                              }}
-                            >
-                              {estadoInfo.etiqueta}
-                            </span>
-                          </td>
-                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                            <button
-                              type="button"
-                              onClick={() => verExpediente(solicitud.id)}
-                              className="portal-btn portal-btn-secondary"
-                              style={{ padding: '6px 12px', minHeight: '32px', fontSize: '0.8rem' }}
-                            >
-                              <Eye size={14} /> Ver Expediente
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Paginación */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '14px 20px',
-                  borderTop: '1px solid var(--portal-border)',
-                  background: '#fafbfc'
-                }}
-              >
-                <div style={{ fontSize: '0.84rem', color: 'var(--portal-text-muted)' }}>
-                  Total: <strong>{solicitudesData.total}</strong> solicitud(es) · Página {solicitudesData.pagina} de {Math.max(1, Math.ceil(solicitudesData.total / solicitudesData.limite))}
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    disabled={solicitudesData.pagina <= 1 || solicitudesCargando}
-                    onClick={() => setPaginaSolicitudes(p => p - 1)}
-                    className="portal-btn portal-btn-secondary"
-                    style={{ padding: '6px 12px', minHeight: '32px', fontSize: '0.8rem' }}
-                  >
-                    <ChevronLeft size={14} /> Anterior
-                  </button>
-                  <button
-                    type="button"
-                    disabled={solicitudesData.pagina * solicitudesData.limite >= solicitudesData.total || solicitudesCargando}
-                    onClick={() => setPaginaSolicitudes(p => p + 1)}
-                    className="portal-btn portal-btn-secondary"
-                    style={{ padding: '6px 12px', minHeight: '32px', fontSize: '0.8rem' }}
-                  >
-                    Siguiente <ChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ============================================================== */}
-      {/* PESTAÑA: SEGUIMIENTOS POST-ADOPCIÓN                             */}
-      {/* ============================================================== */}
-      {tab === 'seguimientos' && (
-        <div>
-          <div className="portal-card" style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>Seguimientos Post-Adopción</h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: 'var(--portal-text-muted)' }}>
-                  Programación automatizada (15 y 30 días) para verificar adaptación, salud y bienestar del animal adoptado.
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <div style={{ flex: '1 1 200px' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--portal-text-muted)', marginBottom: '6px' }}>
-                  Estado
-                </label>
-                <select
-                  value={filtroEstadoSeguimiento}
-                  onChange={(e) => {
-                    setFiltroEstadoSeguimiento(e.target.value);
-                    setPaginaSeguimientos(1);
-                  }}
-                  className="portal-select"
-                  style={{ width: '100%' }}
-                >
-                  <option value="">Todos los estados</option>
-                  {Object.entries(ESTADOS_SEGUIMIENTO).map(([clave, info]) => (
-                    <option key={clave} value={clave}>{info.etiqueta}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ flex: '1 1 200px' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--portal-text-muted)', marginBottom: '6px' }}>
-                  Alerta sin contacto
-                </label>
-                <select
-                  value={filtroAlertaSeguimiento}
-                  onChange={(e) => {
-                    setFiltroAlertaSeguimiento(e.target.value);
-                    setPaginaSeguimientos(1);
-                  }}
-                  className="portal-select"
-                  style={{ width: '100%' }}
-                >
-                  <option value="">Todas las alertas</option>
-                  <option value="true">Solo «Sin contacto» (Requieren atención)</option>
-                </select>
-              </div>
-
-            </div>
-          </div>
-
-          {seguimientosError && (
-            <div className="portal-alert portal-alert-danger" style={{ marginBottom: '16px' }}>
-              <AlertTriangle size={16} /> {seguimientosError}
-            </div>
-          )}
-
-          {seguimientosCargando ? (
-            <div className="portal-card" style={{ textAlign: 'center', padding: '40px', color: 'var(--portal-text-muted)' }}>
-              Cargando cronograma de seguimientos...
-            </div>
-          ) : !seguimientosData?.seguimientos?.length ? (
-            <div className="portal-card" style={{ textAlign: 'center', padding: '40px', color: 'var(--portal-text-muted)' }}>
-              <PhoneCall size={36} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
-              <p style={{ fontWeight: 600, margin: 0 }}>No hay seguimientos registrados para los filtros indicados.</p>
-            </div>
-          ) : (
-            <div className="portal-card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="portal-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--portal-border)' }}>
-                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Tipo y Animal</th>
-                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Adoptante</th>
-                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Programado</th>
-                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Estado</th>
-                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Intentos</th>
-                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800, textAlign: 'right' }}>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {seguimientosData.seguimientos.map(s => {
-                      const estadoInfo = ESTADOS_SEGUIMIENTO[s.estado] || { etiqueta: s.estado, bg: '#eee', color: '#555' };
-                      return (
-                        <tr
-                          key={s.id}
-                          style={{
-                            borderBottom: '1px solid var(--portal-border)',
-                            background: s.alertaSinContacto ? '#fff8f7' : 'transparent'
-                          }}
-                        >
-                          <td style={{ padding: '14px 16px' }}>
-                            <div style={{ fontWeight: 700, color: 'var(--portal-text-main)', fontSize: '0.9rem' }}>
-                              {s.adopcion?.animal?.nombre}
-                            </div>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)' }}>
-                              {TIPOS_SEGUIMIENTO[s.tipoSeguimiento] || s.tipoSeguimiento}
-                            </div>
-                          </td>
-                          <td style={{ padding: '14px 16px' }}>
-                            <div style={{ fontWeight: 600 }}>{s.adopcion?.postulante?.nombre}</div>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)' }}>
-                              {s.adopcion?.postulante?.identificacion}
-                            </div>
-                          </td>
-                          <td style={{ padding: '14px 16px', fontSize: '0.85rem' }}>
-                            <div>{formatearFecha(s.fechaProgramada, true)}</div>
-                            {s.fechaEjecucion && (
-                              <div style={{ fontSize: '0.76rem', color: '#2f5540' }}>
-                                Realizado: {formatearFecha(s.fechaEjecucion, true)}
-                              </div>
-                            )}
-                          </td>
-                          <td style={{ padding: '14px 16px' }}>
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                padding: '3px 10px',
-                                borderRadius: '999px',
-                                fontSize: '0.76rem',
-                                fontWeight: 700,
-                                background: estadoInfo.bg,
-                                color: estadoInfo.color
-                              }}
-                            >
-                              {estadoInfo.etiqueta}
-                            </span>
-                            {s.alertaSinContacto && (
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, color: '#d1453b', fontSize: '0.74rem', fontWeight: 700 }}>
-                                <AlertTriangle size={12} /> Límite de intentos
-                              </div>
-                            )}
-                            {s.estado === 'COMPLETADO' && s.canalContacto && (
-                              <div style={{ fontSize: '0.76rem', color: 'var(--portal-text-muted)', marginTop: 4 }}>
-                                {CANALES_DESPLIEGUE[s.canalContacto] || s.canalContacto} · {s.resultado}
-                              </div>
-                            )}
-                          </td>
-                          <td style={{ padding: '14px 16px', fontSize: '0.85rem' }}>
-                            {s.intentosFallidos} / {s.limiteIntentos}
-                          </td>
-                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                              {s.adopcion?.devolucion ? (
-                                <span style={{ fontSize: '0.8rem', color: '#7c8592', fontStyle: 'italic' }}>
-                                  Adopción devuelta
-                                </span>
-                              ) : (
-                                <>
-                                  {s.estado !== 'COMPLETADO' && (
-                                    <button
-                                      type="button"
-                                      onClick={() => abrirModalAccionSeguimiento(s)}
-                                      className="portal-btn portal-btn-secondary"
-                                      style={{ padding: '6px 10px', minHeight: '32px', fontSize: '0.78rem' }}
-                                    >
-                                      <Clock size={13} /> Gestionar
-                                    </button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => abrirModalDevolucion(s.adopcion.id, s.adopcion.animal?.nombre, s.adopcion.postulante?.nombre)}
-                                    className="portal-btn portal-btn-secondary"
-                                    style={{ padding: '6px 10px', minHeight: '32px', fontSize: '0.78rem', color: '#d1453b' }}
-                                  >
-                                    <RotateCcw size={13} /> Devolución
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Paginación */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '14px 20px',
-                  borderTop: '1px solid var(--portal-border)',
-                  background: '#fafbfc'
-                }}
-              >
-                <div style={{ fontSize: '0.84rem', color: 'var(--portal-text-muted)' }}>
-                  Total: <strong>{seguimientosData.total}</strong> seguimiento(s) · Página {seguimientosData.pagina} de {seguimientosData.totalPaginas}
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    disabled={seguimientosData.pagina <= 1 || seguimientosCargando}
-                    onClick={() => setPaginaSeguimientos(p => p - 1)}
-                    className="portal-btn portal-btn-secondary"
-                    style={{ padding: '6px 12px', minHeight: '32px', fontSize: '0.8rem' }}
-                  >
-                    <ChevronLeft size={14} /> Anterior
-                  </button>
-                  <button
-                    type="button"
-                    disabled={seguimientosData.pagina >= seguimientosData.totalPaginas || seguimientosCargando}
-                    onClick={() => setPaginaSeguimientos(p => p + 1)}
-                    className="portal-btn portal-btn-secondary"
-                    style={{ padding: '6px 12px', minHeight: '32px', fontSize: '0.8rem' }}
-                  >
-                    Siguiente <ChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ============================================================== */}
-      {/* PESTAÑA: FORMULARIO DE SOLICITUD (CREAR / EDITAR)                */}
-      {/* ============================================================== */}
-      {(tab === 'crear' || editandoSolicitud) && (
-        <div className="portal-card" style={{}}>
-          <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--portal-border)', paddingBottom: '14px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
-              {editandoSolicitud ? 'Editar Solicitud de Adopción' : 'Nueva Solicitud de Adopción'}
-            </h3>
-            <p style={{ margin: '6px 0 0', fontSize: '0.88rem', color: 'var(--portal-text-muted)' }}>
-              {editandoSolicitud
-                ? 'Actualiza los datos del postulante, animal seleccionado o motivación de la solicitud.'
-                : 'Verifica los antecedentes del postulante mediante su identificación antes de inscribir la solicitud.'}
-            </p>
-          </div>
-
-          {errorFormSolicitud && (
-            <div className="portal-alert portal-alert-danger" style={{ marginBottom: '16px' }}>
-              <AlertTriangle size={16} /> {errorFormSolicitud}
-            </div>
-          )}
-
+  // Formulario de solicitud (se usa al crear y al editar dentro de la ventana modal)
+  const formularioSolicitud = (
           <form onSubmit={handleGuardarSolicitud}>
             <div style={{ marginBottom: '20px' }}>
               <h4 style={{ fontSize: '0.92rem', fontWeight: 800, marginBottom: '12px', color: 'var(--portal-text-main)' }}>
@@ -1262,13 +820,12 @@ export default function AdopcionesModulo({ user }) {
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--portal-text-muted)', marginBottom: '6px' }}>
                   Animal Disponible para Adopción *
                 </label>
-                <AnimalSelect
+                <AnimalCardPicker
                   animales={animalesDisponibles}
                   value={formAnimalId}
                   onChange={(animalId) => setFormAnimalId(animalId)}
-                  placeholder={cargandoAnimales ? 'Cargando animales...' : '— Selecciona un animal disponible —'}
-                  emptyMessage="No hay animales disponibles para adopción"
-                  searchPlaceholder="Buscar por nombre, especie o sexo..."
+                  cargando={cargandoAnimales}
+                  disabled={guardandoSolicitud}
                 />
                 {errorAnimales && (
                   <p style={{ color: '#d1453b', fontSize: '0.78rem', margin: '4px 0 0' }}>{errorAnimales}</p>
@@ -1293,33 +850,586 @@ export default function AdopcionesModulo({ user }) {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--portal-border)', paddingTop: '16px' }}>
-              {editandoSolicitud && (
-                <button
-                  type="button"
-                  onClick={() => setEditandoSolicitud(false)}
-                  className="portal-btn portal-btn-secondary"
-                  disabled={guardandoSolicitud}
-                >
-                  Cancelar Edición
-                </button>
-              )}
+            <div className="adop-modal-pie">
+              <button
+                type="button"
+                onClick={() => (editandoSolicitud ? setEditandoSolicitud(false) : cerrarModalSolicitud())}
+                className="portal-btn portal-btn-secondary"
+                disabled={guardandoSolicitud}
+              >
+                {editandoSolicitud ? 'Cancelar edición' : 'Cancelar'}
+              </button>
               <button
                 type="submit"
                 disabled={guardandoSolicitud || (!antecedentes && !editandoSolicitud) || antecedentes?.solicitudesActivas?.length > 0 || !formAnimalId}
                 className="portal-btn portal-btn-primary"
               >
-                {guardandoSolicitud ? 'Guardando...' : editandoSolicitud ? 'Guardar Cambios' : 'Registrar Solicitud'}
+                {guardandoSolicitud ? 'Guardando...' : editandoSolicitud ? 'Guardar cambios' : 'Registrar solicitud'}
               </button>
             </div>
           </form>
+  );
+
+
+  return (
+    <div className="portal-page-container">
+      <div className="portal-header" style={{ marginBottom: '16px' }}>
+        <div>
+          <h2 className="portal-header-title">
+            <House size={26} aria-hidden="true" />
+            <span>Gestión de Adopciones</span>
+          </h2>
+          <p className="portal-header-subtitle">
+            Evaluación de postulantes, trazabilidad de solicitudes, seguimientos post-adopción y devoluciones
+          </p>
+        </div>
+
+        <div className="portal-header-actions">
+          {/* Botón de Nueva Solicitud en formato verde primario */}
+          <button
+            type="button"
+            onClick={abrirCrearSolicitud}
+            className="portal-btn portal-btn-primary"
+          >
+            <Plus size={16} aria-hidden="true" /> Nueva Solicitud
+          </button>
+        </div>
+      </div>
+
+      {/* Pestañas Subnavegación */}
+      <div className="portal-subtabs portal-subtabs-sticky">
+        <button
+          type="button"
+          onClick={() => setTab('lista')}
+          className={`portal-subtab-btn ${tab === 'lista' ? 'active' : ''}`}
+        >
+          <ClipboardList size={15} aria-hidden="true" /> Consultar Solicitudes
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('seguimientos')}
+          className={`portal-subtab-btn ${tab === 'seguimientos' ? 'active' : ''}`}
+        >
+          <PhoneCall size={15} aria-hidden="true" /> Seguimientos Post-Adopción
+        </button>
+      </div>
+
+      {mensajeExito && (
+        <div className="portal-alert portal-alert-success" style={{ marginBottom: '18px', fontWeight: '600' }}>
+          <Check size={18} aria-hidden="true" /> {mensajeExito}
         </div>
       )}
 
       {/* ============================================================== */}
-      {/* PESTAÑA: DETALLE DE SOLICITUD / EXPEDIENTE                      */}
+      {/* PESTAÑA: CONSULTAR SOLICITUDES                                  */}
       {/* ============================================================== */}
-      {tab === 'detalle' && !editandoSolicitud && (
+      {tab === 'lista' && (
+        <div>
+          <div className="portal-card adop-filtros-card">
+            <div className="adop-filtros">
+              <div className="adop-filtros-campo adop-filtros-campo-busqueda">
+                <label htmlFor="adop-busqueda" className="adop-filtros-etiqueta">
+                  Buscar por postulante, RUT o animal
+                </label>
+                <div className="adop-filtros-buscador">
+                  <Search size={16} aria-hidden="true" className="adop-filtros-buscador-icono" />
+                  <input
+                    id="adop-busqueda"
+                    type="search"
+                    autoComplete="off"
+                    value={filtroTexto}
+                    onChange={(e) => {
+                      setFiltroTexto(e.target.value);
+                      setPaginaSolicitudes(1);
+                    }}
+                    placeholder="Ej. Juan Pérez, 12.345.678-9, Luna..."
+                    className="portal-input"
+                  />
+                </div>
+              </div>
+
+              <div className="adop-filtros-campo adop-filtros-campo-estado">
+                <label htmlFor="adop-estado" className="adop-filtros-etiqueta">Estado de la solicitud</label>
+                <select
+                  id="adop-estado"
+                  value={filtroEstado}
+                  onChange={(e) => {
+                    setFiltroEstado(e.target.value);
+                    setPaginaSolicitudes(1);
+                  }}
+                  className="portal-select"
+                >
+                  <option value="">Todos los estados</option>
+                  {Object.entries(ESTADOS_SOLICITUD).map(([clave, info]) => (
+                    <option key={clave} value={clave}>{info.etiqueta}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="adop-filtros-campo adop-filtros-campo-tercio">
+                <label htmlFor="adop-orden" className="adop-filtros-etiqueta">Ordenar por fecha</label>
+                <select
+                  id="adop-orden"
+                  value={ordenSolicitudes}
+                  onChange={(e) => {
+                    setOrdenSolicitudes(e.target.value);
+                    setPaginaSolicitudes(1);
+                  }}
+                  className="portal-select"
+                >
+                  <option value="reciente">Más recientes primero</option>
+                  <option value="antigua">Más antiguas primero</option>
+                </select>
+              </div>
+
+              <div className="adop-filtros-campo adop-filtros-campo-tercio">
+                <label htmlFor="adop-desde" className="adop-filtros-etiqueta">Solicitadas desde</label>
+                <input
+                  id="adop-desde"
+                  type="date"
+                  value={fechaDesde}
+                  max={fechaHasta || undefined}
+                  onChange={(e) => {
+                    setFechaDesde(e.target.value);
+                    setPaginaSolicitudes(1);
+                  }}
+                  className="portal-input"
+                />
+              </div>
+
+              <div className="adop-filtros-campo adop-filtros-campo-tercio">
+                <label htmlFor="adop-hasta" className="adop-filtros-etiqueta">Hasta</label>
+                <input
+                  id="adop-hasta"
+                  type="date"
+                  value={fechaHasta}
+                  min={fechaDesde || undefined}
+                  onChange={(e) => {
+                    setFechaHasta(e.target.value);
+                    setPaginaSolicitudes(1);
+                  }}
+                  className="portal-input"
+                />
+              </div>
+            </div>
+
+            {(hayFiltrosSolicitudes || (solicitudesCargando && solicitudesData)) && (
+              <div className="adop-filtros-acciones">
+                {solicitudesCargando && solicitudesData && (
+                  <span className="adop-buscando" role="status" aria-live="polite">
+                    Actualizando resultados…
+                  </span>
+                )}
+                {hayFiltrosSolicitudes && (
+                  <button
+                    type="button"
+                    onClick={limpiarFiltrosSolicitudes}
+                    className="portal-btn portal-btn-secondary"
+                    style={{ minHeight: '34px', padding: '6px 14px', fontSize: '0.82rem' }}
+                  >
+                    <X size={14} aria-hidden="true" /> Limpiar filtros
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {solicitudesError && (
+            <div className="portal-alert portal-alert-danger" style={{ marginBottom: '16px' }}>
+              <AlertTriangle size={16} /> {solicitudesError}
+            </div>
+          )}
+
+          {solicitudesCargando && !solicitudesData ? (
+            <div className="portal-card" style={{ textAlign: 'center', padding: '40px', color: 'var(--portal-text-muted)' }}>
+              Cargando solicitudes de adopción...
+            </div>
+          ) : !solicitudesData?.solicitudes?.length ? (
+            <div className="portal-card" style={{ textAlign: 'center', padding: '40px', color: 'var(--portal-text-muted)' }}>
+              <ClipboardList size={36} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
+              <p style={{ fontWeight: 600, margin: 0 }}>No se encontraron solicitudes con los criterios seleccionados.</p>
+            </div>
+          ) : (
+            <div className="portal-card" style={{ padding: 0, overflow: 'hidden', opacity: solicitudesCargando ? 0.65 : 1, transition: 'opacity 0.15s' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="portal-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--portal-border)' }}>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Folio</th>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Fecha de solicitud</th>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Postulante</th>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Animal</th>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Estado</th>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800, textAlign: 'right' }}>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {solicitudesData.solicitudes.map(solicitud => {
+                      const estadoInfo = ESTADOS_SOLICITUD[solicitud.estado] || { etiqueta: solicitud.estado, bg: '#eee', color: '#555' };
+                      return (
+                        <tr key={solicitud.id} style={{ borderBottom: '1px solid var(--portal-border)', transition: 'background 0.2s' }}>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span className="adop-folio">{folioSolicitud(solicitud)}</span>
+                          </td>
+                          <td style={{ padding: '14px 16px', fontSize: '0.86rem', color: 'var(--portal-text-muted)', whiteSpace: 'nowrap' }}>
+                            {formatearFecha(solicitud.creadoEn, true)}
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--portal-text-main)', fontSize: '0.9rem' }}>
+                              {solicitud.datosPostulante?.nombre}
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)' }}>
+                              {solicitud.postulante?.identificacion || solicitud.datosPostulante?.identificacion}
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 16px', fontWeight: 600 }}>
+                            {solicitud.animal?.nombre}
+                            <span style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)', marginLeft: 6 }}>
+                              ({solicitud.animal?.especie})
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '3px 10px',
+                                borderRadius: '999px',
+                                fontSize: '0.76rem',
+                                fontWeight: 700,
+                                background: estadoInfo.bg,
+                                color: estadoInfo.color
+                              }}
+                            >
+                              {estadoInfo.etiqueta}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              onClick={() => verExpediente(solicitud.id)}
+                              className="portal-btn portal-btn-secondary"
+                              style={{ padding: '6px 12px', minHeight: '32px', fontSize: '0.8rem' }}
+                            >
+                              <Eye size={14} /> Ver detalle
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Paginación */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '14px 20px',
+                  borderTop: '1px solid var(--portal-border)',
+                  background: '#fafbfc'
+                }}
+              >
+                <div style={{ fontSize: '0.84rem', color: 'var(--portal-text-muted)' }}>
+                  Total: <strong>{solicitudesData.total}</strong> solicitud(es) · Página {solicitudesData.pagina} de {Math.max(1, Math.ceil(solicitudesData.total / solicitudesData.limite))}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    disabled={solicitudesData.pagina <= 1 || solicitudesCargando}
+                    onClick={() => setPaginaSolicitudes(p => p - 1)}
+                    className="portal-btn portal-btn-secondary"
+                    style={{ padding: '6px 12px', minHeight: '32px', fontSize: '0.8rem' }}
+                  >
+                    <ChevronLeft size={14} /> Anterior
+                  </button>
+                  <button
+                    type="button"
+                    disabled={solicitudesData.pagina * solicitudesData.limite >= solicitudesData.total || solicitudesCargando}
+                    onClick={() => setPaginaSolicitudes(p => p + 1)}
+                    className="portal-btn portal-btn-secondary"
+                    style={{ padding: '6px 12px', minHeight: '32px', fontSize: '0.8rem' }}
+                  >
+                    Siguiente <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* PESTAÑA: SEGUIMIENTOS POST-ADOPCIÓN                             */}
+      {/* ============================================================== */}
+      {tab === 'seguimientos' && (
+        <div>
+          <div className="portal-card adop-filtros-card">
+            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>Seguimientos Post-Adopción</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: 'var(--portal-text-muted)' }}>
+                Programación automatizada (15 y 30 días) para verificar adaptación, salud y bienestar del animal adoptado.
+              </p>
+            </div>
+
+            <div className="adop-filtros-seguimientos">
+              <div className="adop-filtros-campo">
+                <label htmlFor="seg-estado" className="adop-filtros-etiqueta">
+                  Estado
+                </label>
+                <select
+                  id="seg-estado"
+                  value={filtroEstadoSeguimiento}
+                  onChange={(e) => {
+                    setFiltroEstadoSeguimiento(e.target.value);
+                    setPaginaSeguimientos(1);
+                  }}
+                  className="portal-select"
+                >
+                  <option value="">Todos los estados</option>
+                  {Object.entries(ESTADOS_SEGUIMIENTO).map(([clave, info]) => (
+                    <option key={clave} value={clave}>{info.etiqueta}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="adop-filtros-campo">
+                <label htmlFor="seg-alerta" className="adop-filtros-etiqueta">
+                  Alerta sin contacto
+                </label>
+                <select
+                  id="seg-alerta"
+                  value={filtroAlertaSeguimiento}
+                  onChange={(e) => {
+                    setFiltroAlertaSeguimiento(e.target.value);
+                    setPaginaSeguimientos(1);
+                  }}
+                  className="portal-select"
+                >
+                  <option value="">Todas las alertas</option>
+                  <option value="true">Solo «Sin contacto» (Requieren atención)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {seguimientosError && (
+            <div className="portal-alert portal-alert-danger" style={{ marginBottom: '16px' }}>
+              <AlertTriangle size={16} /> {seguimientosError}
+            </div>
+          )}
+
+          {seguimientosCargando ? (
+            <div className="portal-card" style={{ textAlign: 'center', padding: '40px', color: 'var(--portal-text-muted)' }}>
+              Cargando cronograma de seguimientos...
+            </div>
+          ) : !seguimientosData?.seguimientos?.length ? (
+            <div className="portal-card" style={{ textAlign: 'center', padding: '40px', color: 'var(--portal-text-muted)' }}>
+              <PhoneCall size={36} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
+              <p style={{ fontWeight: 600, margin: 0 }}>No hay seguimientos registrados para los filtros indicados.</p>
+            </div>
+          ) : (
+            <div className="portal-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="portal-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--portal-border)' }}>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Tipo y Animal</th>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Adoptante</th>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Programado</th>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Estado</th>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800 }}>Intentos</th>
+                      <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 800, textAlign: 'right' }}>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seguimientosData.seguimientos.map(s => {
+                      const estadoInfo = ESTADOS_SEGUIMIENTO[s.estado] || { etiqueta: s.estado, bg: '#eee', color: '#555' };
+                      return (
+                        <tr
+                          key={s.id}
+                          style={{
+                            borderBottom: '1px solid var(--portal-border)',
+                            background: s.alertaSinContacto ? '#fff8f7' : 'transparent'
+                          }}
+                        >
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--portal-text-main)', fontSize: '0.9rem' }}>
+                              {s.adopcion?.animal?.nombre}
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)' }}>
+                              {TIPOS_SEGUIMIENTO[s.tipoSeguimiento] || s.tipoSeguimiento} · <span className="adop-folio">{folioSeguimiento(s)}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ fontWeight: 600 }}>{s.adopcion?.postulante?.nombre}</div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)' }}>
+                              {s.adopcion?.postulante?.identificacion}
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 16px', fontSize: '0.85rem' }}>
+                            <div>{formatearFecha(s.fechaProgramada, true)}</div>
+                            {s.fechaEjecucion && (
+                              <div style={{ fontSize: '0.76rem', color: '#2f5540' }}>
+                                Realizado: {formatearFecha(s.fechaEjecucion, true)}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '3px 10px',
+                                borderRadius: '999px',
+                                fontSize: '0.76rem',
+                                fontWeight: 700,
+                                background: estadoInfo.bg,
+                                color: estadoInfo.color
+                              }}
+                            >
+                              {estadoInfo.etiqueta}
+                            </span>
+                            {s.alertaSinContacto && (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, color: '#d1453b', fontSize: '0.74rem', fontWeight: 700 }}>
+                                <AlertTriangle size={12} /> Límite de intentos
+                              </div>
+                            )}
+                            {s.estado === 'COMPLETADO' && s.canalContacto && (
+                              <div style={{ fontSize: '0.76rem', color: 'var(--portal-text-muted)', marginTop: 4 }}>
+                                {CANALES_DESPLIEGUE[s.canalContacto] || s.canalContacto} · {s.resultado}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '14px 16px', fontSize: '0.85rem' }}>
+                            {s.intentosFallidos} / {s.limiteIntentos}
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                              {s.adopcion?.devolucion ? (
+                                <span style={{ fontSize: '0.8rem', color: '#7c8592', fontStyle: 'italic' }}>
+                                  Adopción devuelta
+                                </span>
+                              ) : (
+                                <>
+                                  {s.estado !== 'COMPLETADO' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => abrirModalAccionSeguimiento(s)}
+                                      className="portal-btn portal-btn-secondary"
+                                      style={{ padding: '6px 10px', minHeight: '32px', fontSize: '0.78rem' }}
+                                    >
+                                      <Clock size={13} /> Gestionar
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirModalDevolucion(s.adopcion.id, s.adopcion.animal?.nombre, s.adopcion.postulante?.nombre)}
+                                    className="portal-btn portal-btn-secondary"
+                                    style={{ padding: '6px 10px', minHeight: '32px', fontSize: '0.78rem', color: '#d1453b' }}
+                                  >
+                                    <RotateCcw size={13} /> Devolución
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Paginación */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '14px 20px',
+                  borderTop: '1px solid var(--portal-border)',
+                  background: '#fafbfc'
+                }}
+              >
+                <div style={{ fontSize: '0.84rem', color: 'var(--portal-text-muted)' }}>
+                  Total: <strong>{seguimientosData.total}</strong> seguimiento(s) · Página {seguimientosData.pagina} de {seguimientosData.totalPaginas}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    disabled={seguimientosData.pagina <= 1 || seguimientosCargando}
+                    onClick={() => setPaginaSeguimientos(p => p - 1)}
+                    className="portal-btn portal-btn-secondary"
+                    style={{ padding: '6px 12px', minHeight: '32px', fontSize: '0.8rem' }}
+                  >
+                    <ChevronLeft size={14} /> Anterior
+                  </button>
+                  <button
+                    type="button"
+                    disabled={seguimientosData.pagina >= seguimientosData.totalPaginas || seguimientosCargando}
+                    onClick={() => setPaginaSeguimientos(p => p + 1)}
+                    className="portal-btn portal-btn-secondary"
+                    style={{ padding: '6px 12px', minHeight: '32px', fontSize: '0.8rem' }}
+                  >
+                    Siguiente <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: NUEVA SOLICITUD                                          */}
+      {/* ============================================================== */}
+      {modalSolicitud === 'crear' && (
+        <ModalAdopcion
+          titulo="Nueva solicitud de adopción"
+          subtitulo="Verifica los antecedentes de la persona postulante antes de registrar la solicitud."
+          icono={<FilePenLine size={20} aria-hidden="true" />}
+          ancho="lg"
+          bloqueado={guardandoSolicitud}
+          onClose={cerrarModalSolicitud}
+        >
+          {errorFormSolicitud && (
+            <div className="portal-alert portal-alert-danger" style={{ marginBottom: '16px' }}>
+              <AlertTriangle size={16} /> {errorFormSolicitud}
+            </div>
+          )}
+          {formularioSolicitud}
+        </ModalAdopcion>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: DETALLE / EXPEDIENTE DE LA SOLICITUD                     */}
+      {/* ============================================================== */}
+      {modalSolicitud === 'detalle' && (
+        <ModalAdopcion
+          titulo={editandoSolicitud
+            ? `Editar solicitud ${folioSolicitud(detalleData?.solicitud)}`
+            : `Detalle de la solicitud ${folioSolicitud(detalleData?.solicitud)}`.trim()}
+          subtitulo={editandoSolicitud
+            ? 'Actualiza los datos de la persona postulante, el animal elegido o su motivación.'
+            : 'Revisa el avance, registra etapas y consulta el historial sin salir del listado.'}
+          icono={<FileText size={20} aria-hidden="true" />}
+          ancho="xl"
+          bloqueado={guardandoSolicitud || guardandoEtapa || eliminando}
+          onClose={cerrarModalSolicitud}
+        >
+          {editandoSolicitud ? (
+            <>
+              {errorFormSolicitud && (
+                <div className="portal-alert portal-alert-danger" style={{ marginBottom: '16px' }}>
+                  <AlertTriangle size={16} /> {errorFormSolicitud}
+                </div>
+              )}
+              {formularioSolicitud}
+            </>
+          ) : (
         <div>
           {detalleCargando ? (
             <div className="portal-card" style={{ textAlign: 'center', padding: '40px', color: 'var(--portal-text-muted)' }}>
@@ -1337,14 +1447,7 @@ export default function AdopcionesModulo({ user }) {
             <div>
               {/* Barra superior del expediente */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setTab('lista')}
-                  className="portal-btn portal-btn-secondary"
-                  style={{ minHeight: '36px', padding: '6px 14px' }}
-                >
-                  <ChevronLeft size={16} /> Volver a la Lista
-                </button>
+                <span className="adop-folio">{folioSolicitud(detalleData.solicitud)}</span>
 
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {detalleData.solicitud.estado === 'RECIBIDA' && (
@@ -1453,7 +1556,7 @@ export default function AdopcionesModulo({ user }) {
                     { titulo: 'Evaluación', desc: resEval ? RESULTADOS_EVALUACION[resEval] : 'En revisión' },
                     { titulo: 'Visita Hogar', desc: sol.visitaOmitida ? 'Omitida (fundada)' : 'Condiciones' },
                     { titulo: 'Aprobación', desc: 'Dictamen final' },
-                    { titulo: cerrada ? 'Cierre' : 'Adopción', desc: cerrada ? sol.estado : 'Entrega' }
+                    { titulo: cerrada ? 'Cierre' : 'Adopción', desc: cerrada ? (ESTADOS_SOLICITUD[sol.estado]?.etiqueta || sol.estado) : 'Entrega' }
                   ];
 
                   const nivel = {
@@ -1530,8 +1633,8 @@ export default function AdopcionesModulo({ user }) {
                     </div>
                     <div style={{ fontSize: '0.86rem', lineHeight: 1.6 }}>
                       <div><strong>Nombre:</strong> {detalleData.solicitud.datosPostulante?.nombre}</div>
-                      <div><strong>{detalleData.solicitud.datosPostulante?.tipoIdentificacion}:</strong> {detalleData.solicitud.datosPostulante?.identificacion}</div>
-                      <div><strong>Email:</strong> {detalleData.solicitud.datosPostulante?.email}</div>
+                      <div><strong>{detalleData.solicitud.datosPostulante?.tipoIdentificacion === 'RUT' ? 'RUT' : 'Documento'}:</strong> {detalleData.solicitud.datosPostulante?.identificacion}</div>
+                      <div><strong>Correo:</strong> {detalleData.solicitud.datosPostulante?.email}</div>
                       <div><strong>Teléfono:</strong> {detalleData.solicitud.datosPostulante?.telefono}</div>
                       <div><strong>Dirección:</strong> {detalleData.solicitud.datosPostulante?.direccion}</div>
                     </div>
@@ -1544,7 +1647,7 @@ export default function AdopcionesModulo({ user }) {
                     <div style={{ fontSize: '0.86rem', lineHeight: 1.6 }}>
                       <div><strong>Nombre:</strong> {detalleData.solicitud.animal?.nombre}</div>
                       <div><strong>Especie / Raza:</strong> {detalleData.solicitud.animal?.especie} {detalleData.solicitud.animal?.raza ? `· ${detalleData.solicitud.animal.raza}` : ''}</div>
-                      <div><strong>Estado de Adopción:</strong> {detalleData.solicitud.animal?.estadoAdopcion}</div>
+                      <div><strong>Estado del animal:</strong> {detalleData.solicitud.animal?.estadoAdopcion === 'ADOPTADO' ? 'Adoptado' : 'En refugio'}</div>
                       <div style={{ marginTop: 6 }}><strong>Motivación informada:</strong></div>
                       <div style={{ fontSize: '0.82rem', color: 'var(--portal-text-muted)', fontStyle: 'italic', background: '#f8fafc', padding: '8px', borderRadius: '6px' }}>
                         "{detalleData.solicitud.motivacion}"
@@ -1552,6 +1655,31 @@ export default function AdopcionesModulo({ user }) {
                     </div>
                   </div>
                 </div>
+
+                {/* Alertas y antecedentes del postulante */}
+                {detalleData.antecedentes && (
+                  <div style={{ marginTop: '16px' }}>
+                    {detalleData.antecedentes.devolucionesPrevias?.length > 0 ? (
+                      <div className="portal-alert portal-alert-warning" style={{ fontSize: '0.84rem' }}>
+                        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, marginBottom: '6px' }}>
+                          <AlertTriangle size={15} /> Esta persona registra {detalleData.antecedentes.devolucionesPrevias.length} devolución(es) previa(s)
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: '18px' }}>
+                          {detalleData.antecedentes.devolucionesPrevias.map((dev) => (
+                            <li key={dev.id}>
+                              {dev.fecha ? formatearFecha(dev.fecha) : 'Fecha no registrada'}: {dev.motivo}
+                              {dev.estadoAnimal ? ` (Estado del animal: ${dev.estadoAnimal})` : ''}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <div className="portal-alert portal-alert-success" style={{ fontSize: '0.83rem' }}>
+                        <ShieldCheck size={15} /> Sin devoluciones previas registradas en el historial del postulante.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Registro de Nueva Etapa si está disponible */}
@@ -1727,38 +1855,22 @@ export default function AdopcionesModulo({ user }) {
             </div>
           )}
         </div>
+          )}
+        </ModalAdopcion>
       )}
 
       {/* ============================================================== */}
       {/* MODAL: ACCIÓN DE SEGUIMIENTO (REGISTRAR O REPROGRAMAR)           */}
       {/* ============================================================== */}
       {seguimientoAccionModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '16px'
-          }}
+        <ModalAdopcion
+          titulo={`Gestionar seguimiento · ${seguimientoAccionModal.adopcion?.animal?.nombre || 'animal'}`}
+          subtitulo={`${TIPOS_SEGUIMIENTO[seguimientoAccionModal.tipoSeguimiento] || 'Seguimiento'} · ${folioSeguimiento(seguimientoAccionModal)} · Adoptante: ${seguimientoAccionModal.adopcion?.postulante?.nombre || '—'}`}
+          icono={<PhoneCall size={20} aria-hidden="true" />}
+          ancho="md"
+          bloqueado={guardandoSeguimientoAccion}
+          onClose={() => setSeguimientoAccionModal(null)}
         >
-          <div className="portal-card" style={{ width: 'min(600px, 100%)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
-                Gestionar Seguimiento · {seguimientoAccionModal.adopcion?.animal?.nombre}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setSeguimientoAccionModal(null)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--portal-text-muted)' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
             {errorSeguimientoAccion && (
               <div className="portal-alert portal-alert-danger" style={{ marginBottom: '14px' }}>
                 <AlertTriangle size={15} /> {errorSeguimientoAccion}
@@ -1886,14 +1998,16 @@ export default function AdopcionesModulo({ user }) {
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--portal-text-muted)', marginBottom: '6px' }}>
-                  Observaciones Generales
+                  {formSeguimiento.accion === 'REPROGRAMAR' ? 'Observaciones del intento fallido *' : 'Observaciones adicionales (opcional)'}
                 </label>
                 <textarea
+                  required={formSeguimiento.accion === 'REPROGRAMAR'}
+                  minLength={formSeguimiento.accion === 'REPROGRAMAR' ? 3 : undefined}
                   maxLength={4000}
                   rows={2}
                   value={formSeguimiento.observaciones}
                   onChange={(e) => setFormSeguimiento({ ...formSeguimiento, observaciones: e.target.value })}
-                  placeholder="Detalles adicionales..."
+                  placeholder={formSeguimiento.accion === 'REPROGRAMAR' ? 'Cuenta brevemente qué ocurrió al intentar contactar (mínimo 3 caracteres)...' : 'Detalles adicionales...'}
                   className="portal-textarea"
                   style={{ width: '100%', resize: 'vertical' }}
                 />
@@ -1917,40 +2031,22 @@ export default function AdopcionesModulo({ user }) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </ModalAdopcion>
       )}
 
       {/* ============================================================== */}
       {/* MODAL: REGISTRAR DEVOLUCIÓN                                     */}
       {/* ============================================================== */}
       {modalDevolucion && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '16px'
-          }}
+        <ModalAdopcion
+          titulo="Registrar devolución de adopción"
+          subtitulo={`${modalDevolucion.animalNombre || 'El animal'} · Adoptante: ${modalDevolucion.postulanteNombre || '—'}`}
+          icono={<RotateCcw size={20} aria-hidden="true" />}
+          tono="#d1453b"
+          ancho="md"
+          bloqueado={guardandoDevolucion}
+          onClose={() => setModalDevolucion(null)}
         >
-          <div className="portal-card" style={{ width: 'min(580px, 100%)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#d1453b', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <RotateCcw size={18} /> Registrar Devolución de Adopción
-              </h3>
-              <button
-                type="button"
-                onClick={() => setModalDevolucion(null)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--portal-text-muted)' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
             {exitoDevolucion ? (
               <div>
                 <div className="portal-alert portal-alert-success" style={{ marginBottom: '16px' }}>
@@ -2061,8 +2157,7 @@ export default function AdopcionesModulo({ user }) {
                 </div>
               </form>
             )}
-          </div>
-        </div>
+        </ModalAdopcion>
       )}
     </div>
   );
