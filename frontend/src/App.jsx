@@ -11,6 +11,7 @@ import AdopcionesModulo from './components/AdopcionesModulo';
 import InventarioModulo from './components/InventarioModulo';
 import VoluntariosModulo from './components/VoluntariosModulo';
 import PerfilesUsuariosModulo from './components/PerfilesUsuariosModulo';
+import ReportesConsolidadosModulo from './components/ReportesConsolidadosModulo';
 import Logo from './components/Logo';
 import {
   BarChart3,
@@ -19,6 +20,7 @@ import {
   ClipboardList,
   Dog,
   DoorOpen,
+  FileBarChart2,
   Handshake,
   House,
   Package,
@@ -174,14 +176,15 @@ export default function App() {
                 <BarChart3 size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Inicio</span>}
               </button>
 
-              {/* Registro de Animales */}
+              {/* Animales Ingresados */}
               <button
                 onClick={() => setActiveTab('animales')}
-                title="Registro Animales"
+                title="Animales Ingresados"
+                aria-current={activeTab === 'animales' ? 'page' : undefined}
                 className={`portal-nav-btn ${activeTab === 'animales' ? 'active' : ''}`}
                 style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
-                <Dog size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Registro Animales</span>}
+                <Dog size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Animales Ingresados</span>}
               </button>
 
               {/* Caniles y Traslados */}
@@ -297,6 +300,19 @@ export default function App() {
                   style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
                 >
                   <Users size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Usuarios y Perfiles</span>}
+                </button>
+              )}
+
+              {/* Reportes Consolidados — Exclusivo Dirección */}
+              {esDirectora && (
+                <button
+                  onClick={() => setActiveTab('reportes')}
+                  title="Reportes Consolidados"
+                  aria-current={activeTab === 'reportes' ? 'page' : undefined}
+                  className={`portal-nav-btn ${activeTab === 'reportes' ? 'active' : ''}`}
+                  style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
+                >
+                  <FileBarChart2 size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Reportes Consolidados</span>}
                 </button>
               )}
 
@@ -425,6 +441,10 @@ export default function App() {
 
               {activeTab === 'perfiles' && esDirectora && (
                 <PerfilesUsuariosModulo user={user} />
+              )}
+
+              {activeTab === 'reportes' && esDirectora && (
+                <ReportesConsolidadosModulo user={user} />
               )}
 
               {activeTab === 'auditoria' && esDirectora && (
