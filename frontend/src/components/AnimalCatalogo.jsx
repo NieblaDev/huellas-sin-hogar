@@ -1,3 +1,4 @@
+import AnimalPhoto from './ui/AnimalPhoto';
 import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from 'react';
 import {
@@ -276,7 +277,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
 
   const badgeMap = {
     NORMAL: { bg: '#e8f0e8', color: '#2f5540', label: 'Normal' },
-    CONDICION_ESPECIAL: { bg: '#faf1de', color: '#d99a3d', label: 'Especial' },
+    CONDICION_ESPECIAL: { bg: 'var(--portal-warning-bg)', color: 'var(--portal-warning-text)', label: 'Condición especial' },
     CRITICO: { bg: '#fbeae8', color: '#d1453b', label: 'Crítico' }
   };
 
@@ -714,39 +715,17 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
           No se encontraron animales activos.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '18px' }}>
+        <div className="portal-animal-grid">
           {animales.map((a) => {
             const badge = badgeMap[a.estadoSalud] || badgeMap.NORMAL;
             return (
               <div
                 key={a.id}
                 onClick={() => abrirFichaAnimal(a.id)}
-                style={{
-                  background: '#fff',
-                  borderRadius: '16px',
-                  border: '1px solid #e9eaed',
-                  overflow: 'hidden',
-                  boxShadow: '0 1px 3px rgba(20,24,32,0.04)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  cursor: 'pointer'
-                }}
+                className="portal-animal-card portal-card-selectable"
               >
-                <div
-                  style={{
-                    height: '160px',
-                    background: '#f0f1f3',
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {a.fotoUrl ? (
-                    <img src={a.fotoUrl} alt={a.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <PawPrint size={48} color="#cbd5e1" aria-hidden="true" />
-                  )}
+                <div className="portal-animal-media">
+                  <AnimalPhoto src={a.fotoUrl} className="portal-animal-photo-cover" />
                   <span
                     style={{
                       position: 'absolute',
@@ -782,7 +761,19 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                 <div style={{ padding: '18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#1f2430' }}>{a.nombre}</h3>
+                      <h3 className="portal-animal-name">
+                        <button
+                          type="button"
+                          className="portal-animal-open"
+                          aria-label={`Abrir ficha de ${a.nombre}`}
+                          onClick={event => {
+                            event.stopPropagation();
+                            abrirFichaAnimal(a.id);
+                          }}
+                        >
+                          {a.nombre}
+                        </button>
+                      </h3>
                       {a.estadoAdopcion === 'ADOPTADO' && <span style={{ color: '#2f5540', fontSize: '.8rem', fontWeight: 700 }}>Adoptado</span>}
                       <span style={{ fontSize: '0.8rem', color: '#7c8592' }}>
                         {a.especie} · {a.sexo} · {a.edad || 'Edad desconocida'}

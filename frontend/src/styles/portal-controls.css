@@ -61,6 +61,10 @@
   background-color: var(--portal-bg);
 }
 
+.portal-main {
+  background: linear-gradient(160deg, #fff 10%, #f7fef5 600px, #fff 1200px);
+}
+
 .portal-staff button,
 .portal-staff input,
 .portal-staff select,
@@ -235,7 +239,7 @@
 }
 
 .portal-header-title {
-  font-size: 1.62rem;
+  font-size: clamp(1.4rem, 1.15rem + 0.9vw, 1.9rem);
   font-weight: 800;
   color: var(--portal-text-main);
   margin: 0;
@@ -244,6 +248,11 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.portal-header-title > svg {
+  flex-shrink: 0;
+  color: var(--portal-primary);
 }
 
 .portal-header-subtitle {
@@ -270,6 +279,13 @@
   border: 1px solid var(--portal-border);
   margin-bottom: 22px;
   flex-wrap: wrap;
+}
+
+.portal-subtabs-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  margin-bottom: 24px;
 }
 
 .portal-subtab-btn {
@@ -302,10 +318,174 @@
 .portal-card {
   background: var(--portal-surface);
   border: 1px solid var(--portal-border);
-  border-radius: var(--portal-radius-md);
-  padding: 24px;
+  border-radius: var(--portal-radius-lg);
+  padding: clamp(14px, 3vw, 24px);
   box-shadow: var(--portal-shadow-card);
   box-sizing: border-box;
+}
+
+.portal-animal-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 275px), 1fr));
+}
+
+.portal-animal-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--portal-surface);
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius-lg);
+  cursor: pointer;
+}
+
+.portal-card-selectable {
+  box-shadow: var(--portal-shadow-card);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.portal-card-selectable:hover,
+.portal-card-selectable:focus-within {
+  transform: translateY(-3px);
+  box-shadow: var(--portal-shadow-hover);
+}
+
+.portal-card-selectable:active {
+  transform: translateY(0);
+}
+
+.portal-animal-open {
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.portal-animal-open:focus-visible {
+  outline: 2px solid var(--portal-primary);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-card-selectable {
+    transition: none;
+  }
+
+  .portal-card-selectable:hover,
+  .portal-card-selectable:focus-within {
+    transform: none;
+  }
+}
+
+.portal-animal-media {
+  position: relative;
+}
+
+.portal-animal-photo {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--portal-primary-soft);
+  color: var(--portal-primary);
+}
+
+.portal-animal-photo img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+}
+
+.portal-animal-photo-cover {
+  aspect-ratio: 1;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+
+.portal-photo-crop {
+  min-width: 0;
+  margin: 0 0 16px;
+  padding: 14px;
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius-md);
+}
+
+.portal-photo-crop legend {
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.portal-photo-crop-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.portal-photo-crop-layout canvas {
+  display: block;
+  width: min(100%, 230px);
+  height: auto;
+  border-radius: var(--portal-radius-sm);
+}
+
+.portal-photo-crop-controls {
+  flex: 1 1 180px;
+  display: grid;
+  gap: 10px;
+}
+
+.portal-photo-crop-controls label {
+  display: grid;
+  gap: 3px;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.portal-photo-crop-controls input {
+  width: 100%;
+  accent-color: var(--portal-primary);
+}
+
+.portal-photo-crop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.portal-animal-photo-cover > svg {
+  width: 46px;
+  height: 46px;
+}
+
+.portal-animal-photo-thumb {
+  width: 58px;
+  height: 58px;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  flex: 0 0 auto;
+  border-radius: var(--portal-radius-sm);
+}
+
+.portal-animal-name {
+  margin: 0;
+  font-size: 1.28rem;
+  color: var(--portal-text-main);
+  overflow-wrap: anywhere;
+}
+
+.portal-canil-resident {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: var(--portal-primary-soft);
+  border-radius: var(--portal-radius-md);
 }
 
 /* Badges y Etiquetas */

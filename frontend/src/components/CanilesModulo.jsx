@@ -1,3 +1,4 @@
+import AnimalPhoto from './ui/AnimalPhoto';
 import React, { useState, useEffect } from 'react';
 import {
   Bell,
@@ -522,19 +523,7 @@ export default function CanilesModulo({ user }) {
   );
 
   return (
-    <div className="portal-page-container" style={{ paddingTop: 0 }}>
-      {/* ENCABEZADO Y SUBPESTAÑAS STICKY */}
-      <div
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 60,
-          background: '#f3f4f6',
-          paddingTop: 'clamp(16px, 2vw, 24px)',
-          paddingBottom: '16px',
-          marginBottom: '8px',
-        }}
-      >
+    <div className="portal-page-container">
       <div className="portal-header" style={{ marginBottom: '16px' }}>
         <div>
           <h2 className="portal-header-title">
@@ -703,7 +692,7 @@ export default function CanilesModulo({ user }) {
       </div>
 
       {/* Pestañas Subnavegación */}
-      <div className="portal-subtabs" style={{ marginBottom: 0 }}>
+      <div className="portal-subtabs portal-subtabs-sticky">
         <button
           onClick={() => setTab('mapa')}
           className={`portal-subtab-btn ${tab === 'mapa' ? 'active' : ''}`}
@@ -722,7 +711,6 @@ export default function CanilesModulo({ user }) {
         >
           <Send size={15} aria-hidden="true" /> Solicitar Traslado Externo
         </button>
-      </div>
       </div>
 
 
@@ -937,19 +925,16 @@ export default function CanilesModulo({ user }) {
                 <div
                   key={canil.id}
                   onClick={() => handleOpenModal(canil)}
+                  className="portal-card-selectable"
                   style={{
                     background: '#fff',
                     borderRadius: '14px',
                     border: '1px solid #e9eaed',
                     borderTop: `4px solid ${borderColor}`,
                     padding: '16px',
-                    boxShadow: '0 2px 8px rgba(20,24,32,0.04)',
                     cursor: 'pointer',
-                    transition: 'transform 0.15s, box-shadow 0.15s',
                     position: 'relative'
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(20,24,32,0.08)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(20,24,32,0.04)'; }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <strong style={{ fontSize: '0.98rem', color: '#1f2430' }}>{canil.nombre}</strong>
@@ -966,23 +951,18 @@ export default function CanilesModulo({ user }) {
                   </div>
 
                   {canil.animalAlojado ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8f9fa', padding: '10px', borderRadius: '10px' }}>
-                      <div style={{
-                        width: '42px', height: '42px', borderRadius: '8px', background: '#e9eaed',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0
-                      }}>
-                        {canil.animalAlojado.fotoUrl ? (
-                          <img src={canil.animalAlojado.fotoUrl} alt={canil.animalAlojado.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <PawPrint size={20} color="#7c8592" aria-hidden="true" />
-                        )}
-                      </div>
+                    <div className="portal-canil-resident">
+                      <AnimalPhoto src={canil.animalAlojado.fotoUrl} className="portal-animal-photo-thumb" />
                       <div style={{ overflow: 'hidden' }}>
                         <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#1f2430', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {canil.animalAlojado.nombre}
                         </div>
                         <div style={{ fontSize: '0.74rem', color: '#7c8592' }}>
-                          {canil.animalAlojado.especie} · {canil.animalAlojado.sexo} · {canil.animalAlojado.estadoSalud}
+                          {[
+                            canil.animalAlojado.especie,
+                            canil.animalAlojado.sexo,
+                            { NORMAL: 'Normal', CONDICION_ESPECIAL: 'Condición especial', CRITICO: 'Crítico' }[canil.animalAlojado.estadoSalud]
+                          ].filter(Boolean).join(' · ')}
                         </div>
                       </div>
                     </div>

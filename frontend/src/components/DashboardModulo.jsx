@@ -30,6 +30,7 @@ export default function DashboardModulo({ user, onNavigate }) {
 
   const fetchMetrics = async () => {
     setCargando(true);
+    setError(null);
     try {
       const res = await fetch(`${API_URL}/dashboard/metrics`, {
         headers: getAuthHeaders(),
@@ -101,11 +102,7 @@ export default function DashboardModulo({ user, onNavigate }) {
             <span>¡Hola, {user?.nombre || "Equipo"}!</span>
           </h2>
           <p className="portal-header-subtitle">
-            Panel de indicadores operativos en tiempo real · Vista configurada
-            para rol:{" "}
-            <strong style={{ color: "var(--portal-primary)" }}>
-              {rolUsuario}
-            </strong>
+            Indicadores y avisos del refugio.
           </p>
         </div>
 

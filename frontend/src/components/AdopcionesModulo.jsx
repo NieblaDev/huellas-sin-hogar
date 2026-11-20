@@ -625,75 +625,62 @@ export default function AdopcionesModulo({ user }) {
   };
 
   return (
-    <div className="portal-page-container" style={{ paddingTop: 0 }}>
-      {/* ENCABEZADO Y SUBPESTAÑAS STICKY (Idéntico a Caniles) */}
-      <div
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 60,
-          background: '#f3f4f6',
-          paddingTop: 'clamp(16px, 2vw, 24px)',
-          paddingBottom: '16px',
-          marginBottom: '8px'
-        }}
-      >
-        <div className="portal-header" style={{ marginBottom: '16px' }}>
-          <div>
-            <h2 className="portal-header-title">
-              <House size={26} aria-hidden="true" />
-              <span>Gestión de Adopciones</span>
-            </h2>
-            <p className="portal-header-subtitle">
-              Evaluación de postulantes, trazabilidad de solicitudes, seguimientos post-adopción y devoluciones
-            </p>
-          </div>
-
-          <div className="portal-header-actions">
-            {/* Botón de Nueva Solicitud en formato verde primario */}
-            <button
-              type="button"
-              onClick={abrirCrearSolicitud}
-              className="portal-btn portal-btn-primary"
-            >
-              <Plus size={16} aria-hidden="true" /> Nueva Solicitud
-            </button>
-          </div>
+    <div className="portal-page-container">
+      <div className="portal-header" style={{ marginBottom: '16px' }}>
+        <div>
+          <h2 className="portal-header-title">
+            <House size={26} aria-hidden="true" />
+            <span>Gestión de Adopciones</span>
+          </h2>
+          <p className="portal-header-subtitle">
+            Evaluación de postulantes, trazabilidad de solicitudes, seguimientos post-adopción y devoluciones
+          </p>
         </div>
 
-        {/* Pestañas Subnavegación */}
-        <div className="portal-subtabs" style={{ marginBottom: 0 }}>
-          <button
-            type="button"
-            onClick={() => setTab('lista')}
-            className={`portal-subtab-btn ${tab === 'lista' ? 'active' : ''}`}
-          >
-            <ClipboardList size={15} aria-hidden="true" /> Consultar Solicitudes
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('seguimientos')}
-            className={`portal-subtab-btn ${tab === 'seguimientos' ? 'active' : ''}`}
-          >
-            <PhoneCall size={15} aria-hidden="true" /> Seguimientos Post-Adopción
-          </button>
+        <div className="portal-header-actions">
+          {/* Botón de Nueva Solicitud en formato verde primario */}
           <button
             type="button"
             onClick={abrirCrearSolicitud}
-            className={`portal-subtab-btn ${tab === 'crear' ? 'active' : ''}`}
+            className="portal-btn portal-btn-primary"
           >
-            <FilePenLine size={15} aria-hidden="true" /> Formulario de Solicitud
+            <Plus size={16} aria-hidden="true" /> Nueva Solicitud
           </button>
-          {tab === 'detalle' && (
-            <button
-              type="button"
-              onClick={() => setTab('detalle')}
-              className="portal-subtab-btn active"
-            >
-              <FileText size={15} aria-hidden="true" /> Expediente de Adopción
-            </button>
-          )}
         </div>
+      </div>
+
+      {/* Pestañas Subnavegación */}
+      <div className="portal-subtabs portal-subtabs-sticky">
+        <button
+          type="button"
+          onClick={() => setTab('lista')}
+          className={`portal-subtab-btn ${tab === 'lista' ? 'active' : ''}`}
+        >
+          <ClipboardList size={15} aria-hidden="true" /> Consultar Solicitudes
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('seguimientos')}
+          className={`portal-subtab-btn ${tab === 'seguimientos' ? 'active' : ''}`}
+        >
+          <PhoneCall size={15} aria-hidden="true" /> Seguimientos Post-Adopción
+        </button>
+        <button
+          type="button"
+          onClick={abrirCrearSolicitud}
+          className={`portal-subtab-btn ${tab === 'crear' ? 'active' : ''}`}
+        >
+          <FilePenLine size={15} aria-hidden="true" /> Formulario de Solicitud
+        </button>
+        {tab === 'detalle' && (
+          <button
+            type="button"
+            onClick={() => setTab('detalle')}
+            className="portal-subtab-btn active"
+          >
+            <FileText size={15} aria-hidden="true" /> Expediente de Adopción
+          </button>
+        )}
       </div>
 
       {mensajeExito && (

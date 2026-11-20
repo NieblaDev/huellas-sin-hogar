@@ -2,6 +2,7 @@ import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from 'react';
 import { Camera, PawPrint, Pencil, TriangleAlert } from 'lucide-react';
 import { API_URL } from '../api/config';
+import AnimalPhotoCrop from './ui/AnimalPhotoCrop';
 
 const INITIAL_FORM = {
   nombre: '',
@@ -26,6 +27,7 @@ const MAX_IMAGEN_MB = 10;
 export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = [], animalEditar = null }) {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [fotoArchivo, setFotoArchivo] = useState(null);
+  const [archivoParaRecortar, setArchivoParaRecortar] = useState(null);
   const [fotoPreview, setFotoPreview] = useState('');
   const [fotoActualUrl, setFotoActualUrl] = useState('');
   const [eliminarFotoActual, setEliminarFotoActual] = useState(false);
@@ -46,6 +48,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
     if (!isOpen) return;
     setError(null);
     setFotoArchivo(null);
+    setArchivoParaRecortar(null);
     setFotoPreview('');
     setEliminarFotoActual(false);
 
@@ -114,13 +117,19 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
     }
 
     setError(null);
+    setArchivoParaRecortar(file);
+  };
+
+  const confirmarRecorte = (file) => {
     setEliminarFotoActual(false);
     setFotoArchivo(file);
     setFotoPreview(URL.createObjectURL(file));
+    setArchivoParaRecortar(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (archivoParaRecortar || guardando) return;
     setError(null);
 
     if (!formData.nombre.trim()) {
@@ -322,11 +331,12 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 name="foto"
                 accept="image/jpeg,image/png,image/jpg"
                 onChange={handlePhoto}
+                disabled={guardando || Boolean(archivoParaRecortar)}
                 style={{ fontSize: '0.78rem', width: '100%' }}
               />
               <span style={{ display: 'block', fontSize: '0.7rem', color: '#a3aab5', marginTop: '3px' }}>
                 {fotoArchivo
-                  ? `Nueva imagen seleccionada: ${fotoArchivo.name}`
+                  ? 'Recorte listo para guardar como JPG de 800 × 800 píxeles.'
                   : fotoActualUrl
                   ? 'Fotografía actual activa. Selecciona un archivo si deseas reemplazarla.'
                   : 'Formatos JPG o PNG, hasta 10 MB.'}
@@ -351,6 +361,14 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
               </button>
             )}
           </div>
+
+          {archivoParaRecortar && (
+            <AnimalPhotoCrop
+              archivo={archivoParaRecortar}
+              onCancel={() => setArchivoParaRecortar(null)}
+              onConfirm={confirmarRecorte}
+            />
+          )}
 
           {/* Nombre y Causal de Ingreso */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '10px', marginBottom: '10px' }}>
@@ -602,7 +620,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
             </button>
             <button
               type="submit"
-              disabled={guardando}
+              disabled={guardando || Boolean(archivoParaRecortar)}
               style={{
                 padding: '9px 18px',
                 background: '#3f6c52',

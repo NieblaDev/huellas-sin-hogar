@@ -101,7 +101,7 @@ export default function App() {
   const puedeGestionarInventario = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
 
   return (
-    <div className="portal-staff" style={{ minHeight: '100vh', background: '#f3f4f6', display: 'flex' }}>
+    <div className="portal-staff" style={{ minHeight: '100vh', display: 'flex' }}>
       {!user ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Login onLoginSuccess={setUser} />
@@ -372,7 +372,7 @@ export default function App() {
           </aside>
 
           {/* ÁREA PRINCIPAL */}
-          <main style={{
+          <main className="portal-main" style={{
             marginLeft: sidebarRetraida ? '72px' : '252px',
             flex: 1,
             minHeight: '100vh',
