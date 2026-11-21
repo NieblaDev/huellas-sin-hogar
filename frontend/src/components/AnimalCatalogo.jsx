@@ -1,3 +1,4 @@
+import { usePortalFeedback } from './ui/PortalFeedback';
 import AnimalPhoto from './ui/AnimalPhoto';
 import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from 'react';
@@ -31,6 +32,7 @@ const formatearFechaIngreso = (valor) => {
 };
 
 export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey }) {
+  const { avisar, confirmar } = usePortalFeedback();
   const [animales, setAnimales] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [search, setSearch] = useState('');
@@ -144,7 +146,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al cargar la ficha del animal'));
       setFichaSeleccionada(data);
     } catch (err) {
-      if (!silencioso) alert(formatearErrorApi(err));
+      if (!silencioso) avisar(formatearErrorApi(err), 'error');
     } finally {
       if (!silencioso) setCargandoFicha(false);
     }
@@ -162,7 +164,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   const handleExportExpediente = async (animal, formato = 'PDF', e) => {
     if (e) e.stopPropagation();
     if (!puedeExportarExpediente) {
-      alert('La descarga de fichas está disponible solo para el personal del refugio y la Dirección.');
+      avisar('La descarga de fichas está disponible solo para el personal del refugio y la Dirección.', 'error');
       return;
     }
 
@@ -198,21 +200,74 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       setTimeout(() => setAvisoReciente(null), 6500);
       fetchNotificaciones();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     } finally {
       setDescargandoId(null);
     }
   };
 
-  const handleDelete = async (id, nombre, e) => {
-    if (e) e.stopPropagation();
-    if (
-      !window.confirm(
-        `¿Deseas dar de baja a ${nombre}? Su ficha dejará de mostrarse en Animales Ingresados por defecto, pero su historial se conservará y podrás consultarlo filtrando animales dados de baja.`
-      )
-    ) {
+  const handleExportConsolidado = async (e) => {
+    if (e) e.preventDefault();
+    if (!esDirectora) {
+      avisar('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.', 'error');
       return;
     }
+
+    setDescargandoConsolidado(true);
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams();
+      if (configReporte.fechaDesde) params.append('fechaDesde', configReporte.fechaDesde);
+      if (configReporte.fechaHasta) params.append('fechaHasta', configReporte.fechaHasta);
+      if (configReporte.tipoInformacion) params.append('tipoInformacion', configReporte.tipoInformacion);
+      if (configReporte.especie) params.append('especie', configReporte.especie);
+      if (configReporte.estadoSalud) params.append('estadoSalud', configReporte.estadoSalud);
+      if (configReporte.tipoIngreso) params.append('tipoIngreso', configReporte.tipoIngreso);
+      if (configReporte.formato) params.append('formato', configReporte.formato);
+
+      const res = await fetch(`${API_URL}/animals/reportes/export-csv?${params.toString()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(formatearErrorApi(errData, 'No pudimos generar el reporte. Inténtalo nuevamente en unos minutos.'));
+      }
+
+      const notifHeader = res.headers.get('X-Notification-Message');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const fecha = new Date().toISOString().split('T')[0];
+      const ext = configReporte.formato === 'PDF' ? 'pdf' : 'csv';
+      link.download = `reporte_consolidado_${configReporte.tipoInformacion.toLowerCase()}_${fecha}.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      const msgNotif = notifHeader
+        ? decodeURIComponent(notifHeader)
+        : `Tu reporte (${configReporte.formato}) se descargó correctamente.`;
+      setAvisoReciente(msgNotif);
+      setTimeout(() => setAvisoReciente(null), 6500);
+      fetchNotificaciones();
+    } catch (err) {
+      avisar(formatearErrorApi(err), 'error');
+    } finally {
+      setDescargandoConsolidado(false);
+    }
+  };
+
+  const handleDelete = async (id, nombre, e) => {
+    if (e) e.stopPropagation();
+    if (!await confirmar({
+      titulo: 'Dar de baja al animal',
+      mensaje: `La ficha de ${nombre} dejará de mostrarse en el catálogo. Su historial se conservará.`,
+      accion: 'Dar de baja',
+      peligro: true
+    })) return;
 
     try {
       const res = await fetch(`${API_URL}/animals/${id}`, {
@@ -230,7 +285,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
         setFichaSeleccionada(null);
       }
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 

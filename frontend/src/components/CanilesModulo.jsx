@@ -1,3 +1,4 @@
+import { usePortalFeedback } from './ui/PortalFeedback';
 import AnimalPhoto from './ui/AnimalPhoto';
 import React, { useState, useEffect } from 'react';
 import {
@@ -60,6 +61,7 @@ const formatearFecha = (fecha, incluirHora = false) => {
 };
 
 export default function CanilesModulo({ user }) {
+  const { avisar } = usePortalFeedback();
   const [caniles, setCaniles] = useState([]);
   const [resumen, setResumen] = useState(null);
   const [animales, setAnimales] = useState([]);
@@ -390,7 +392,7 @@ export default function CanilesModulo({ user }) {
       setEliminarCanil(null);
       await cargarDatos();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     } finally {
       setEliminandoCanil(false);
     }
@@ -1534,9 +1536,9 @@ export default function CanilesModulo({ user }) {
                   </div>
                 )}
 
-                <div style={{ marginBottom: '18px' }}>
+                <section className="canil-modal-seccion" aria-labelledby="canil-animal-titulo">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                    <label htmlFor="canil-animal-alojado" style={{ fontSize: '0.78rem', fontWeight: '700', color: '#7c8592' }}>
+                    <label id="canil-animal-titulo" htmlFor="canil-animal-alojado" className="canil-modal-seccion-titulo">
                       Animal en el canil
                     </label>
                     {selectedCanil.animalAlojado && selectedAnimalId && (
@@ -1582,52 +1584,10 @@ export default function CanilesModulo({ user }) {
                       Este canil ya tiene un animal. Libéralo antes de asignar otro.
                     </div>
                   )}
-                </div>
+                </section>
 
-                {selectedAnimalId && (
-                  <label style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                    padding: '11px 14px', borderRadius: '10px', marginBottom: '16px', cursor: 'pointer',
-                    background: enCuarentena ? '#fdf2f2' : '#f8f9fa',
-                    border: `1.5px solid ${enCuarentena ? '#f3c9c4' : '#e9eaed'}`
-                  }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-                      <TriangleAlert size={17} color={enCuarentena ? '#d1453b' : '#7c8592'} aria-hidden="true" />
-                      <span>
-                        <strong style={{ display: 'block', fontSize: '0.82rem', color: '#1f2430' }}>En cuarentena</strong>
-                        <small style={{ fontSize: '0.72rem', color: '#7c8592' }}>Activa la observación médica de este animal.</small>
-                      </span>
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={enCuarentena}
-                      onChange={e => setEnCuarentena(e.target.checked)}
-                      style={{ width: '18px', height: '18px', accentColor: '#d1453b', cursor: 'pointer', flexShrink: 0 }}
-                    />
-                  </label>
-                )}
-
-                {mostrarMotivoModal && (
-                  <div style={{ marginBottom: '18px' }}>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
-                      {motivoCuarentenaRequerido ? 'Motivo de cuarentena *' : 'Motivo del movimiento (opcional)'}
-                    </label>
-                    <textarea
-                      rows={motivoCuarentenaRequerido ? 3 : 2}
-                      required={motivoCuarentenaRequerido}
-                      placeholder={motivoCuarentenaRequerido ? 'Indica el motivo de la cuarentena' : 'Ej: ingreso, reubicación, sobrecupo'}
-                      value={motivoMovimiento}
-                      onChange={e => setMotivoMovimiento(e.target.value)}
-                      style={{
-                        width: '100%', padding: '9px', borderRadius: '8px', boxSizing: 'border-box',
-                        border: `1.5px solid ${motivoCuarentenaRequerido ? '#d1453b' : '#e9eaed'}`
-                      }}
-                    />
-                  </div>
-                )}
-
-                <div style={{ marginBottom: '18px' }}>
-                  <label htmlFor="editar-sector-canil" style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
+                <section className="canil-modal-seccion" aria-labelledby="canil-sector-titulo">
+                  <label id="canil-sector-titulo" htmlFor="editar-sector-canil" className="canil-modal-seccion-titulo">
                     Sector del canil *
                   </label>
                   <select
@@ -1664,7 +1624,49 @@ export default function CanilesModulo({ user }) {
                       }}
                     />
                   )}
-                </div>
+                </section>
+
+                <section className="canil-modal-seccion" aria-labelledby="canil-cuarentena-titulo">
+                  <h3 id="canil-cuarentena-titulo" className="canil-modal-seccion-titulo">Cuarentena</h3>
+                  <div className="canil-cuarentena-control">
+                    <div>
+                      <strong id="canil-cuarentena-label">En cuarentena</strong>
+                      <p id="canil-cuarentena-ayuda">
+                        {selectedAnimalId ? 'Aplica el cambio al guardar.' : 'Selecciona un animal para activar la cuarentena.'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={enCuarentena}
+                      aria-labelledby="canil-cuarentena-label"
+                      aria-describedby="canil-cuarentena-ayuda"
+                      className="canil-cuarentena-switch"
+                      disabled={!selectedAnimalId || guardando}
+                      onClick={() => setEnCuarentena(actual => !actual)}
+                    />
+                  </div>
+
+                  {mostrarMotivoModal && (
+                    <div style={{ marginBottom: '18px' }}>
+                      <label htmlFor="canil-motivo-movimiento" style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '4px' }}>
+                        {motivoCuarentenaRequerido ? 'Motivo de cuarentena *' : 'Motivo del movimiento (opcional)'}
+                      </label>
+                      <textarea
+                        id="canil-motivo-movimiento"
+                        rows={motivoCuarentenaRequerido ? 3 : 2}
+                        required={motivoCuarentenaRequerido}
+                        placeholder={motivoCuarentenaRequerido ? 'Indica el motivo de la cuarentena' : 'Ej: ingreso, reubicación, sobrecupo'}
+                        value={motivoMovimiento}
+                        onChange={e => setMotivoMovimiento(e.target.value)}
+                        style={{
+                          width: '100%', padding: '9px', borderRadius: '8px', boxSizing: 'border-box',
+                          border: `1.5px solid ${motivoCuarentenaRequerido ? '#d1453b' : '#e9eaed'}`
+                        }}
+                      />
+                    </div>
+                  )}
+                </section>
 
                 <div style={{
                   background: '#f8f9fa', padding: '10px 14px', borderRadius: '8px',

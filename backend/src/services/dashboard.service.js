@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { filtroSemanaTurnos } from '../utils/semanaTurnos.js';
 
 /**
  * Obtener métricas consolidadas del panel de indicadores
@@ -20,7 +21,7 @@ export const getDashboardMetrics = async (user) => {
     canilesOcupados,
     canilesCuarentena,
     todosInsumos,
-    turnosDescubiertos,
+    turnosSemana,
     trasladosPendientes,
     ultimasAuditorias
   ] = await Promise.all([
@@ -46,11 +47,10 @@ export const getDashboardMetrics = async (user) => {
     // 3. Todos los insumos activos
     prisma.insumo.findMany({ where: { activo: true } }),
 
-    // 4. Turnos descubiertos (sin inscripciones confirmadas, misma regla que la matriz de turnos)
+    // 4. Turnos de la semana y sus inscripciones confirmadas
     prisma.turno.findMany({
-      where: {
-        inscripciones: { none: { estado: 'CONFIRMADA' } }
-      },
+      where: { fecha: filtroSemanaTurnos() },
+      include: { _count: { select: { inscripciones: { where: { estado: 'CONFIRMADA' } } } } },
       orderBy: { id: 'asc' }
     }),
 
@@ -72,6 +72,10 @@ export const getDashboardMetrics = async (user) => {
         })
       : Promise.resolve([])
   ]);
+
+  const turnosDescubiertos = turnosSemana.flatMap(({ _count, ...turno }) =>
+    _count.inscripciones === 0 ? [turno] : []
+  );
 
   // Filtrar insumos críticos reales (stock <= stockMinimo)
   const insumosAlerta = todosInsumos.filter(i => i.stock <= i.stockMinimo);
@@ -157,6 +161,7 @@ export const getDashboardMetrics = async (user) => {
       alertaSobrecupo: ocupacionPorcentaje > 90,
       stockCriticoCount: insumosAlerta.length,
       insumosVencimientoCount: insumosVencimiento.length,
+      turnosSemanaCount: turnosSemana.length,
       turnosDescubiertosCount: turnosDescubiertos.length,
       trasladosPendientesCount: trasladosPendientes.length
     },

@@ -1,3 +1,4 @@
+import { usePortalFeedback } from './ui/PortalFeedback';
 import React, { useState, useEffect } from 'react';
 import AnimalSelect from './ui/AnimalSelect';
 import { formatearErrorApi } from '../utils/errores';
@@ -14,6 +15,7 @@ import {
 import { API_URL, getAuthHeaders } from '../api/config';
 
 export default function SaludModulo({ user }) {
+  const { avisar } = usePortalFeedback();
   const [alertas, setAlertas] = useState(null);
   const [animales, setAnimales] = useState([]);
   const [selectedAnimalId, setSelectedAnimalId] = useState('');
@@ -71,13 +73,13 @@ export default function SaludModulo({ user }) {
       const data = await res.json();
       setHistorial(data);
     } catch (e) {
-      alert('Error al cargar historial clínico del animal');
+      avisar('Error al cargar historial clínico del animal', 'error');
     }
   };
 
   const handleGuardarVacuna = async (e) => {
     e.preventDefault();
-    if (!selectedAnimalId) return alert('Seleccione un animal');
+    if (!selectedAnimalId) return avisar('Seleccione un animal', 'error');
     try {
       const res = await fetch(`${API_URL}/salud/vacunas`, {
         method: 'POST',
@@ -93,18 +95,18 @@ export default function SaludModulo({ user }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(formatearErrorApi(data));
-      alert('Vacuna registrada correctamente en la ficha y alerta configurada.');
+      avisar('Vacuna registrada correctamente en la ficha y alerta configurada.', 'exito');
       setVacunaForm({ nombreVacuna: '', dosis: '1ra Dosis', lote: '', fechaVencimiento: '', observaciones: '' });
       cargarDatos();
       verHistorialAnimal(selectedAnimalId);
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
   const handleGuardarAtencion = async (e) => {
     e.preventDefault();
-    if (!selectedAnimalId) return alert('Seleccione un animal');
+    if (!selectedAnimalId) return avisar('Seleccione un animal', 'error');
     try {
       const res = await fetch(`${API_URL}/salud/atenciones`, {
         method: 'POST',
@@ -119,12 +121,12 @@ export default function SaludModulo({ user }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(formatearErrorApi(data));
-      alert('Atención médica registrada exitosamente en la ficha del animal.');
+      avisar('Atención médica registrada exitosamente en la ficha del animal.', 'exito');
       setAtencionForm({ motivo: 'Revisión periódica', diagnostico: '', temperatura: '', pesoActual: '' });
       cargarDatos();
       verHistorialAnimal(selectedAnimalId);
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
