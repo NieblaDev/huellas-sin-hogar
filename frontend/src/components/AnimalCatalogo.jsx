@@ -3,12 +3,13 @@ import AnimalPhoto from './ui/AnimalPhoto';
 import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from 'react';
 import {
-  BarChart3,
+  Archive,
+  ArrowUpDown,
   Bell,
+  Calendar,
   ClipboardList,
   Dog,
   DoorOpen,
-  Download,
   FileSpreadsheet,
   FileText,
   Lock,
@@ -16,11 +17,19 @@ import {
   PawPrint,
   Pencil,
   Plus,
+  RotateCcw,
   Search,
   Stethoscope,
   Trash2
 } from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
+
+const formatearFechaIngreso = (valor) => {
+  if (!valor) return 'Sin fecha';
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return 'Sin fecha';
+  return fecha.toLocaleDateString('es-CL');
+};
 
 export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey }) {
   const { avisar, confirmar } = usePortalFeedback();
@@ -28,7 +37,9 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   const [cargando, setCargando] = useState(true);
   const [search, setSearch] = useState('');
   const [especie, setEspecie] = useState('');
-  const [tabAnimales, setTabAnimales] = useState('catalogo'); // 'catalogo' | 'reportes'
+  const [estadoSalud, setEstadoSalud] = useState('');
+  const [estadoRegistro, setEstadoRegistro] = useState('ACTIVOS'); // 'ACTIVOS' | 'BAJA' | 'TODOS'
+  const [ordenFecha, setOrdenFecha] = useState('desc'); // 'desc' | 'asc'
 
   // Notificaciones del personal del refugio
   const [notificaciones, setNotificaciones] = useState([]);
@@ -41,18 +52,6 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   const [fotoAmpliada, setFotoAmpliada] = useState(false);
   const [descargandoId, setDescargandoId] = useState(null);
 
-  // Panel de Configuración de Reportes Consolidados
-  const [descargandoConsolidado, setDescargandoConsolidado] = useState(false);
-  const [configReporte, setConfigReporte] = useState({
-    fechaDesde: '',
-    fechaHasta: '',
-    tipoInformacion: 'TODOS',
-    especie: '',
-    estadoSalud: '',
-    tipoIngreso: '',
-    formato: 'CSV'
-  });
-
   const currentUser = (() => {
     try {
       return JSON.parse(localStorage.getItem('user') || 'null');
@@ -62,17 +61,16 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   })();
 
   const rolUsuario = currentUser?.rol || 'VOLUNTARIO_NOVATO';
-  const esDirectora = rolUsuario === 'DIRECTORA';
   const puedeExportarExpediente = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'].includes(rolUsuario);
 
   useEffect(() => {
     const controller = new AbortController();
-    const timer = setTimeout(() => fetchAnimals(controller.signal), 250);
+    const timer = setTimeout(() => fetchAnimals(controller.signal), 220);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [search, especie, reloadKey]);
+  }, [search, especie, estadoSalud, estadoRegistro, ordenFecha, reloadKey]);
 
   useEffect(() => {
     fetchNotificaciones();
@@ -111,8 +109,12 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
     setCargando(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.append('search', search);
+      if (search.trim()) params.append('search', search.trim());
       if (especie) params.append('especie', especie);
+      if (estadoSalud) params.append('estadoSalud', estadoSalud);
+      if (estadoRegistro && estadoRegistro !== 'ACTIVOS') params.append('estado', estadoRegistro);
+      if (ordenFecha) params.append('ordenFecha', ordenFecha);
+
       const res = await fetch(`${API_URL}/animals?${params.toString()}`, { headers: getAuthHeaders(), signal });
       const data = await res.json();
       if (signal?.aborted) return;
@@ -273,13 +275,33 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
         headers: getAuthHeaders()
       });
       if (!res.ok) throw new Error('No pudimos dar de baja al animal. Inténtalo nuevamente.');
-      setAnimales(animales.filter((a) => a.id !== id));
+
+      if (estadoRegistro === 'ACTIVOS') {
+        setAnimales((prev) => prev.filter((a) => a.id !== id));
+      } else {
+        fetchAnimals();
+      }
       if (fichaSeleccionada?.id === id) {
         setFichaSeleccionada(null);
       }
     } catch (err) {
       avisar(formatearErrorApi(err), 'error');
     }
+  };
+
+  const hayFiltrosActivos =
+    search.trim() !== '' ||
+    especie !== '' ||
+    estadoSalud !== '' ||
+    estadoRegistro !== 'ACTIVOS' ||
+    ordenFecha !== 'desc';
+
+  const restablecerFiltros = () => {
+    setSearch('');
+    setEspecie('');
+    setEstadoSalud('');
+    setEstadoRegistro('ACTIVOS');
+    setOrdenFecha('desc');
   };
 
   const badgeMap = {
@@ -290,20 +312,30 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
 
   const limpiarNotaCausal = (nota) => (nota || '').replace(/^\[Ingreso por (Rescate|Abandono|Decomiso)\]\s*/i, '');
 
+  const mensajeVacio =
+    estadoRegistro === 'BAJA'
+      ? 'No se encontraron animales dados de baja con los filtros aplicados.'
+      : estadoRegistro === 'TODOS'
+      ? 'No se encontraron animales ingresados con los filtros aplicados.'
+      : 'No se encontraron animales ingresados activos con los filtros aplicados.';
+
   return (
     <div
       className="portal-page-container"
       style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
     >
-      {/* ENCABEZADO Y ACCIONES DE REGISTRO / EXPORTACIÓN */}
-      <div className="portal-header" style={{ flexShrink: 0 }}>
+      {/* ENCABEZADO Y ACCIONES DE REGISTRO */}
+      <div className="portal-header" style={{ flexShrink: 0, marginBottom: '18px' }}>
         <div>
           <h2 className="portal-header-title">
             <Dog size={26} aria-hidden="true" />
-            <span>Registro de Ingreso, Fichas de Animales y Reportes</span>
+            <span>Animales Ingresados</span>
+            <span className="portal-badge portal-badge-neutral" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+              {animales.length}
+            </span>
           </h2>
           <p className="portal-header-subtitle">
-            Registra a los perros y gatos que llegan al refugio y descarga sus fichas o reportes de gestión en PDF o CSV.
+            Registra los ingresos de perros y gatos del refugio, consulta sus fichas detalladas y gestiona su estado.
           </p>
         </div>
 
@@ -450,31 +482,6 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
         </div>
       </div>
 
-      {/* Subnavegación del Módulo de Registro de Animales — Estilo portal-subtabs */}
-      <div className="portal-subtabs" style={{ flexShrink: 0 }}>
-        <button
-          type="button"
-          onClick={() => setTabAnimales('catalogo')}
-          className={`portal-subtab-btn ${tabAnimales === 'catalogo' ? 'active' : ''}`}
-        >
-          <PawPrint size={15} aria-hidden="true" /> Catálogo de Animales ({animales.length})
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (!esDirectora) {
-              avisar('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.', 'error');
-              return;
-            }
-            setTabAnimales('reportes');
-          }}
-          className={`portal-subtab-btn ${tabAnimales === 'reportes' ? 'active' : ''}`}
-        >
-          <BarChart3 size={15} aria-hidden="true" /> Reportes Consolidados (PDF/CSV) {!esDirectora && <Lock size={12} aria-label="Solo Dirección" />}
-        </button>
-      </div>
-
       {/* BANNER EN TIEMPO REAL DE NOTIFICACIÓN AL PERSONAL DEL REFUGIO */}
       {avisoReciente && (
         <div
@@ -483,7 +490,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
             borderLeft: '5px solid #3f6c52',
             borderRadius: '10px',
             padding: '12px 16px',
-            marginBottom: '18px',
+            marginBottom: '16px',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -507,379 +514,353 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
         </div>
       )}
 
-      {/* CONTENIDO SEGÚN LA PESTAÑA ACTIVA */}
-      {tabAnimales === 'reportes' ? (
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '6px', marginRight: '-6px', paddingBottom: '16px' }}>
-          <div
+      {/* BARRA DE BÚSQUEDA, FILTROS AVANZADOS, BAJAS Y ORDENAMIENTO POR FECHA DE INGRESO */}
+      <div
+        className="portal-card"
+        style={{
+          padding: '14px 16px',
+          marginBottom: '18px',
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}
+      >
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '200px' }}>
+            <Search
+              size={16}
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--portal-text-light)',
+                pointerEvents: 'none'
+              }}
+            />
+            <input
+              type="search"
+              placeholder="Buscar animal por nombre..."
+              aria-label="Buscar animal por nombre"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 12px 9px 36px',
+                borderRadius: '8px',
+                border: '1.5px solid var(--portal-border)',
+                fontSize: '0.86rem',
+                background: '#fff'
+              }}
+            />
+          </div>
+
+          <select
+            value={especie}
+            onChange={(e) => setEspecie(e.target.value)}
+            aria-label="Filtrar por especie"
             style={{
+              padding: '9px 12px',
+              borderRadius: '8px',
+              border: '1.5px solid var(--portal-border)',
+              fontSize: '0.85rem',
               background: '#fff',
-              border: '1.5px solid #e9eaed',
-              borderRadius: '16px',
-              padding: '26px 28px',
-              boxShadow: '0 2px 8px rgba(20,24,32,0.04)',
-              margin: '0 auto'
+              color: 'var(--portal-text-main)'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1f2430', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <BarChart3 size={22} color="#3f6c52" aria-hidden="true" /> Reportes de Gestión del Refugio
-                </h3>
-                <p style={{ margin: '6px 0 0', fontSize: '0.86rem', color: '#7c8592' }}>
-                  Genera balances integrados de ingresos, adopciones, devoluciones, censo y stock de insumos.
-                </p>
-              </div>
-              <span
-                style={{
-                  fontSize: '0.74rem',
-                  fontWeight: '800',
-                  background: '#fbeae8',
-                  color: '#d1453b',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #f3c9c4',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-                title="Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en los documentos exportados."
-              >
-                <Lock size={13} aria-hidden="true" /> Sin datos personales de postulantes
-              </span>
-            </div>
+            <option value="">Todas las especies</option>
+            <option value="Perro">Perros (Canina)</option>
+            <option value="Gato">Gatos (Felina)</option>
+          </select>
 
-            <form onSubmit={handleExportConsolidado}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                  gap: '16px',
-                  marginBottom: '22px'
-                }}
-              >
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
-                    Fecha Desde
-                  </label>
-                  <input
-                    type="date"
-                    value={configReporte.fechaDesde}
-                    onChange={(e) => setConfigReporte({ ...configReporte, fechaDesde: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', boxSizing: 'border-box', fontSize: '0.86rem' }}
-                  />
-                </div>
+          <select
+            value={estadoSalud}
+            onChange={(e) => setEstadoSalud(e.target.value)}
+            aria-label="Filtrar por estado de salud"
+            style={{
+              padding: '9px 12px',
+              borderRadius: '8px',
+              border: '1.5px solid var(--portal-border)',
+              fontSize: '0.85rem',
+              background: '#fff',
+              color: 'var(--portal-text-main)'
+            }}
+          >
+            <option value="">Todos los estados de salud</option>
+            <option value="NORMAL">Salud: Normal</option>
+            <option value="CONDICION_ESPECIAL">Salud: Condición especial</option>
+            <option value="CRITICO">Salud: Crítico</option>
+          </select>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
-                    Fecha Hasta
-                  </label>
-                  <input
-                    type="date"
-                    value={configReporte.fechaHasta}
-                    onChange={(e) => setConfigReporte({ ...configReporte, fechaHasta: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', boxSizing: 'border-box', fontSize: '0.86rem' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
-                    Tipo de Información
-                  </label>
-                  <select
-                    value={configReporte.tipoInformacion}
-                    onChange={(e) => setConfigReporte({ ...configReporte, tipoInformacion: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.86rem' }}
-                  >
-                    <option value="TODOS">Consolidado Completo (Todos)</option>
-                    <option value="INGRESOS">Balance de Ingresos</option>
-                    <option value="ADOPCIONES">Balance de Adopciones</option>
-                    <option value="DEVOLUCIONES">Balance de Devoluciones</option>
-                    <option value="CENSO">Censo y Capacidad</option>
-                    <option value="INSUMOS">Estado de Insumos</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
-                    Filtro Especie
-                  </label>
-                  <select
-                    value={configReporte.especie}
-                    onChange={(e) => setConfigReporte({ ...configReporte, especie: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.86rem' }}
-                  >
-                    <option value="">Todas las especies</option>
-                    <option value="Perro">Perro (Canina)</option>
-                    <option value="Gato">Gato (Felina)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
-                    Filtro Causal Ingreso
-                  </label>
-                  <select
-                    value={configReporte.tipoIngreso}
-                    onChange={(e) => setConfigReporte({ ...configReporte, tipoIngreso: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', background: '#fff', fontSize: '0.86rem' }}
-                  >
-                    <option value="">Todas las causales</option>
-                    <option value="Rescate">Rescate</option>
-                    <option value="Abandono">Abandono</option>
-                    <option value="Decomiso">Decomiso</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#7c8592', marginBottom: '6px', textTransform: 'uppercase' }}>
-                    Formato de Exportación
-                  </label>
-                  <select
-                    value={configReporte.formato}
-                    onChange={(e) => setConfigReporte({ ...configReporte, formato: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e9eaed', background: '#fff', fontWeight: '700', fontSize: '0.86rem' }}
-                  >
-                    <option value="CSV">Planilla CSV (Datos / Excel)</option>
-                    <option value="PDF">Documento Oficial PDF</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid #f0f1f3', paddingTop: '18px' }}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setConfigReporte({
-                      fechaDesde: '',
-                      fechaHasta: '',
-                      tipoInformacion: 'TODOS',
-                      especie: '',
-                      estadoSalud: '',
-                      tipoIngreso: '',
-                      formato: 'CSV'
-                    })
-                  }
-                  className="portal-btn portal-btn-secondary"
-                  style={{ minHeight: '40px', padding: '8px 16px' }}
-                >
-                  Restablecer Filtros
-                </button>
-                <button
-                  type="submit"
-                  disabled={descargandoConsolidado}
-                  className="portal-btn portal-btn-primary"
-                  style={{ minHeight: '40px', padding: '8px 22px' }}
-                >
-                  {descargandoConsolidado ? (
-                    'Generando reporte...'
-                  ) : (
-                    <>
-                      <Download size={16} aria-hidden="true" /> Generar y Descargar Reporte ({configReporte.formato})
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <ArrowUpDown size={15} color="var(--portal-text-muted)" aria-hidden="true" />
+            <select
+              value={ordenFecha}
+              onChange={(e) => setOrdenFecha(e.target.value)}
+              aria-label="Ordenar por fecha de ingreso"
+              style={{
+                padding: '9px 12px',
+                borderRadius: '8px',
+                border: '1.5px solid var(--portal-border)',
+                fontSize: '0.85rem',
+                background: '#fff',
+                color: 'var(--portal-text-main)',
+                fontWeight: 600
+              }}
+            >
+              <option value="desc">Fecha de ingreso: Más recientes primero</option>
+              <option value="asc">Fecha de ingreso: Más antiguos primero</option>
+            </select>
           </div>
         </div>
-      ) : (
-        <>
-          {/* BUSCADOR Y FILTROS DEL CATÁLOGO */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', flexShrink: 0 }}>
-        <input
-          type="text"
-          placeholder="Buscar por nombre..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: '220px', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e9eaed', fontSize: '0.88rem' }}
-        />
-        <select
-          value={especie}
-          onChange={(e) => setEspecie(e.target.value)}
-          style={{ padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e9eaed', fontSize: '0.88rem', background: '#fff' }}
-        >
-          <option value="">Todas las especies</option>
-          <option value="Perro">Perros (Canina)</option>
-          <option value="Gato">Gatos (Felina)</option>
-        </select>
-      </div>
 
-      {/* LISTADO DE FICHAS DE ANIMALES — solo esta zona hace scroll */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '6px', marginRight: '-6px', paddingBottom: '8px' }}>
-      {cargando ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#7c8592' }}>Cargando catálogo...</div>
-      ) : animales.length === 0 ? (
         <div
           style={{
-            textAlign: 'center',
-            padding: '40px',
-            background: '#fff',
-            borderRadius: '14px',
-            border: '1px solid #e9eaed',
-            color: '#7c8592'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '10px',
+            borderTop: '1px solid var(--portal-border-subtle)',
+            paddingTop: '10px'
           }}
         >
-          No se encontraron animales activos.
-        </div>
-      ) : (
-        <div className="portal-animal-grid">
-          {animales.map((a) => {
-            const badge = badgeMap[a.estadoSalud] || badgeMap.NORMAL;
-            return (
-              <div
-                key={a.id}
-                onClick={() => abrirFichaAnimal(a.id)}
-                className="portal-animal-card portal-card-selectable"
+          {/* Control dedicado para filtrar animales dados de baja */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                color: 'var(--portal-text-muted)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <Archive size={14} aria-hidden="true" /> Estado de registro:
+            </span>
+            <div className="perfil-estado-switch" role="group" aria-label="Filtrar animales activos o dados de baja">
+              <button
+                type="button"
+                className={estadoRegistro === 'ACTIVOS' ? 'active' : ''}
+                onClick={() => setEstadoRegistro('ACTIVOS')}
+                aria-pressed={estadoRegistro === 'ACTIVOS'}
               >
-                <div className="portal-animal-media">
-                  <AnimalPhoto src={a.fotoUrl} className="portal-animal-photo-cover" />
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '12px',
-                      left: '12px',
-                      background: 'rgba(31,36,48,0.75)',
-                      color: '#fff',
-                      padding: '3px 9px',
-                      borderRadius: '7px',
-                      fontSize: '0.68rem',
-                      fontWeight: '700'
-                    }}
-                  >
-                    {a.tipoIngreso || 'Rescate'}
-                  </span>
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '12px',
-                      right: '12px',
-                      background: badge.bg,
-                      color: badge.color,
-                      padding: '4px 10px',
-                      borderRadius: '8px',
-                      fontSize: '0.72rem',
-                      fontWeight: '800'
-                    }}
-                  >
-                    {badge.label}
-                  </span>
-                </div>
+                Activos
+              </button>
+              <button
+                type="button"
+                className={estadoRegistro === 'BAJA' ? 'active' : ''}
+                onClick={() => setEstadoRegistro('BAJA')}
+                aria-pressed={estadoRegistro === 'BAJA'}
+              >
+                Dados de baja
+              </button>
+              <button
+                type="button"
+                className={estadoRegistro === 'TODOS' ? 'active' : ''}
+                onClick={() => setEstadoRegistro('TODOS')}
+                aria-pressed={estadoRegistro === 'TODOS'}
+              >
+                Todos
+              </button>
+            </div>
+          </div>
 
-                <div style={{ padding: '18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                    <div>
-                      <h3 className="portal-animal-name">
-                        <button
-                          type="button"
-                          className="portal-animal-open"
-                          aria-label={`Abrir ficha de ${a.nombre}`}
-                          onClick={event => {
-                            event.stopPropagation();
-                            abrirFichaAnimal(a.id);
-                          }}
-                        >
-                          {a.nombre}
-                        </button>
-                      </h3>
-                      {a.estadoAdopcion === 'ADOPTADO' && <span style={{ color: '#2f5540', fontSize: '.8rem', fontWeight: 700 }}>Adoptado</span>}
-                      <span style={{ fontSize: '0.8rem', color: '#7c8592' }}>
-                        {a.especie} · {a.sexo} · {a.edad || 'Edad desconocida'}
+          {hayFiltrosActivos && (
+            <button
+              type="button"
+              onClick={restablecerFiltros}
+              className="portal-btn portal-btn-secondary"
+              style={{ minHeight: '34px', padding: '6px 12px', fontSize: '0.8rem' }}
+            >
+              <RotateCcw size={14} aria-hidden="true" /> Limpiar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* LISTADO DE ANIMALES INGRESADOS — solo esta zona hace scroll */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '6px', marginRight: '-6px', paddingBottom: '8px' }}>
+        {cargando ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#7c8592' }}>Cargando animales ingresados...</div>
+        ) : animales.length === 0 ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '40px',
+              background: '#fff',
+              borderRadius: '14px',
+              border: '1px solid #e9eaed',
+              color: '#7c8592'
+            }}
+          >
+            {mensajeVacio}
+          </div>
+        ) : (
+          <div className="portal-animal-grid">
+            {animales.map((a) => {
+              const badge = badgeMap[a.estadoSalud] || badgeMap.NORMAL;
+              const esBaja = a.activo === false;
+              return (
+                <div
+                  key={a.id}
+                  onClick={() => abrirFichaAnimal(a.id)}
+                  className="portal-animal-card portal-card-selectable"
+                  style={esBaja ? { borderColor: '#f3c9c4', background: '#fffdfd' } : undefined}
+                >
+                  <div className="portal-animal-media">
+                    <AnimalPhoto src={a.fotoUrl} className="portal-animal-photo-cover" />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '12px',
+                        left: '12px',
+                        background: 'rgba(31,36,48,0.75)',
+                        color: '#fff',
+                        padding: '3px 9px',
+                        borderRadius: '7px',
+                        fontSize: '0.68rem',
+                        fontWeight: '700'
+                      }}
+                    >
+                      {a.tipoIngreso || 'Rescate'}
+                    </span>
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '12px',
+                        right: '12px',
+                        background: esBaja ? '#fbeae8' : badge.bg,
+                        color: esBaja ? '#d1453b' : badge.color,
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        fontSize: '0.72rem',
+                        fontWeight: '800',
+                        border: esBaja ? '1px solid #f3c9c4' : 'none'
+                      }}
+                    >
+                      {esBaja ? 'Dado de baja' : badge.label}
+                    </span>
+                  </div>
+
+                  <div style={{ padding: '18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px', gap: '8px' }}>
+                      <div>
+                        <h3 className="portal-animal-name">
+                          <button
+                            type="button"
+                            className="portal-animal-open"
+                            aria-label={`Abrir ficha de ${a.nombre}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              abrirFichaAnimal(a.id);
+                            }}
+                          >
+                            {a.nombre}
+                          </button>
+                        </h3>
+                        {a.estadoAdopcion === 'ADOPTADO' && (
+                          <span style={{ color: '#2f5540', fontSize: '.8rem', fontWeight: 700, display: 'block' }}>
+                            Adoptado
+                          </span>
+                        )}
+                        <span style={{ fontSize: '0.8rem', color: '#7c8592' }}>
+                          {a.especie} · {a.sexo} · {a.edad || 'Edad desconocida'}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '0.72rem',
+                          color: '#7c8592',
+                          fontWeight: '600',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          whiteSpace: 'nowrap'
+                        }}
+                        title="Fecha de ingreso al refugio"
+                      >
+                        <Calendar size={12} aria-hidden="true" /> {formatearFechaIngreso(a.creadoEn)}
                       </span>
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: '#a3aab5', fontWeight: '700' }}>
-                      {a.chip ? 'Microchip registrado' : 'Sin microchip'}
-                    </span>
-                  </div>
 
-                  {/* Canil asignado en tiempo real */}
-                  <div
-                    style={{
-                      margin: '8px 0',
-                      padding: '7px 10px',
-                      borderRadius: '8px',
-                      background: a.canil ? '#e8f0e8' : '#f8f9fa',
-                      border: a.canil ? '1px solid #c9dfcd' : '1px dashed #e9eaed',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '0.76rem'
-                    }}
-                  >
-                    <DoorOpen size={14} aria-hidden="true" />
-                    <span>
-                      Ubicación: <strong>{a.canil ? `${a.canil.nombre} (${a.canil.sector})` : 'Sin canil asignado'}</strong>
-                    </span>
-                  </div>
+                    {/* Canil asignado en tiempo real */}
+                    <div
+                      style={{
+                        margin: '8px 0',
+                        padding: '7px 10px',
+                        borderRadius: '8px',
+                        background: a.canil ? '#e8f0e8' : '#f8f9fa',
+                        border: a.canil ? '1px solid #c9dfcd' : '1px dashed #e9eaed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '0.76rem'
+                      }}
+                    >
+                      <DoorOpen size={14} aria-hidden="true" />
+                      <span>
+                        Ubicación: <strong>{a.canil ? `${a.canil.nombre} (${a.canil.sector})` : 'Sin canil asignado'}</strong>
+                      </span>
+                    </div>
 
-                  <p style={{ fontSize: '0.81rem', color: '#555e6d', margin: '0 0 12px', flex: 1 }}>
-                    {limpiarNotaCausal(a.nota) || 'Sin antecedentes clínicos registrados.'}
-                  </p>
+                    <p style={{ fontSize: '0.81rem', color: '#555e6d', margin: '0 0 12px', flex: 1 }}>
+                      {limpiarNotaCausal(a.nota) || 'Sin antecedentes clínicos registrados.'}
+                    </p>
 
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      borderTop: '1px solid #f0f1f3',
-                      paddingTop: '12px',
-                      gap: '6px',
-                      flexWrap: 'wrap'
-                    }}
-                  >
-                    <span style={{ fontSize: '0.73rem', color: '#7c8592' }}>
-                      {a.raza || 'Desconocida'} · {a.peso > 0 ? `${a.peso} kg` : 'Peso s/i'}
-                    </span>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderTop: '1px solid #f0f1f3',
+                        paddingTop: '12px',
+                        gap: '6px',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <span style={{ fontSize: '0.73rem', color: '#7c8592' }}>
+                        {a.raza || 'Desconocida'} · {a.peso > 0 ? `${a.peso} kg` : 'Peso s/i'}
+                      </span>
 
-                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                      {puedeExportarExpediente && (
-                        <button
-                          type="button"
-                          onClick={(e) => handleExportExpediente(a, 'PDF', e)}
-                          disabled={descargandoId === `${a.id}-PDF`}
-                          title="Descargar la ficha del animal en PDF (sin datos de contacto de postulantes)"
-                          style={{
-                            background: '#edeffb',
-                            border: '1px solid #c5cbf5',
-                            color: '#4550c0',
-                            padding: '5px 8px',
-                            borderRadius: '6px',
-                            fontSize: '0.72rem',
-                            fontWeight: '700',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {descargandoId === `${a.id}-PDF` ? '...' : <><FileText size={13} aria-hidden="true" /> Descargar PDF</>}
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={(e) => handleDelete(a.id, a.nombre, e)}
-                        title="Dar de baja al animal"
-                        style={{
-                          background: '#fbeae8',
-                          border: '1px solid #f3c9c4',
-                          color: '#d1453b',
-                          padding: '5px 8px',
-                          borderRadius: '6px',
-                          fontSize: '0.72rem',
-                          fontWeight: '700',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Baja
-                      </button>
+                      <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {!esBaja ? (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(a.id, a.nombre, e)}
+                            title="Dar de baja al animal"
+                            style={{
+                              background: '#fbeae8',
+                              border: '1px solid #f3c9c4',
+                              color: '#d1453b',
+                              padding: '5px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              fontWeight: '700',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Baja
+                          </button>
+                        ) : (
+                          <span className="portal-badge portal-badge-danger" style={{ fontSize: '0.7rem' }}>
+                            Dado de baja
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
       </div>
-      </>
-      )}
 
       {/* MODAL DE FICHA DEL ANIMAL */}
       {(fichaSeleccionada || cargandoFicha) && (
@@ -963,19 +944,26 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                      <span
-                        style={{
-                          fontSize: '0.7rem',
-                          fontWeight: '800',
-                          textTransform: 'uppercase',
-                          background: '#eef3ec',
-                          color: '#2f5540',
-                          padding: '2px 8px',
-                          borderRadius: '6px'
-                        }}
-                      >
-                        Ficha del animal · Ingreso por {fichaSeleccionada.tipoIngreso || 'Rescate'}
-                      </span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: '800',
+                            textTransform: 'uppercase',
+                            background: '#eef3ec',
+                            color: '#2f5540',
+                            padding: '2px 8px',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          Ficha del animal · Ingreso por {fichaSeleccionada.tipoIngreso || 'Rescate'}
+                        </span>
+                        {fichaSeleccionada.activo === false && (
+                          <span className="portal-badge portal-badge-danger" style={{ fontSize: '0.7rem' }}>
+                            Dado de baja
+                          </span>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => setFichaSeleccionada(null)}
@@ -1022,8 +1010,16 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                     <strong style={{ color: '#7c8592' }}>Esterilización:</strong> {fichaSeleccionada.esterilizacion || 'Desconocido'}
                   </div>
                   <div>
+                    <strong style={{ color: '#7c8592' }}>Fecha de Ingreso:</strong>{' '}
+                    {formatearFechaIngreso(fichaSeleccionada.creadoEn)}
+                  </div>
+                  <div>
                     <strong style={{ color: '#7c8592' }}>Ubicación / Canil:</strong>{' '}
                     {fichaSeleccionada.canil ? `${fichaSeleccionada.canil.nombre} (${fichaSeleccionada.canil.sector})` : 'Sin asignar'}
+                  </div>
+                  <div>
+                    <strong style={{ color: '#7c8592' }}>Estado de Registro:</strong>{' '}
+                    {fichaSeleccionada.activo === false ? 'Dado de baja' : 'Activo'}
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <strong style={{ color: '#7c8592' }}>Comportamiento:</strong> {fichaSeleccionada.comportamiento || 'Por evaluar'}
@@ -1168,26 +1164,28 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
                       </span>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={(e) => handleDelete(fichaSeleccionada.id, fichaSeleccionada.nombre, e)}
-                      title="Dar de baja al animal"
-                      style={{
-                        background: '#fbeae8',
-                        border: '1px solid #f3c9c4',
-                        color: '#d1453b',
-                        padding: '9px 14px',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <Trash2 size={14} aria-hidden="true" /> Dar de Baja
-                    </button>
+                    {fichaSeleccionada.activo !== false && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleDelete(fichaSeleccionada.id, fichaSeleccionada.nombre, e)}
+                        title="Dar de baja al animal"
+                        style={{
+                          background: '#fbeae8',
+                          border: '1px solid #f3c9c4',
+                          color: '#d1453b',
+                          padding: '9px 14px',
+                          borderRadius: '8px',
+                          fontSize: '0.82rem',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Trash2 size={14} aria-hidden="true" /> Dar de Baja
+                      </button>
+                    )}
                   </div>
 
                   {/* <button

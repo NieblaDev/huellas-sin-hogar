@@ -14,11 +14,33 @@ const enriquecerFichaAnimal = (animal) => {
   };
 };
 
-export const getAllAnimals = async ({ especie, estadoSalud, search }) => {
-  const where = { activo: true };
+export const getAllAnimals = async ({
+  especie,
+  estadoSalud,
+  search,
+  estado,
+  incluirBajas,
+  tipoIngreso,
+  ordenFecha,
+  orden
+} = {}) => {
+  const where = {};
+
+  // Por defecto solo se muestran animales activos (los dados de baja no aparecen).
+  const estadoNorm = String(estado || '').trim().toUpperCase();
+  if (estadoNorm === 'BAJA' || estadoNorm === 'INACTIVOS') {
+    where.activo = false;
+  } else if (estadoNorm === 'TODOS' || incluirBajas === 'true' || incluirBajas === true) {
+    // Sin restricción en `activo`: devuelve tanto activos como dados de baja
+  } else {
+    where.activo = true;
+  }
+
   if (especie) where.especie = { equals: especie, mode: 'insensitive' };
-  if (estadoSalud) where.estadoSalud = estadoSalud;
+  if (estadoSalud) where.estadoSalud = String(estadoSalud).toUpperCase();
   if (search) where.nombre = { contains: search, mode: 'insensitive' };
+
+  const direccion = String(ordenFecha || orden || 'desc').trim().toLowerCase() === 'asc' ? 'asc' : 'desc';
 
   const lista = await prisma.animal.findMany({
     where,
@@ -30,10 +52,17 @@ export const getAllAnimals = async ({ especie, estadoSalud, search }) => {
         select: { id: true, nombre: true, rol: true }
       }
     },
-    orderBy: { creadoEn: 'desc' }
+    orderBy: [{ creadoEn: direccion }, { id: direccion }]
   });
 
-  return lista.map(enriquecerFichaAnimal);
+  const enriquecidos = lista.map(enriquecerFichaAnimal);
+
+  if (tipoIngreso) {
+    const causalNorm = String(tipoIngreso).trim().toLowerCase();
+    return enriquecidos.filter((a) => (a.tipoIngreso || '').toLowerCase() === causalNorm);
+  }
+
+  return enriquecidos;
 };
 
 export const getAnimalById = async (id, user) => {
