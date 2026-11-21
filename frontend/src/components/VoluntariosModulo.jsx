@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { usePortalFeedback } from './ui/PortalFeedback';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeftRight,
   Ban,
@@ -9,6 +10,7 @@ import {
   ClipboardList,
   Clock,
   Crown,
+  Download,
   Handshake,
   Lock,
   Plus,
@@ -19,14 +21,26 @@ import {
 } from 'lucide-react';
 import { API_URL, getAuthHeaders } from '../api/config';
 import { formatearErrorApi } from '../utils/errores';
+import { DIAS_MATRIZ, FRANJAS_MATRIZ, exportarMatrizPNG, fechaCortaTurno as fechaCorta } from '../utils/exportarMatriz';
+
+const etiquetaTurno = turno => [turno.diaSemana, fechaCorta(turno.fecha)].filter(Boolean).join(' ');
 
 export default function VoluntariosModulo({ user }) {
+  const { avisar, confirmar } = usePortalFeedback();
   const [tabActual, setTabActual] = useState('matriz'); // 'matriz' | 'permutas' | 'bitacora' | 'directorio'
   const [matriz, setMatriz] = useState(null);
+  const [semana, setSemana] = useState('');
+  const [gestionandoMatriz, setGestionandoMatriz] = useState(false);
+  const [mensajeMatriz, setMensajeMatriz] = useState('');
+  const [errorMatriz, setErrorMatriz] = useState('');
+  const solicitudDatos = useRef(0);
+  const semanaActual = useRef('');
   const [turnos, setTurnos] = useState([]);
   const [permutas, setPermutas] = useState([]);
   const [directorio, setDirectorio] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [exportandoMatriz, setExportandoMatriz] = useState(false);
+  const [errorExportacion, setErrorExportacion] = useState('');
 
   // Modales
   const [modalTurnoOpen, setModalTurnoOpen] = useState(false);
@@ -42,8 +56,6 @@ export default function VoluntariosModulo({ user }) {
     area: 'Paseos',
     cupoMaximo: 2,
     esCritica: false,
-    horaInicio: '08:00',
-    horaFin: '13:00',
     observaciones: ''
   });
 
@@ -69,40 +81,57 @@ export default function VoluntariosModulo({ user }) {
   const esAvanzado = ['DIRECTORA', 'COORDINADOR', 'VETERINARIA', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
 
   useEffect(() => {
-    cargarDatos();
-  }, []);
+    cargarDatos(semana);
+    return () => { solicitudDatos.current += 1; };
+  }, [semana]);
 
-  const cargarDatos = async () => {
+  const cargarDatos = async (semanaParaCargar = semanaActual.current) => {
+    const solicitud = ++solicitudDatos.current;
     setCargando(true);
     try {
+      const consulta = semanaParaCargar ? `?${new URLSearchParams({ semana: semanaParaCargar })}` : '';
       const [resMatriz, resTurnos, resPermutas, resDirectorio] = await Promise.all([
-        fetch(`${API_URL}/turnos/matriz`, { headers: getAuthHeaders() }),
+        fetch(`${API_URL}/turnos/matriz${consulta}`, { headers: getAuthHeaders() }),
         fetch(`${API_URL}/turnos`, { headers: getAuthHeaders() }),
         fetch(`${API_URL}/turnos/permutas`, { headers: getAuthHeaders() }).catch(() => ({ ok: false })),
         fetch(`${API_URL}/turnos/directorio`, { headers: getAuthHeaders() }).catch(() => ({ ok: false }))
       ]);
 
-      if (resMatriz.ok) {
-        const dataMatriz = await resMatriz.json();
-        setMatriz(dataMatriz);
-      }
-      if (resTurnos.ok) {
-        const dataTurnos = await resTurnos.json();
-        setTurnos(dataTurnos || []);
-      }
-      if (resPermutas && resPermutas.ok) {
-        const dataPermutas = await resPermutas.json();
-        setPermutas(dataPermutas || []);
-      }
-      if (resDirectorio && resDirectorio.ok) {
-        const dataDir = await resDirectorio.json();
-        setDirectorio(dataDir || []);
-      }
+      const dataMatriz = await resMatriz.json();
+      if (!resMatriz.ok) throw new Error(formatearErrorApi(dataMatriz));
+      const [datosTurnos, datosPermutas, datosDirectorio] = await Promise.all(
+        [resTurnos, resPermutas, resDirectorio].map(res => res.ok ? res.json() : null)
+      );
+      if (solicitud !== solicitudDatos.current) return;
+      setMatriz(dataMatriz);
+      if (datosTurnos) setTurnos(datosTurnos);
+      if (datosPermutas) setPermutas(datosPermutas);
+      if (datosDirectorio) setDirectorio(datosDirectorio);
     } catch (e) {
-      console.error('Error al cargar datos de turnos:', e);
+      if (solicitud !== solicitudDatos.current) return;
+      setMatriz(null);
+      setErrorMatriz(formatearErrorApi(e, 'No se pudo cargar la matriz semanal.'));
     } finally {
-      setCargando(false);
+      if (solicitud === solicitudDatos.current) setCargando(false);
     }
+  };
+
+  const seleccionarSemana = fecha => {
+    if (fecha === semana || gestionandoMatriz) return;
+    setCargando(true);
+    setMatriz(null);
+    setErrorMatriz('');
+    setErrorExportacion('');
+    setMensajeMatriz('');
+    semanaActual.current = fecha;
+    solicitudDatos.current += 1;
+    setSemana(fecha);
+  };
+
+  const moverSemana = desplazamiento => {
+    const dia = new Date(matriz.fechas[0]);
+    dia.setUTCDate(dia.getUTCDate() + desplazamiento);
+    seleccionarSemana(dia.toISOString().slice(0, 10));
   };
 
   // 1. Inscripción Individual a un Turno
@@ -117,16 +146,21 @@ export default function VoluntariosModulo({ user }) {
       if (!res.ok) {
         throw new Error(formatearErrorApi(data, 'Error al inscribirse en el turno'));
       }
-      alert(`¡Inscripción exitosa! Quedas asignado al turno de ${turno.area} (${turno.diaSemana} - ${turno.franja}).`);
+      avisar(`¡Inscripción exitosa! Quedas asignado al turno de ${turno.area} (${turno.diaSemana} - ${turno.franja}).`, 'exito');
       cargarDatos();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
   // 2. Desinscribirse de un Turno
   const handleDesinscribirse = async (turnoId, usuarioId = null) => {
-    if (!window.confirm('¿Confirmas que deseas cancelar esta inscripción al turno?')) return;
+    if (!await confirmar({
+      titulo: 'Cancelar inscripción',
+      mensaje: 'El cupo de esta inscripción volverá a estar disponible en el turno.',
+      accion: 'Cancelar inscripción',
+      peligro: true
+    })) return;
     try {
       const query = usuarioId ? `?usuarioId=${usuarioId}` : '';
       const res = await fetch(`${API_URL}/turnos/${turnoId}/desinscribirse${query}`, {
@@ -137,10 +171,10 @@ export default function VoluntariosModulo({ user }) {
       if (!res.ok) {
         throw new Error(formatearErrorApi(data, 'Error al cancelar inscripción'));
       }
-      alert('Inscripción cancelada.');
+      avisar('Inscripción cancelada.', 'exito');
       cargarDatos();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
@@ -159,52 +193,94 @@ export default function VoluntariosModulo({ user }) {
       if (!res.ok) {
         throw new Error(formatearErrorApi(data, 'Error al asignar voluntario'));
       }
-      alert('Voluntario asignado al turno por el Coordinador.');
+      avisar('Voluntario asignado al turno por el Coordinador.', 'exito');
       setModalAsignarCoordOpen(false);
       setVoluntarioAAsignarId('');
       cargarDatos();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
-  // 4. Confirmar Planificación Semanal (Coordinador)
-  const handleConfirmarPlanificacion = async () => {
-    if (!window.confirm('¿Confirmar la planificación semanal de turnos? Esto fijará la matriz y habilitará la bitácora operativa.')) return;
+  const handleExportarMatriz = async () => {
+    if (!matriz || exportandoMatriz) return;
+    setExportandoMatriz(true);
+    setErrorExportacion('');
     try {
-      const res = await fetch(`${API_URL}/turnos/confirmar-planificacion`, {
+      await exportarMatrizPNG(matriz);
+    } catch (error) {
+      setErrorExportacion(formatearErrorApi(error, 'No se pudo descargar la imagen. Inténtalo nuevamente.'));
+    } finally {
+      setExportandoMatriz(false);
+    }
+  };
+
+  const gestionarMatriz = async (limpiar) => {
+    const inicio = matriz?.fechas?.[0];
+    if (!inicio || cargando || gestionandoMatriz) return;
+    const periodo = `${fechaCorta(inicio)} al ${fechaCorta(matriz.fechas[6])}`;
+    const pregunta = limpiar
+      ? `¿Eliminar todos los turnos en borrador de la semana del ${periodo}? Esta acción no se puede deshacer.`
+      : `¿Confirmar la planificación del ${periodo} y habilitar su bitácora?`;
+    if (!await confirmar({
+      titulo: limpiar ? 'Limpiar matriz semanal' : 'Confirmar planificación semanal',
+      mensaje: pregunta,
+      accion: limpiar ? 'Limpiar matriz' : 'Confirmar planificación',
+      peligro: limpiar
+    })) return;
+    setGestionandoMatriz(true);
+    setErrorMatriz('');
+    setMensajeMatriz('');
+    try {
+      const ruta = limpiar ? 'matriz/limpiar' : 'confirmar-planificacion';
+      const res = await fetch(`${API_URL}/turnos/${ruta}`, {
         method: 'POST',
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ semana: inicio })
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(formatearErrorApi(data, 'Error al confirmar planificación'));
+        throw new Error(formatearErrorApi(data, 'No se pudo actualizar la matriz.'));
       }
-      alert(data.mensaje);
-      cargarDatos();
+      setMensajeMatriz(data.mensaje);
+      await cargarDatos();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      setErrorMatriz(formatearErrorApi(err));
+    } finally {
+      setGestionandoMatriz(false);
     }
   };
 
   // 5. Crear Turno (Coordinador)
+  const puedeCrearTurno = esCoordinador && !cargando && !gestionandoMatriz && Boolean(matriz?.fechas?.length);
+
+  const abrirCrearTurno = (diaSemana = DIAS_MATRIZ[0], franja = FRANJAS_MATRIZ[0].nombre) => {
+    if (!puedeCrearTurno) return;
+    setFormTurno(prev => ({ ...prev, diaSemana, franja }));
+    setTabActual('matriz');
+    setModalTurnoOpen(true);
+  };
+
   const handleCrearTurno = async (e) => {
     e.preventDefault();
+    const fecha = matriz?.fechas?.[DIAS_MATRIZ.indexOf(formTurno.diaSemana)];
+    const franja = FRANJAS_MATRIZ.find(item => item.nombre === formTurno.franja);
+    if (!puedeCrearTurno || !fecha || !franja) return;
+    const [horaInicio, horaFin] = franja.horario.split(' - ');
     try {
       const res = await fetch(`${API_URL}/turnos`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(formTurno)
+        body: JSON.stringify({ ...formTurno, horaInicio, horaFin, fecha: `${fecha}T00:00:00.000Z` })
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(formatearErrorApi(data, 'Error al crear turno'));
       }
-      alert('Nuevo turno añadido a la matriz semanal');
       setModalTurnoOpen(false);
       cargarDatos();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
@@ -228,17 +304,25 @@ export default function VoluntariosModulo({ user }) {
       if (!res.ok) {
         throw new Error(formatearErrorApi(data, 'Error al solicitar permuta'));
       }
-      alert('Solicitud de permuta enviada. Se encuentra pendiente de validación y aprobación por el compañero destinatario.');
+      avisar('Solicitud de permuta enviada. Se encuentra pendiente de validación y aprobación por el compañero destinatario.', 'exito');
       setModalPermutaOpen(false);
       cargarDatos();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
   // 7. Responder a Permuta (Aprobar / Rechazar)
   const handleResponderPermuta = async (permutaId, accion) => {
-    const confirmacion = window.confirm(`¿Confirmas que deseas ${accion === 'APROBAR' ? 'APROBAR' : 'RECHAZAR'} esta permuta de turno?`);
+    const aprobar = accion === 'APROBAR';
+    const confirmacion = await confirmar({
+      titulo: aprobar ? 'Aprobar permuta' : 'Rechazar permuta',
+      mensaje: aprobar
+        ? 'Al aprobar la permuta se actualizarán las asignaciones de los turnos.'
+        : 'Al rechazar la permuta se conservarán las asignaciones actuales.',
+      accion: aprobar ? 'Aprobar permuta' : 'Rechazar permuta',
+      peligro: !aprobar
+    });
     if (!confirmacion) return;
 
     try {
@@ -251,10 +335,10 @@ export default function VoluntariosModulo({ user }) {
       if (!res.ok) {
         throw new Error(formatearErrorApi(data, 'Error al procesar respuesta'));
       }
-      alert(accion === 'APROBAR' ? '¡Permuta aprobada por ambas partes! Los turnos fueron intercambiados automáticamente en la matriz.' : 'Permuta rechazada.');
+      avisar(accion === 'APROBAR' ? '¡Permuta aprobada por ambas partes! Los turnos fueron intercambiados automáticamente en la matriz.' : 'Permuta rechazada.', 'exito');
       cargarDatos();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
@@ -273,12 +357,12 @@ export default function VoluntariosModulo({ user }) {
       if (!res.ok) {
         throw new Error(formatearErrorApi(data, 'Error al registrar bitácora'));
       }
-      alert('Registro de asistencia y bitácora guardado exitosamente.');
+      avisar('Registro de asistencia y bitácora guardado exitosamente.', 'exito');
       setModalBitacoraOpen(false);
       setFormBitacora({ tareasRealizadas: '', incidentes: '', observaciones: '' });
       cargarDatos();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
@@ -304,7 +388,8 @@ export default function VoluntariosModulo({ user }) {
             <>
               <button
                 type="button"
-                onClick={() => setModalTurnoOpen(true)}
+                onClick={() => abrirCrearTurno()}
+                disabled={!puedeCrearTurno}
                 className="portal-btn portal-btn-primary"
               >
                 <Plus size={16} aria-hidden="true" /> Crear Turno
@@ -348,6 +433,30 @@ export default function VoluntariosModulo({ user }) {
       {/* ══════════════════════════════════════════════════════════════ */}
       {tabActual === 'matriz' && (
         <div>
+          <section className="portal-card" aria-label="Semana de turnos" style={{ marginBottom: '16px' }}>
+            <div className="portal-header-actions">
+              <button type="button" className="portal-btn portal-btn-secondary" disabled={!matriz?.fechas?.length || gestionandoMatriz} onClick={() => moverSemana(-7)}>Semana anterior</button>
+              <button type="button" className="portal-btn portal-btn-secondary" disabled={!semana || gestionandoMatriz} onClick={() => seleccionarSemana('')}>Semana actual</button>
+              <button type="button" className="portal-btn portal-btn-secondary" disabled={!matriz?.fechas?.length || gestionandoMatriz} onClick={() => moverSemana(7)}>Semana siguiente</button>
+              <label>
+                {'Ir a una semana '}
+                <input type="date" className="portal-input" value={matriz?.fechas?.[0] || (semana === 'sin-fecha' ? '' : semana)} disabled={gestionandoMatriz} onChange={e => seleccionarSemana(e.target.value)} />
+              </label>
+              {turnos.some(turno => !turno.fecha) && (
+                <button type="button" className="portal-btn portal-btn-secondary" disabled={semana === 'sin-fecha' || gestionandoMatriz} onClick={() => seleccionarSemana('sin-fecha')}>Turnos sin fecha</button>
+              )}
+            </div>
+            <p style={{ margin: '12px 0 0' }} role="status">
+              {cargando ? 'Cargando semana…' : matriz?.fechas?.length
+                ? `Semana del ${fechaCorta(matriz.fechas[0])} al ${fechaCorta(matriz.fechas[6])}`
+                : semana === 'sin-fecha' ? 'Turnos anteriores sin fecha asignada' : ''}
+            </p>
+            {esCoordinador && matriz?.fechas?.length > 0 && matriz.estadisticas.totalTurnos === 0 && (
+              <p style={{ marginBottom: 0 }}>Esta semana está vacía. Usa «Crear turno» para empezar a planificarla.</p>
+            )}
+          </section>
+          {mensajeMatriz && <p role="status" className="portal-alert portal-alert-success">{mensajeMatriz}</p>}
+          {errorMatriz && <p role="alert" className="portal-alert portal-alert-danger">{errorMatriz}</p>}
           {/* Leyenda de la matriz */}
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -383,15 +492,16 @@ export default function VoluntariosModulo({ user }) {
                   <th style={{ width: '140px', padding: '10px', fontSize: '0.85rem', fontWeight: '800', color: '#7c8592', textAlign: 'center' }}>
                     Franja Horaria
                   </th>
-                  {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(dia => (
+                  {DIAS_MATRIZ.map((dia, indice) => (
                     <th key={dia} style={{ padding: '10px', fontSize: '0.9rem', fontWeight: '800', color: '#1f2430', textAlign: 'center' }}>
                       {dia}
+                      {matriz?.fechas?.[indice] && <div style={{ color: 'var(--portal-text-muted)', fontWeight: 600 }}>{fechaCorta(matriz.fechas[indice])}</div>}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {['Mañana', 'Tarde'].map(franja => (
+                {FRANJAS_MATRIZ.map(({ nombre: franja, horario }) => (
                   <tr key={franja}>
                     <td style={{
                       verticalAlign: 'top', padding: '12px 8px', background: '#f8f9fa',
@@ -399,22 +509,28 @@ export default function VoluntariosModulo({ user }) {
                     }}>
                       <div style={{ fontWeight: '800', color: '#1f2430', fontSize: '0.9rem' }}>{franja}</div>
                       <div style={{ fontSize: '0.74rem', color: '#7c8592', marginTop: '4px' }}>
-                        {franja === 'Mañana' ? '08:00 - 13:00' : '14:00 - 19:00'}
+                        {horario}
                       </div>
                     </td>
 
-                    {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(dia => {
+                    {DIAS_MATRIZ.map(dia => {
                       const turnosDia = (matriz?.turnosPorFranja?.[franja]?.[dia] || []);
 
                       return (
                         <td key={dia} style={{ verticalAlign: 'top', minWidth: '135px' }}>
                           {turnosDia.length === 0 ? (
-                            <div style={{
-                              padding: '16px 8px', textAlign: 'center', color: '#a3aab5',
-                              border: '1px dashed #dcdfe4', borderRadius: '10px', fontSize: '0.78rem'
-                            }}>
-                              Sin turnos
-                            </div>
+                            puedeCrearTurno ? (
+                              <button
+                                type="button"
+                                className="portal-turno-vacio"
+                                aria-label={`Crear turno para ${dia}, ${franja}`}
+                                onClick={() => abrirCrearTurno(dia, franja)}
+                              >
+                                <Plus size={14} aria-hidden="true" /> Sin turnos
+                              </button>
+                            ) : (
+                              <div className="portal-turno-vacio">Sin turnos</div>
+                            )
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                               {turnosDia.map(turno => {
@@ -434,7 +550,7 @@ export default function VoluntariosModulo({ user }) {
                                 // Validar cruce de horario
                                 const tieneCruce = !usuarioInscrito && turnos.some(t =>
                                   t.id !== turno.id &&
-                                  t.diaSemana === turno.diaSemana &&
+                                  (turno.fecha ? fechaCorta(t.fecha) === fechaCorta(turno.fecha) : !t.fecha && t.diaSemana === turno.diaSemana) &&
                                   t.franja === turno.franja &&
                                   (t.inscripciones || []).some(i => i.usuarioId === user?.id)
                                 );
@@ -566,20 +682,39 @@ export default function VoluntariosModulo({ user }) {
               </tbody>
             </table>
           </div>
-          {esCoordinador && (
-            <>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '16px' }}>
+            <button
+              type="button"
+              onClick={handleExportarMatriz}
+              disabled={!matriz || cargando || exportandoMatriz}
+              className="portal-btn portal-btn-secondary"
+            >
+              <Download size={15} aria-hidden="true" />
+              {exportandoMatriz ? 'Preparando imagen…' : 'Descargar matriz como PNG'}
+            </button>
+            {esCoordinador && matriz?.fechas?.length > 0 && (
               <button
-                onClick={handleConfirmarPlanificacion}
-                style={{
-                  background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px',
-                  padding: '10px 16px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '6px'
-                }}
+                type="button"
+                className="portal-btn portal-btn-secondary"
+                disabled={cargando || gestionandoMatriz || !matriz.estadisticas.totalTurnos || matriz.estadisticas.planificacionConfirmada}
+                onClick={() => gestionarMatriz(true)}
               >
-                <Lock size={15} aria-hidden="true" /> Confirmar Planificación Semanal
+                Limpiar matriz
               </button>
-            </>
-          )}
+            )}
+            {esCoordinador && matriz?.fechas?.length > 0 && (
+              <button
+                type="button"
+                onClick={() => gestionarMatriz(false)}
+                disabled={cargando || gestionandoMatriz || !matriz.estadisticas.totalTurnos || matriz.estadisticas.planificacionConfirmada}
+                className="portal-btn portal-btn-primary"
+                style={{ marginLeft: 'auto' }}
+              >
+                <Lock size={15} aria-hidden="true" /> Confirmar planificación semanal
+              </button>
+            )}
+          </div>
+          {errorExportacion && <p role="alert" className="portal-alert portal-alert-danger">{errorExportacion}</p>}
         </div>
       )}
 
@@ -594,7 +729,7 @@ export default function VoluntariosModulo({ user }) {
             </h3>
             <button
               onClick={() => {
-                if (misTurnos.length === 0) return alert('Debes tener al menos un turno asignado para solicitar una permuta.');
+                if (misTurnos.length === 0) return avisar('Debes tener al menos un turno asignado para solicitar una permuta.');
                 setModalPermutaOpen(true);
               }}
               style={{
@@ -641,8 +776,8 @@ export default function VoluntariosModulo({ user }) {
                       </div>
 
                       <div style={{ fontSize: '0.82rem', color: '#57606a', marginTop: '6px' }}>
-                        <strong>Turno ofrecido:</strong> {p.turnoOrigen.diaSemana} ({p.turnoOrigen.franja}) en {p.turnoOrigen.area}
-                        {p.turnoDestino && <span> · <strong>Turno solicitado:</strong> {p.turnoDestino.diaSemana} ({p.turnoDestino.franja}) en {p.turnoDestino.area}</span>}
+                        <strong>Turno ofrecido:</strong> {etiquetaTurno(p.turnoOrigen)} ({p.turnoOrigen.franja}) en {p.turnoOrigen.area}
+                        {p.turnoDestino && <span> · <strong>Turno solicitado:</strong> {etiquetaTurno(p.turnoDestino)} ({p.turnoDestino.franja}) en {p.turnoDestino.area}</span>}
                       </div>
 
                       <div style={{ fontSize: '0.78rem', color: '#7c8592', marginTop: '4px', fontStyle: 'italic' }}>
@@ -727,7 +862,7 @@ export default function VoluntariosModulo({ user }) {
                           {t.area}
                         </div>
                         <div style={{ fontSize: '0.78rem', color: '#7c8592' }}>
-                          {t.diaSemana} · {t.franja} ({t.horaInicio} - {t.horaFin})
+                          {etiquetaTurno(t)} · {t.franja} ({t.horaInicio} - {t.horaFin})
                         </div>
                       </div>
 
@@ -761,7 +896,7 @@ export default function VoluntariosModulo({ user }) {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto' }}>
-                  {turnos.flatMap(t => (t.bitacoras || []).map(b => ({ ...b, turnoArea: t.area, turnoDia: t.diaSemana }))).map((b, i) => (
+                  {turnos.flatMap(t => (t.bitacoras || []).map(b => ({ ...b, turnoArea: t.area, turnoDia: etiquetaTurno(t) }))).map((b, i) => (
                     <div key={i} style={{ padding: '12px', borderRadius: '8px', background: '#f8f9fa', border: '1px solid #e9eaed' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: '800', color: '#1f2430' }}>
                         <span>{b.usuario?.nombre || 'Voluntario'}</span>
@@ -828,7 +963,7 @@ export default function VoluntariosModulo({ user }) {
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {v.turnos.map((t, idx) => (
                           <span key={idx} style={{ padding: '3px 6px', background: '#eef3ec', color: '#2f5540', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '700' }}>
-                            {t.diaSemana} ({t.area})
+                            {etiquetaTurno(t)} ({t.area})
                           </span>
                         ))}
                       </div>
@@ -942,7 +1077,7 @@ export default function VoluntariosModulo({ user }) {
                 >
                   {misTurnos.map(t => (
                     <option key={t.id} value={t.id}>
-                      {t.diaSemana} ({t.franja}) — {t.area}
+                      {etiquetaTurno(t)} ({t.franja}) — {t.area}
                     </option>
                   ))}
                 </select>
@@ -1077,8 +1212,8 @@ export default function VoluntariosModulo({ user }) {
                     onChange={e => setFormTurno(prev => ({ ...prev, diaSemana: e.target.value }))}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #dcdfe4', fontSize: '0.88rem' }}
                   >
-                    {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d => (
-                      <option key={d} value={d}>{d}</option>
+                    {DIAS_MATRIZ.map((d, indice) => (
+                      <option key={d} value={d}>{d} {fechaCorta(matriz?.fechas?.[indice])}</option>
                     ))}
                   </select>
                 </div>
@@ -1092,8 +1227,9 @@ export default function VoluntariosModulo({ user }) {
                     onChange={e => setFormTurno(prev => ({ ...prev, franja: e.target.value }))}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #dcdfe4', fontSize: '0.88rem' }}
                   >
-                    <option value="Mañana">Mañana (08:00 - 13:00)</option>
-                    <option value="Tarde">Tarde (14:00 - 19:00)</option>
+                    {FRANJAS_MATRIZ.map(({ nombre, horario }) => (
+                      <option key={nombre} value={nombre}>{nombre} ({horario})</option>
+                    ))}
                   </select>
                 </div>
               </div>

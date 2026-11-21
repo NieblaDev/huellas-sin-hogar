@@ -101,7 +101,7 @@ export default function App() {
   const puedeGestionarInventario = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
 
   return (
-    <div className="portal-staff" style={{ minHeight: '100vh', display: 'flex' }}>
+    <div className={user ? 'portal-staff portal-staff-authenticated' : 'portal-staff'} style={{ minHeight: '100vh', display: 'flex' }}>
       {!user ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Login onLoginSuccess={setUser} />
@@ -109,10 +109,9 @@ export default function App() {
       ) : (
         <>
           {/* SIDEBAR DE NAVEGACIÓN — RETRAÍBLE CON UN CLICK */}
-          <aside style={{
+          <aside className="portal-sidebar" style={{
             width: sidebarRetraida ? '72px' : '252px',
             height: '100vh',
-            background: '#ffffff',
             borderRight: '1px solid #e9eaed',
             display: 'flex',
             flexDirection: 'column',
@@ -314,7 +313,7 @@ export default function App() {
             </nav>
 
             {/* Usuario autenticado y Salir */}
-            <div style={{ padding: sidebarRetraida ? '12px 8px' : '16px 20px', borderTop: '1px solid #f0f1f3', background: '#fafbfc', marginTop: 'auto' }}>
+            <div style={{ padding: sidebarRetraida ? '12px 8px' : '16px 20px', borderTop: '1px solid #f0f1f3', background: 'rgba(31, 36, 48, 0.02)', marginTop: 'auto' }}>
               {!sidebarRetraida ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                   <div style={{ overflow: 'hidden' }}>
@@ -372,7 +371,7 @@ export default function App() {
           </aside>
 
           {/* ÁREA PRINCIPAL */}
-          <main className="portal-main" style={{
+          <main style={{
             marginLeft: sidebarRetraida ? '72px' : '252px',
             flex: 1,
             minHeight: '100vh',

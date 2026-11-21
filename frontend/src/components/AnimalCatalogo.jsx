@@ -1,3 +1,4 @@
+import { usePortalFeedback } from './ui/PortalFeedback';
 import AnimalPhoto from './ui/AnimalPhoto';
 import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from 'react';
@@ -22,6 +23,7 @@ import {
 import { API_URL, getAuthHeaders } from '../api/config';
 
 export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey }) {
+  const { avisar, confirmar } = usePortalFeedback();
   const [animales, setAnimales] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [search, setSearch] = useState('');
@@ -142,7 +144,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al cargar la ficha del animal'));
       setFichaSeleccionada(data);
     } catch (err) {
-      if (!silencioso) alert(formatearErrorApi(err));
+      if (!silencioso) avisar(formatearErrorApi(err), 'error');
     } finally {
       if (!silencioso) setCargandoFicha(false);
     }
@@ -160,7 +162,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   const handleExportExpediente = async (animal, formato = 'PDF', e) => {
     if (e) e.stopPropagation();
     if (!puedeExportarExpediente) {
-      alert('La descarga de fichas está disponible solo para el personal del refugio y la Dirección.');
+      avisar('La descarga de fichas está disponible solo para el personal del refugio y la Dirección.', 'error');
       return;
     }
 
@@ -196,7 +198,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       setTimeout(() => setAvisoReciente(null), 6500);
       fetchNotificaciones();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     } finally {
       setDescargandoId(null);
     }
@@ -205,7 +207,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   const handleExportConsolidado = async (e) => {
     if (e) e.preventDefault();
     if (!esDirectora) {
-      alert('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.');
+      avisar('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.', 'error');
       return;
     }
 
@@ -250,7 +252,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
       setTimeout(() => setAvisoReciente(null), 6500);
       fetchNotificaciones();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     } finally {
       setDescargandoConsolidado(false);
     }
@@ -258,7 +260,12 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
 
   const handleDelete = async (id, nombre, e) => {
     if (e) e.stopPropagation();
-    if (!window.confirm(`¿Deseas dar de baja a ${nombre}? Su ficha dejará de mostrarse en el catálogo, pero su historial se conservará.`)) return;
+    if (!await confirmar({
+      titulo: 'Dar de baja al animal',
+      mensaje: `La ficha de ${nombre} dejará de mostrarse en el catálogo. Su historial se conservará.`,
+      accion: 'Dar de baja',
+      peligro: true
+    })) return;
 
     try {
       const res = await fetch(`${API_URL}/animals/${id}`, {
@@ -271,7 +278,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
         setFichaSeleccionada(null);
       }
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
@@ -457,7 +464,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
           type="button"
           onClick={() => {
             if (!esDirectora) {
-              alert('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.');
+              avisar('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.', 'error');
               return;
             }
             setTabAnimales('reportes');

@@ -6,6 +6,7 @@ import {
   updateTurno,
   deleteTurno,
   confirmarPlanificacion,
+  limpiarMatrizSemanal,
   inscribirVoluntario,
   desinscribirVoluntario,
   solicitarPermuta,
@@ -43,6 +44,7 @@ router.post('/', validate(crearTurnoSchema), createTurno);
 router.put('/:id', validate(actualizarTurnoSchema), updateTurno);
 router.delete('/:id', deleteTurno);
 router.post('/confirmar-planificacion', confirmarPlanificacion);
+router.post('/matriz/limpiar', limpiarMatrizSemanal);
 
 // Gestión individual de inscripciones a turnos
 router.post('/:id/inscribirse', validate(inscribirTurnoSchema), inscribirVoluntario);

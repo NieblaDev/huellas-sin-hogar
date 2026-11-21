@@ -1,3 +1,4 @@
+import { usePortalFeedback } from './ui/PortalFeedback';
 import React, { useState, useEffect } from 'react';
 import AnimalSelect from './ui/AnimalSelect';
 import { formatearErrorApi } from '../utils/errores';
@@ -23,6 +24,7 @@ import {
 import { API_URL, getAuthHeaders } from '../api/config';
 
 export default function InventarioModulo({ user }) {
+  const { avisar } = usePortalFeedback();
   const [insumos, setInsumos] = useState([]);
   const [animales, setAnimales] = useState([]);
   const [alertas, setAlertas] = useState({ totalAlertas: 0, stockCriticoCount: 0, vencimientoCount: 0, alertasStock: [], alertasVencimiento: [] });
@@ -187,18 +189,18 @@ export default function InventarioModulo({ user }) {
         throw new Error(formatearErrorApi(data));
       }
 
-      alert(insumoEditar ? 'Insumo actualizado exitosamente' : 'Insumo registrado en el inventario');
+      avisar(insumoEditar ? 'Insumo actualizado exitosamente' : 'Insumo registrado en el inventario', 'exito');
       setModalInsumoOpen(false);
       cargarDatos();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
   const handleGuardarMovimiento = async (e) => {
     e.preventDefault();
     if (!formMovimiento.insumoId) {
-      return alert('Debe seleccionar un insumo');
+      return avisar('Debe seleccionar un insumo', 'error');
     }
 
     const insumoActual = insumos.find(i => i.id === Number(formMovimiento.insumoId));
@@ -206,7 +208,7 @@ export default function InventarioModulo({ user }) {
 
     // Validación preventiva de saldo no negativo
     if (formMovimiento.tipo === 'SALIDA' && insumoActual && cantidadNum > insumoActual.stock) {
-      return alert(`Operación rechazada: Stock insuficiente. El stock actual es de ${insumoActual.stock} ${insumoActual.unidad} y no se permiten saldos negativos.`);
+      return avisar(`Operación rechazada: Stock insuficiente. El stock actual es de ${insumoActual.stock} ${insumoActual.unidad} y no se permiten saldos negativos.`, 'error');
     }
 
     try {
@@ -232,11 +234,11 @@ export default function InventarioModulo({ user }) {
         throw new Error(formatearErrorApi(data));
       }
 
-      alert('Movimiento registrado con éxito. El stock fue actualizado en tiempo real.');
+      avisar('Movimiento registrado con éxito. El stock fue actualizado en tiempo real.', 'exito');
       setModalMovimientoOpen(false);
       cargarDatos();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
@@ -771,7 +773,7 @@ export default function InventarioModulo({ user }) {
                       const val = e.target.value;
                       const esMed = val.toLowerCase().includes('medicamento') || val.toLowerCase().includes('fármaco');
                       if (esMed && !esAutorizadoFarmacos) {
-                        alert('La categoría Medicamentos / Fármacos está restringida a personal médico autorizado.');
+                        avisar('La categoría Medicamentos / Fármacos está restringida a personal médico autorizado.', 'error');
                         return;
                       }
                       setFormInsumo(prev => ({ ...prev, categoria: val, esFarmaco: esMed ? true : prev.esFarmaco }));

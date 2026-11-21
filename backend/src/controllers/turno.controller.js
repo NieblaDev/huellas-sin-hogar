@@ -11,7 +11,7 @@ export const getTurnos = async (req, res) => {
 
 export const getMatrizTurnos = async (req, res) => {
   try {
-    const matriz = await turnoService.getMatrizTurnos();
+    const matriz = await turnoService.getMatrizTurnos(req.query.semana);
     res.json(matriz);
   } catch (error) {
     res.status(error.statusCode || 500).json({ error: error.message });
@@ -53,10 +53,22 @@ export const deleteTurno = async (req, res) => {
 export const confirmarPlanificacion = async (req, res) => {
   try {
     const ip = req.ip || req.connection?.remoteAddress;
-    const resultado = await turnoService.confirmarPlanificacionSemanal(req.user, ip);
+    const resultado = await turnoService.confirmarPlanificacionSemanal(req.user, ip, req.body?.semana);
     res.json(resultado);
   } catch (error) {
     res.status(error.statusCode || 400).json({ error: error.message });
+  }
+};
+
+export const limpiarMatrizSemanal = async (req, res) => {
+  try {
+    const resultado = await turnoService.limpiarMatrizSemanal(req.body?.semana, req.user, req.ip);
+    res.json(resultado);
+  } catch (error) {
+    const conflicto = error.code === 'P2034';
+    res.status(conflicto ? 409 : error.statusCode || 500).json({
+      error: conflicto ? 'La matriz cambió mientras se limpiaba. Actualiza la semana e inténtalo nuevamente.' : error.message
+    });
   }
 };
 

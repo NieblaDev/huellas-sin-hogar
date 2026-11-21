@@ -1,13 +1,12 @@
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
+import { diasTurnos, filtroSemanaTurnos, obtenerSemanaTurnos, sumarDias } from '../utils/semanaTurnos.js';
 
 export const ROLES_COORDINADOR = ['DIRECTORA', 'COORDINADOR'];
 export const esCoordinador = (rol) => ROLES_COORDINADOR.includes(rol);
 
 export const ROLES_PERSONAL_AVANZADO = ['DIRECTORA', 'COORDINADOR', 'VETERINARIA', 'VOLUNTARIO_AVANZADO'];
 export const esPersonalAvanzado = (rol) => ROLES_PERSONAL_AVANZADO.includes(rol);
-
-const DIAS_ORDEN = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 /**
  * Obtener todos los turnos con sus voluntarios inscritos
@@ -17,6 +16,9 @@ export const getTurnos = async (filtros = {}) => {
   if (filtros.diaSemana) where.diaSemana = filtros.diaSemana;
   if (filtros.franja) where.franja = filtros.franja;
   if (filtros.area) where.area = filtros.area;
+  if (filtros.semana !== undefined) {
+    where.fecha = filtros.semana === 'sin-fecha' ? null : filtroSemanaTurnos(filtros.semana);
+  }
 
   const turnos = await prisma.turno.findMany({
     where,
@@ -57,16 +59,13 @@ export const getTurnos = async (filtros = {}) => {
 /**
  * Obtener matriz interactiva estructurada por franjas y días
  */
-export const getMatrizTurnos = async () => {
-  const turnos = await getTurnos();
-
-  const franjasMap = {
-    'Mañana': 'Mañana (08:00 - 13:00)',
-    'Tarde': 'Tarde (14:00 - 19:00)'
-  };
+export const getMatrizTurnos = async (fecha) => {
+  const semana = fecha === 'sin-fecha' ? null : obtenerSemanaTurnos(fecha);
+  const turnos = await getTurnos({ semana: semana ? semana.fechas[0] : 'sin-fecha' });
 
   const matriz = {
-    dias: DIAS_ORDEN,
+    dias: diasTurnos,
+    fechas: semana?.fechas || [],
     franjas: ['Mañana', 'Tarde'],
     turnosPorFranja: {
       'Mañana': {},
@@ -81,17 +80,18 @@ export const getMatrizTurnos = async () => {
   };
 
   // Inicializar días en blanco
-  DIAS_ORDEN.forEach(dia => {
+  diasTurnos.forEach(dia => {
     matriz.turnosPorFranja['Mañana'][dia] = [];
     matriz.turnosPorFranja['Tarde'][dia] = [];
   });
 
   turnos.forEach(t => {
     const franjaKey = t.franja.includes('Mañana') || t.franja.includes('manana') ? 'Mañana' : 'Tarde';
-    if (!matriz.turnosPorFranja[franjaKey][t.diaSemana]) {
-      matriz.turnosPorFranja[franjaKey][t.diaSemana] = [];
+    const dia = t.fecha ? diasTurnos[(t.fecha.getUTCDay() + 6) % 7] : t.diaSemana;
+    if (!matriz.turnosPorFranja[franjaKey][dia]) {
+      matriz.turnosPorFranja[franjaKey][dia] = [];
     }
-    matriz.turnosPorFranja[franjaKey][t.diaSemana].push(t);
+    matriz.turnosPorFranja[franjaKey][dia].push(t);
   });
 
   return matriz;
@@ -199,7 +199,7 @@ export const deleteTurno = async (id, user, ip) => {
  * Confirmar planificación semanal completa (Exclusivo Coordinador)
  * Deja la planificación semanal confirmada y habilita formalmente las bitácoras.
  */
-export const confirmarPlanificacionSemanal = async (user, ip) => {
+export const confirmarPlanificacionSemanal = async (user, ip, semana) => {
   if (!esCoordinador(user.rol)) {
     const error = new Error('Acceso denegado: Solo el Coordinador puede confirmar la planificación semanal.');
     error.statusCode = 403;
@@ -207,6 +207,7 @@ export const confirmarPlanificacionSemanal = async (user, ip) => {
   }
 
   const actualizados = await prisma.turno.updateMany({
+    where: { fecha: filtroSemanaTurnos(semana), estadoPlanificacion: 'BORRADOR' },
     data: { estadoPlanificacion: 'CONFIRMADA' }
   });
 
@@ -223,6 +224,39 @@ export const confirmarPlanificacionSemanal = async (user, ip) => {
     mensaje: 'Planificación semanal confirmada exitosamente. La matriz queda fijada y la bitácora habilitada.',
     turnosConfirmados: actualizados.count
   };
+};
+
+export const limpiarMatrizSemanal = async (semana, user, ip) => {
+  if (!esCoordinador(user.rol)) {
+    throw Object.assign(new Error('Solo coordinación puede limpiar la matriz.'), { statusCode: 403 });
+  }
+  if (!semana) {
+    throw Object.assign(new Error('Selecciona la semana que quieres limpiar.'), { statusCode: 400 });
+  }
+  const fecha = filtroSemanaTurnos(semana);
+  const borrados = await prisma.$transaction(async tx => {
+    const total = await tx.turno.count({ where: { fecha } });
+    const resultado = await tx.turno.deleteMany({
+      where: {
+        fecha,
+        estadoPlanificacion: 'BORRADOR',
+        inscripciones: { none: {} },
+        bitacoras: { none: {} },
+        permutasOrigen: { none: {} },
+        permutasDestino: { none: {} }
+      }
+    });
+    if (resultado.count !== total) {
+      throw Object.assign(new Error('Solo puedes limpiar una semana en borrador que no tenga inscripciones, permutas ni bitácoras.'), { statusCode: 409 });
+    }
+    return resultado.count;
+  }, { isolationLevel: 'Serializable' });
+
+  if (borrados) await registrarAuditoria({
+    entidad: 'Turnos', accion: 'BAJA_LOGICA', usuario: user, ip,
+    valorAnterior: { semana: fecha.gte.toISOString().slice(0, 10), turnosAfectados: borrados }
+  });
+  return { mensaje: borrados ? 'La matriz de esta semana quedó vacía.' : 'Esta semana ya está vacía.' };
 };
 
 /**
@@ -292,7 +326,9 @@ export const inscribirVoluntario = async (turnoId, user, payload = {}, ip) => {
   const turnosMismoHorario = await prisma.turno.findMany({
     where: {
       id: { not: tId },
-      diaSemana: turno.diaSemana,
+      ...(turno.fecha ? {
+        fecha: { gte: new Date(turno.fecha.toISOString().slice(0, 10)), lt: sumarDias(new Date(turno.fecha.toISOString().slice(0, 10)), 1) }
+      } : { diaSemana: turno.diaSemana, fecha: null }),
       franja: turno.franja,
       inscripciones: {
         some: {
@@ -775,7 +811,8 @@ export const getBitacorasTurno = async (turnoId) => {
  * Alerta automática de turnos descubiertos
  */
 export const getTurnosDescubiertos = async () => {
-  const turnos = await getTurnos();
+  const { fechas } = obtenerSemanaTurnos();
+  const turnos = await getTurnos({ semana: fechas[0] });
   const descubiertos = turnos.filter(t => !t.cubierto);
 
   return {

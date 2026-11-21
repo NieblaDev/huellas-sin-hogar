@@ -1,3 +1,4 @@
+import { usePortalFeedback } from './ui/PortalFeedback';
 import React, { useState, useEffect } from 'react';
 import AnimalSelect from './ui/AnimalSelect';
 import { formatearErrorApi } from '../utils/errores';
@@ -15,6 +16,7 @@ import {
 import { API_URL, getAuthHeaders } from '../api/config';
 
 export default function CuidadosModulo({ user }) {
+  const { avisar } = usePortalFeedback();
   const [tareas, setTareas] = useState([]);
   const [animales, setAnimales] = useState([]);
   const [selectedAnimalId, setSelectedAnimalId] = useState('');
@@ -72,13 +74,13 @@ export default function CuidadosModulo({ user }) {
       if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al cargar historial'));
       setHistorialAnimal(data);
     } catch (e) {
-      alert(formatearErrorApi(e));
+      avisar(formatearErrorApi(e), 'error');
     }
   };
 
   const handleCrearIndicacion = async (e) => {
     e.preventDefault();
-    if (!selectedAnimalId) return alert('Seleccione un animal con ficha activa');
+    if (!selectedAnimalId) return avisar('Seleccione un animal con ficha activa', 'error');
 
     try {
       const res = await fetch(`${API_URL}/cuidados/indicaciones`, {
@@ -102,7 +104,7 @@ export default function CuidadosModulo({ user }) {
         throw new Error(formatearErrorApi(data));
       }
 
-      alert('Indicación registrada en el historial del animal y publicada en el panel de tareas del turno.');
+      avisar('Indicación registrada en el historial del animal y publicada en el panel de tareas del turno.', 'exito');
       setFormCuidado({
         contexto: 'EVALUACION_CLINICA',
         categoria: 'DIETA_ESPECIAL',
@@ -116,7 +118,7 @@ export default function CuidadosModulo({ user }) {
       await cargarInicial();
       await cargarHistorial(selectedAnimalId);
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 
@@ -134,11 +136,11 @@ export default function CuidadosModulo({ user }) {
       const data = await res.json();
       if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al registrar cumplimiento'));
 
-      alert('Tarea marcada como completada en la bitácora del turno.');
+      avisar('Tarea marcada como completada en la bitácora del turno.', 'exito');
       setObservacionModal({ open: false, tareaId: null, texto: '' });
       cargarInicial();
     } catch (err) {
-      alert(formatearErrorApi(err));
+      avisar(formatearErrorApi(err), 'error');
     }
   };
 

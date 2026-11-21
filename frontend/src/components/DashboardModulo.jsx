@@ -91,6 +91,10 @@ export default function DashboardModulo({ user, onNavigate }) {
     ultimasAuditorias,
   } = data;
   const esDirectora = rolUsuario === "DIRECTORA";
+  const semanaSinTurnos = resumen.turnosSemanaCount === 0;
+  const mensajeCobertura = semanaSinTurnos
+    ? "No hay turnos programados para esta semana."
+    : "Todos los turnos programados esta semana tienen al menos un voluntario inscrito.";
 
   return (
     <div className="portal-page-container">
@@ -694,7 +698,7 @@ export default function DashboardModulo({ user, onNavigate }) {
               fontSize: "2.4rem",
               fontWeight: "800",
               color:
-                resumen.turnosDescubiertosCount > 0 ? "#d99a3d" : "#3f6c52",
+                resumen.turnosDescubiertosCount > 0 ? "#d99a3d" : semanaSinTurnos ? "#64748b" : "#3f6c52",
               lineHeight: 1,
             }}
           >
@@ -705,7 +709,7 @@ export default function DashboardModulo({ user, onNavigate }) {
           >
             {resumen.turnosDescubiertosCount > 0
               ? "Requieren asignación (Clic para ver)"
-              : "Todos los turnos cubiertos"}
+              : mensajeCobertura}
           </div>
         </div>
       </div>
@@ -913,9 +917,8 @@ export default function DashboardModulo({ user, onNavigate }) {
 
       {/* SECCIÓN OPERATIVA: STOCK CRÍTICO Y TURNOS DESATENDIDOS */}
       <div
+        className="portal-dashboard-operativo"
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
           gap: "20px",
           marginBottom: "26px",
         }}
@@ -953,11 +956,15 @@ export default function DashboardModulo({ user, onNavigate }) {
             </div>
           ) : (
             <div
-              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              className="portal-dashboard-avisos"
+              role="region"
+              aria-label="Lista de insumos con stock bajo o crítico"
+              tabIndex={listadosOperativos.insumosBajoStock.length > 3 ? 0 : undefined}
             >
               {listadosOperativos.insumosBajoStock.map((ins) => (
                 <div
                   key={ins.id}
+                  className="portal-dashboard-aviso"
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
@@ -968,6 +975,8 @@ export default function DashboardModulo({ user, onNavigate }) {
                   }}
                 >
                   <span
+                    className="portal-dashboard-aviso-titulo"
+                    title={ins.nombre}
                     style={{
                       fontSize: "0.82rem",
                       fontWeight: "700",
@@ -1010,21 +1019,25 @@ export default function DashboardModulo({ user, onNavigate }) {
             <div
               style={{
                 fontSize: "0.82rem",
-                color: "#3f6c52",
+                color: semanaSinTurnos ? "#64748b" : "#3f6c52",
                 padding: "12px",
-                background: "#e8f0e8",
+                background: semanaSinTurnos ? "#f1f5f9" : "#e8f0e8",
                 borderRadius: "8px",
               }}
             >
-              ✓ Todos los turnos se encuentran cubiertos por voluntarios.
+              {mensajeCobertura}
             </div>
           ) : (
             <div
-              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              className="portal-dashboard-avisos"
+              role="region"
+              aria-label="Lista de turnos descubiertos"
+              tabIndex={listadosOperativos.turnosSinCubrir.length > 3 ? 0 : undefined}
             >
               {listadosOperativos.turnosSinCubrir.map((tur) => (
                 <div
                   key={tur.id}
+                  className="portal-dashboard-aviso"
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
@@ -1035,6 +1048,8 @@ export default function DashboardModulo({ user, onNavigate }) {
                   }}
                 >
                   <span
+                    className="portal-dashboard-aviso-titulo"
+                    title={`${tur.diaSemana} (${tur.franja}) — ${tur.area}`}
                     style={{
                       fontSize: "0.82rem",
                       fontWeight: "700",
