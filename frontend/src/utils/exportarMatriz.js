@@ -73,8 +73,8 @@ export async function exportarMatrizPNG(matriz) {
   const estado = matriz.estadisticas?.planificacionConfirmada ? 'Confirmada' : 'En planificación';
   const fechas = matriz.fechas || [];
   const periodo = fechas.length ? `Semana del ${fechaCortaTurno(fechas[0])} al ${fechaCortaTurno(fechas[6])}` : 'Turnos sin fecha';
-  escribir(`${periodo} · Planificación: ${estado}`, margen, 64, ancho, '15px sans-serif', '#3f6c52');
-  contexto.fillStyle = '#e8f0e8';
+  escribir(`${periodo} · Planificación: ${estado}`, margen, 64, ancho, '15px sans-serif', '#47752f');
+  contexto.fillStyle = '#e7f1db';
   contexto.fillRect(margen, 92, ancho - margen * 2, 62);
   escribir('Franja horaria', margen + 12, 105, anchoFranja - 24, 'bold 15px sans-serif');
   DIAS_MATRIZ.forEach((dia, indice) => {
@@ -85,18 +85,18 @@ export async function exportarMatrizPNG(matriz) {
 
   let y = inicioFilas;
   for (const fila of filas) {
-    contexto.fillStyle = '#f5f7f6';
+    contexto.fillStyle = '#f5f8ef';
     contexto.fillRect(margen, y, anchoFranja, fila.alto);
     escribir(fila.nombre, margen + 12, y + 14, anchoFranja - 24, 'bold 15px sans-serif');
     escribir(fila.horario, margen + 12, y + 36, anchoFranja - 24, '13px sans-serif');
     fila.celdas.forEach((turnos, indice) => {
       const x = margen + anchoFranja + indice * anchoDia;
-      contexto.strokeStyle = '#e4eae6';
+      contexto.strokeStyle = '#dce3d5';
       contexto.strokeRect(x, y, anchoDia, fila.alto);
       if (!turnos.length) escribir('Sin turnos', x + 14, y + 14, anchoDia - 28, '14px sans-serif', '#64748b');
       let yTurno = y + 8;
       for (const turno of turnos) {
-        contexto.fillStyle = turno.cubierto ? '#edf5ed' : '#fff5e3';
+        contexto.fillStyle = turno.cubierto ? '#e7f1db' : '#fff5e3';
         contexto.fillRect(x + 8, yTurno, anchoDia - 16, turno.alto);
         turno.texto.forEach(({ linea, destacado }, indiceLinea) => {
           escribir(linea, x + 18, yTurno + 10 + indiceLinea * altoLinea, anchoDia - 36, destacado ? 'bold 15px sans-serif' : '14px sans-serif');

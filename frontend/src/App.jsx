@@ -133,7 +133,7 @@ function Portal() {
                   height: '38px',
                   borderRadius: '11px',
                   background: 'var(--portal-primary-soft)',
-                  color: '#3f6c52',
+                  color: 'var(--portal-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -291,19 +291,6 @@ function Portal() {
                 <Handshake size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Voluntarios y Turnos</span>}
               </Button>
 
-              {/* Usuarios y Perfiles — Exclusivo Dirección */}
-              {esDireccion && (
-                <Button
-                  onClick={() => setActiveTab('perfiles')}
-                  title="Usuarios y Perfiles"
-                  aria-current={activeTab === 'perfiles' ? 'page' : undefined}
-                  className={`portal-nav-btn ${activeTab === 'perfiles' ? 'active' : ''}`}
-                  style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
-                >
-                  <Users size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Usuarios y Perfiles</span>}
-                </Button>
-              )}
-
               {/* Reportes Consolidados — Exclusivo Dirección */}
               {esDireccion && (
                 <Button
@@ -328,6 +315,19 @@ function Portal() {
                   <ShieldCheck size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Auditoría</span>}
                 </Button>
               )}
+
+              {/* Usuarios y Perfiles — Exclusivo Dirección */}
+              {esDireccion && (
+                <Button
+                  onClick={() => setActiveTab('perfiles')}
+                  title="Usuarios y Perfiles"
+                  aria-current={activeTab === 'perfiles' ? 'page' : undefined}
+                  className={`portal-nav-btn ${activeTab === 'perfiles' ? 'active' : ''}`}
+                  style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
+                >
+                  <Users size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Usuarios y Perfiles</span>}
+                </Button>
+              )}
             </nav>
 
             {/* Usuario autenticado y Salir */}
@@ -346,7 +346,7 @@ function Portal() {
                     onClick={handleLogout}
                     title="Cerrar sesión"
                     style={{
-                      background: '#fbeae8', border: 'var(--portal-border-emphasis) solid #f3c9c4', color: '#d1453b',
+                      background: '#ffe4e6', border: 'var(--portal-border-emphasis) solid #f3c9c4', color: '#b82d44',
                       padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.75rem', flexShrink: 0
                     }}
                   >
@@ -362,7 +362,7 @@ function Portal() {
                       height: '32px',
                       borderRadius: '50%',
                       background: 'var(--portal-primary-soft)',
-                      color: '#3f6c52',
+                      color: 'var(--portal-primary)',
                       fontWeight: '800',
                       fontSize: '0.75rem',
                       display: 'flex',
@@ -377,7 +377,7 @@ function Portal() {
                     onClick={handleLogout}
                     title="Cerrar sesión"
                     style={{
-                      background: '#fbeae8', border: 'var(--portal-border-emphasis) solid #f3c9c4', color: '#d1453b',
+                      background: '#ffe4e6', border: 'var(--portal-border-emphasis) solid #f3c9c4', color: '#b82d44',
                       padding: '4px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.7rem', width: '100%', textAlign: 'center'
                     }}
                   >

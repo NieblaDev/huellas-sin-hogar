@@ -7,7 +7,6 @@ export function destinoInvalido(animal, destino, origen) {
   if (destino.estado === 'MANTENIMIENTO') return 'El canil está en mantenimiento.';
   if ([destino.estado, origen?.estado].includes('CUARENTENA')) return 'Finaliza la cuarentena antes del movimiento.';
   if (!destino.ocupacion.libres) return 'El destino está sin cupos.';
-  if (destino.tipo !== 'Mixto' && animal.especie !== destino.tipo) return 'La especie es incompatible.';
   return '';
 }
 

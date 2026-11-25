@@ -326,7 +326,7 @@ export default function AnimalSelect({
           gap: '10px',
           padding: '7px 12px',
           borderRadius: '8px',
-          border: `var(--portal-border-emphasis) solid ${open ? '#3f6c52' : '#e9eaed'}`,
+          border: `var(--portal-border-emphasis) solid ${open ? 'var(--portal-primary)' : '#e9eaed'}`,
           background: disabled ? '#f8f9fa' : '#fff',
           color: '#1f2430',
           cursor: disabled ? 'not-allowed' : 'pointer',
@@ -458,8 +458,8 @@ export default function AnimalSelect({
                         padding: '9px 10px',
                         borderRadius: '9px',
                         cursor: 'pointer',
-                        background: estaDestacada ? '#eef3ec' : 'transparent',
-                        border: `var(--portal-border-emphasis) solid ${estaSeleccionada ? '#cfe0d3' : 'transparent'}`
+                        background: estaDestacada ? 'var(--portal-primary-soft)' : 'transparent',
+                        border: `var(--portal-border-emphasis) solid ${estaSeleccionada ? 'var(--portal-primary-border)' : 'transparent'}`
                       }}
                     >
                       <div style={{
@@ -478,7 +478,7 @@ export default function AnimalSelect({
                         </div>
                       </div>
                       {estaSeleccionada && (
-                        <span style={{ color: '#3f6c52', fontWeight: 800 }}>✓</span>
+                        <span style={{ color: 'var(--portal-primary)', fontWeight: 800 }}>✓</span>
                       )}
                     </div>
                   );
@@ -503,8 +503,8 @@ export default function AnimalSelect({
                       padding: '9px 10px',
                       borderRadius: '9px',
                       cursor: 'pointer',
-                      background: estaDestacada ? '#eef3ec' : 'transparent',
-                      border: `var(--portal-border-emphasis) solid ${estaSeleccionado ? '#cfe0d3' : 'transparent'}`
+                      background: estaDestacada ? 'var(--portal-primary-soft)' : 'transparent',
+                      border: `var(--portal-border-emphasis) solid ${estaSeleccionado ? 'var(--portal-primary-border)' : 'transparent'}`
                     }}
                   >
                     <AnimalAvatar animal={animal} size={38} />
@@ -524,7 +524,7 @@ export default function AnimalSelect({
                           <span style={{
                             fontSize: '0.62rem',
                             fontWeight: 800,
-                            color: '#2f5540',
+                            color: 'var(--portal-primary-dark)',
                             background: 'var(--portal-primary-soft)',
                             padding: '2px 6px',
                             borderRadius: '4px',
@@ -547,7 +547,7 @@ export default function AnimalSelect({
                     </div>
 
                     {estaSeleccionado && (
-                      <span style={{ color: '#3f6c52', fontWeight: 800, flexShrink: 0 }}>✓</span>
+                      <span style={{ color: 'var(--portal-primary)', fontWeight: 800, flexShrink: 0 }}>✓</span>
                     )}
                   </div>
                 );

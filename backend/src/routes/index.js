@@ -12,8 +12,10 @@ import saludRoutes from './salud.routes.js';
 import adopcionRoutes from './adopcion.routes.js';
 import turnoRoutes from './turno.routes.js';
 import usuarioRoutes from './usuario.routes.js';
+import lecturasRoutes from './lecturas.routes.js';
 
 const router = Router();
+router.use('/lecturas-notificaciones', lecturasRoutes);
 
 router.use('/auth', authRoutes);
 router.use('/animals/fotos', fotoRoutes);

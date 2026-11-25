@@ -32,6 +32,9 @@ export const getAllAnimals = async ({
   const estadoNorm = String(estado || '').trim().toUpperCase();
   if (estadoNorm === 'BAJA' || estadoNorm === 'INACTIVOS') {
     where.activo = false;
+  } else if (estadoNorm === 'ADOPCIONES' || estadoNorm === 'ACTIVOS') {
+    where.activo = true;
+    where.estadoAdopcion = estadoNorm === 'ADOPCIONES' ? 'ADOPTADO' : 'EN_REFUGIO';
   } else if (estadoNorm === 'TODOS' || incluirBajas === 'true' || incluirBajas === true) {
     // Sin restricción en `activo`: devuelve tanto activos como dados de baja
   } else {
@@ -82,6 +85,11 @@ export const getAnimalById = async (id, user) => {
           canilDestino: { select: { codigo: true, nombre: true } },
           responsable: { select: { nombre: true, rol: true } }
         }
+      },
+      indicacionesCuidado: {
+        where: { activo: true },
+        orderBy: { fechaInicio: 'desc' },
+        select: { id: true, titulo: true, instruccion: true, fechaInicio: true, fechaFin: true, franjaHoraria: true }
       },
       adopciones: {
         orderBy: { fecha: 'desc' },
@@ -148,7 +156,7 @@ export const createAnimal = async (data, user, ip) => {
     const destino = canilId ? Number(canilId) : null;
     if (destino) {
       await bloquearCaniles(tx, destino);
-      validarIngresoAnimal({ animal: { especie: especieFinal }, canil: await buscarCanil(tx, destino) });
+      validarIngresoAnimal({ animal: { activo: true }, canil: await buscarCanil(tx, destino) });
     }
     const creado = await tx.animal.create({
     data: {
@@ -311,7 +319,7 @@ export const updateAnimal = async (id, data, user, ip) => {
     const cambio = destino !== animal.canilId;
     await bloquearCaniles(tx, animal.canilId, destino);
     if (cambio) await validarSalida(tx, animal.id);
-    if (destino && (cambio || updatePayload.especie !== undefined)) {
+    if (destino && cambio) {
       validarIngresoAnimal({ animal: { ...animal, ...updatePayload }, canil: await buscarCanil(tx, destino) });
     }
     if (cambio) {

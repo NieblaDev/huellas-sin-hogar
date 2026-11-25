@@ -2,8 +2,6 @@ import { ErrorDominio } from '../utils/errorDominio.js';
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
 
-const ROLES_MEDICOS_AUTORIZADOS = ['PERSONAL_VETERINARIO', 'DIRECCION'];
-
 const validarAnimalActivo = async (animalId) => {
   const animal = await prisma.animal.findUnique({
     where: { id: Number(animalId) },
@@ -19,8 +17,8 @@ const validarAnimalActivo = async (animalId) => {
 // 1. REGISTRAR INDICACIÓN OPERATIVA O NOTA DE CUIDADO ESPECIAL
 // Solo si existe ficha activa del animal y el usuario posee permisos médicos autorizados
 export const crearIndicacion = async (data, user, ip) => {
-  if (!ROLES_MEDICOS_AUTORIZADOS.includes(user?.rol)) {
-    throw new ErrorDominio(403, 'Acceso denegado: solo el personal con permisos médicos autorizados puede registrar indicaciones de cuidado');
+  if (user?.rol !== 'PERSONAL_VETERINARIO') {
+    throw new ErrorDominio(403, 'Solo el personal veterinario puede registrar indicaciones de cuidado.');
   }
 
   const animal = await validarAnimalActivo(data.animalId);

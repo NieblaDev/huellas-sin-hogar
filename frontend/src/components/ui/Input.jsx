@@ -3,7 +3,7 @@ import TextField from '@mui/material/TextField';
 import ErrorCampo from './ErrorCampo.jsx';
 
 const Input = forwardRef(function Input({
-  label, error, id, as, type = 'text', children, style, className, disabled, name,
+  label, error, id, as, type = 'text', children, style, className, disabled, name, endAdornment,
   onChange, onBlur, value, defaultValue, required, ...props
 }, ref) {
   const generatedId = useId();
@@ -36,7 +36,7 @@ const Input = forwardRef(function Input({
         error={Boolean(error)}
         {...{ name, value, defaultValue, required, disabled, onChange, onBlur }}
         slotProps={{
-          input: label ? undefined : { disableUnderline: true },
+          input: label ? { endAdornment } : { disableUnderline: true, endAdornment },
           htmlInput: { ...props, style, className, 'aria-describedby': describedBy }
         }}
         sx={label ? undefined : { '& .MuiInputBase-input': { padding: 0, boxSizing: 'border-box' } }}

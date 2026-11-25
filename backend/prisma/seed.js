@@ -31,6 +31,18 @@ async function main() {
     }
   });
 
+  await prisma.usuario.upsert({
+    where: { email: 'adopciones@huellas.cl' },
+    update: {},
+    create: {
+      email: 'adopciones@huellas.cl',
+      password: hashedPassword,
+      nombre: 'Encargada de adopciones',
+      sexo: 'FEMENINO',
+      rol: 'PERSONAL_ADOPCIONES'
+    }
+  });
+
   const voluntarioAvanzado = await prisma.usuario.upsert({
     where: { email: 'voluntario.avanzado@huellas.cl' },
     update: { nombre: 'Andrés Mendoza (Avanzado)', rol: 'VOLUNTARIO_AVANZADO' },
@@ -120,7 +132,7 @@ async function main() {
       await tx.animal.update({ where: { id: animal.id }, data: { canilId: canil.id, fechaIngresoCanil: new Date() } });
       const aislamiento = indiceAnimal === 4;
       if (aislamiento) await tx.cuarentenaAnimal.create({ data: { animalId: animal.id, canilId: canil.id,
-        canilAislamiento: canil.codigo, motivo: 'Observación inicial del refugio', fechaFinEstimada: new Date(Date.now() + 14 * 86400000) } });
+        canilAislamiento: canil.nombre, motivo: 'Observación inicial del refugio', fechaFinEstimada: new Date(Date.now() + 14 * 86400000) } });
       await tx.canil.update({ where: { id: canil.id }, data: { estado: aislamiento ? 'CUARENTENA' : 'OCUPADO' } });
     });
   }

@@ -1,4 +1,6 @@
 import Button from '../components/ui/Button.jsx';
+import { observacionesAnimal } from '../utils/observacionesAnimal.js';
+import useLecturasNotificaciones from '../hooks/useLecturasNotificaciones.js';
 import Card from '../components/ui/Card.jsx';
 import Input from '../components/ui/Input.jsx';
 import Modal from '../components/ui/Modal.jsx';
@@ -7,8 +9,6 @@ import AnimalPhoto from '../components/AnimalPhoto';
 import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from 'react';
 import {
-  Archive,
-  ArrowUpDown,
   Bell,
   Calendar,
   ClipboardList,
@@ -21,10 +21,10 @@ import {
   PawPrint,
   Pencil,
   Plus,
-  RotateCcw,
   Search,
   Stethoscope,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-react';
 import { eliminarAnimal, exportarFicha, listarAnimales, listarNotificaciones, obtenerAnimal } from '../services/animal.service.js';
 
@@ -35,19 +35,101 @@ const formatearFechaIngreso = (valor) => {
   return fecha.toLocaleDateString('es-CL');
 };
 
+const destinosTrasladoExterno = {
+  PROTECTORA_ALIADA: 'Protectora aliada',
+  HOGAR_TEMPORAL: 'Hogar temporal'
+};
+
+const estadosTrasladoExterno = {
+  PENDIENTE_APROBACION: ['Pendiente de aprobación', 'warning'],
+  APROBADO: ['Aprobado', 'success'],
+  RECHAZADO: ['Rechazado', 'danger'],
+  COMPLETADO: ['Completado', 'success']
+};
+
+const estiloTituloSeccionFicha = {
+  margin: '0 0 6px',
+  fontSize: '0.76rem',
+  fontWeight: '800',
+  textTransform: 'uppercase',
+  color: 'var(--portal-text-muted)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '5px'
+};
+
+const estiloFichaVacia = {
+  margin: 0,
+  fontSize: '0.8rem',
+  color: 'var(--portal-text-muted)'
+};
+
+const estiloRegistroFicha = {
+  margin: 0,
+  overflowWrap: 'anywhere',
+  padding: '10px 12px',
+  background: 'var(--portal-surface-muted)',
+  border: 'var(--portal-border-emphasis) solid var(--portal-primary-border)',
+  borderRadius: '8px',
+  fontSize: '0.8rem'
+};
+
+function TrazabilidadTrasladosExternos({ traslados = [] }) {
+  const externos = traslados.filter(({ tipo }) => Object.hasOwn(destinosTrasladoExterno, tipo));
+
+  return (
+    <section aria-labelledby="ficha-traslados-externos" style={{ marginBottom: '16px' }}>
+      <h4 id="ficha-traslados-externos" style={estiloTituloSeccionFicha}>
+        <DoorOpen size={14} aria-hidden="true" /> Trazabilidad de Traslados Externos
+      </h4>
+      {externos.length === 0 ? (
+        <p style={estiloFichaVacia}>
+          Este animal aún no tiene solicitudes de traslado externo.
+        </p>
+      ) : (
+        <ul style={{ display: 'grid', gap: '8px', listStyle: 'none', padding: 0, margin: 0 }}>
+          {externos.map(traslado => {
+            const [estado, tono] = estadosTrasladoExterno[traslado.estado] ?? ['Estado sin registrar', 'neutral'];
+
+            return (
+              <li key={traslado.id} style={estiloRegistroFicha}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <strong>{traslado.destinoNombre || destinosTrasladoExterno[traslado.tipo]}</strong>
+                  <span className={`portal-badge portal-badge-${tono}`}>{estado}</span>
+                </div>
+                <div style={{ color: 'var(--portal-text-muted)', marginTop: '4px' }}>
+                  {destinosTrasladoExterno[traslado.tipo]} · Solicitud del {formatearFechaIngreso(traslado.fechaRegistro)}
+                  {traslado.responsable?.nombre && ` · Solicitada por ${traslado.responsable.nombre}`}
+                </div>
+                {traslado.motivo && <div><strong style={{ color: 'var(--portal-text-muted)' }}>Motivo:</strong> {traslado.motivo}</div>}
+                {traslado.fechaAprobacion && (
+                  <div><strong style={{ color: 'var(--portal-text-muted)' }}>Fecha de resolución:</strong> {formatearFechaIngreso(traslado.fechaAprobacion)}</div>
+                )}
+                {traslado.comentarioAprobacion && <div><strong style={{ color: 'var(--portal-text-muted)' }}>Comentario de revisión:</strong> {traslado.comentarioAprobacion}</div>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
   const { avisar, confirmar } = usePortalFeedback();
-  const [animales, setAnimales] = useState([]);
+  const [animales, setAnimales] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [revisionListado, setRevisionListado] = useState(0);
   const [search, setSearch] = useState('');
   const [especie, setEspecie] = useState('');
   const [estadoSalud, setEstadoSalud] = useState('');
-  const [estadoRegistro, setEstadoRegistro] = useState('ACTIVOS'); // 'ACTIVOS' | 'BAJA' | 'TODOS'
+  const [estadoRegistro, setEstadoRegistro] = useState('ACTIVOS');
   const [ordenFecha, setOrdenFecha] = useState('desc'); // 'desc' | 'asc'
 
   // Notificaciones del personal del refugio
   const [notificaciones, setNotificaciones] = useState([]);
   const [notificacionesOpen, setNotificacionesOpen] = useState(false);
+  const lecturas = useLecturasNotificaciones(notificaciones.map(n => `animales:${n.id}`));
   const [avisoReciente, setAvisoReciente] = useState(null);
 
   // Modal de Ficha del Animal y Exportación de Expediente
@@ -70,12 +152,13 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
 
   useEffect(() => {
     const controller = new AbortController();
+    setCargando(true);
     const timer = setTimeout(() => fetchAnimals(controller.signal), 220);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [search, especie, estadoSalud, estadoRegistro, ordenFecha, reloadKey]);
+  }, [search, especie, estadoSalud, estadoRegistro, ordenFecha, reloadKey, revisionListado]);
 
   useEffect(() => {
     fetchNotificaciones();
@@ -111,13 +194,12 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
   }, []);
 
   const fetchAnimals = async (signal) => {
-    setCargando(true);
     try {
       const params = new URLSearchParams();
       if (search.trim()) params.append('search', search.trim());
       if (especie) params.append('especie', especie);
       if (estadoSalud) params.append('estadoSalud', estadoSalud);
-      if (estadoRegistro && estadoRegistro !== 'ACTIVOS') params.append('estado', estadoRegistro);
+      params.append('estado', estadoRegistro);
       if (ordenFecha) params.append('ordenFecha', ordenFecha);
 
       const res = await listarAnimales(params, signal);
@@ -159,11 +241,10 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
 
   const abrirEdicionFicha = (animal, e) => {
     if (e) e.stopPropagation();
-    if (onEditAnimal) {
-      onEditAnimal(animal);
-    } else if (onOpenModal) {
-      onOpenModal(animal);
-    }
+    const editar = onEditAnimal ?? onOpenModal;
+    if (!editar) return;
+    setFichaSeleccionada(null);
+    editar(animal);
   };
 
   const handleExportExpediente = async (animal, formato = 'PDF', e) => {
@@ -222,10 +303,9 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
       if (!res.ok) throw new Error('No pudimos dar de baja al animal. Inténtalo nuevamente.');
 
       if (estadoRegistro === 'ACTIVOS') {
-        setAnimales((prev) => prev.filter((a) => a.id !== id));
-      } else {
-        fetchAnimals();
+        setAnimales((prev) => prev?.filter((a) => a.id !== id) ?? null);
       }
+      setRevisionListado((prev) => prev + 1);
       if (fichaSeleccionada?.id === id) {
         setFichaSeleccionada(null);
       }
@@ -250,33 +330,32 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
   };
 
   const badgeMap = {
-    NORMAL: { bg: '#e8f0e8', color: '#2f5540', label: 'Normal' },
+    NORMAL: { bg: 'var(--portal-primary-soft)', color: 'var(--portal-primary-dark)', label: 'Normal' },
     CONDICION_ESPECIAL: { bg: 'var(--portal-warning-bg)', color: 'var(--portal-warning-text)', label: 'Condición especial' },
-    CRITICO: { bg: '#fbeae8', color: '#d1453b', label: 'Crítico' }
+    CRITICO: { bg: '#ffe4e6', color: '#b82d44', label: 'Crítico' }
   };
 
-  const limpiarNotaCausal = (nota) => (nota || '').replace(/^\[Ingreso por (Rescate|Abandono|Decomiso)\]\s*/i, '');
 
+  const notaFicha = observacionesAnimal(fichaSeleccionada?.nota);
   const mensajeVacio =
     estadoRegistro === 'BAJA'
       ? 'No se encontraron animales dados de baja con los filtros aplicados.'
+      : estadoRegistro === 'ADOPCIONES'
+      ? 'No se encontraron animales adoptados con los filtros aplicados.'
       : estadoRegistro === 'TODOS'
       ? 'No se encontraron animales ingresados con los filtros aplicados.'
       : 'No se encontraron animales ingresados activos con los filtros aplicados.';
 
   return (
-    <div
-      className="portal-page-container"
-      style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-    >
+    <div className="portal-page-container portal-page-scroll portal-page-scroll-con-filtros">
       {/* ENCABEZADO Y ACCIONES DE REGISTRO */}
-      <div className="portal-header" style={{ flexShrink: 0, marginBottom: '18px' }}>
+      <div className="portal-header" style={{ flexShrink: 0 }}>
         <div>
           <h2 className="portal-header-title">
             <Dog size={26} aria-hidden="true" />
             <span>Animales Ingresados</span>
             <span className="portal-badge portal-badge-neutral" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
-              {animales.length}
+              {animales?.length ?? 0}
             </span>
           </h2>
           <p className="portal-header-subtitle">
@@ -304,8 +383,8 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
               title="Novedades y notificaciones del refugio"
               style={{
                 position: 'relative',
-                background: notificacionesOpen ? '#eef3ec' : '#fff',
-                border: `var(--portal-border-emphasis) solid ${notificacionesOpen ? '#3f6c52' : '#e9eaed'}`,
+                background: notificacionesOpen ? 'var(--portal-primary-soft)' : '#fff',
+                border: `var(--portal-border-emphasis) solid ${notificacionesOpen ? 'var(--portal-primary)' : '#e9eaed'}`,
                 borderRadius: '8px',
                 width: '40px',
                 height: '40px',
@@ -316,7 +395,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
               }}
             >
               <Bell size={20} aria-hidden="true" />
-              {notificaciones.length > 0 && (
+              {lecturas.pendientes > 0 && (
                 <span
                   style={{
                     position: 'absolute',
@@ -326,7 +405,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                     height: '18px',
                     padding: '0 4px',
                     borderRadius: '9px',
-                    background: '#d1453b',
+                    background: '#b82d44',
                     color: '#fff',
                     fontSize: '0.68rem',
                     fontWeight: '800',
@@ -336,7 +415,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                     boxSizing: 'border-box'
                   }}
                 >
-                  {notificaciones.length}
+                  {lecturas.pendientes}
                 </span>
               )}
             </Button>
@@ -385,7 +464,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                       <Mail size={15} aria-hidden="true" /> Novedades y Notificaciones
                     </span>
                     <span style={{ fontSize: '0.72rem', color: 'var(--portal-text-muted)', fontWeight: '600' }}>
-                      {notificaciones.length} reciente(s)
+                      Sin leer: {lecturas.pendientes}
                     </span>
                   </div>
 
@@ -402,8 +481,8 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                             key={n.id}
                             style={{
                               padding: '10px 12px',
-                              background: n.tipo === 'INGRESO_ANIMAL' ? '#f5f9f6' : '#edeffb',
-                              borderLeft: `4px solid ${n.tipo === 'INGRESO_ANIMAL' ? '#3f6c52' : '#4550c0'}`,
+                              background: n.tipo === 'INGRESO_ANIMAL' ? 'var(--portal-surface-muted)' : '#e5e8ff',
+                              borderLeft: `4px solid ${n.tipo === 'INGRESO_ANIMAL' ? 'var(--portal-primary)' : '#4550c0'}`,
                               borderRadius: '8px',
                               fontSize: '0.8rem'
                             }}
@@ -415,6 +494,9 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                               </span>
                             </div>
                             <div style={{ color: '#555e6d', marginTop: '3px', fontSize: '0.78rem' }}>{n.mensaje}</div>
+                            {lecturas.leidas.has(`animales:${n.id}`) ? <small>Leída</small> : (
+                              <Button variante="texto" onClick={() => lecturas.marcar(`animales:${n.id}`)}>Marcar como leída</Button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -432,7 +514,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
         <div
           style={{
             background: 'var(--portal-primary-soft)',
-            borderLeft: '5px solid #3f6c52',
+            borderLeft: '5px solid var(--portal-primary)',
             borderRadius: '10px',
             padding: '12px 16px',
             marginBottom: '16px',
@@ -444,7 +526,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
           }}
         >
           <div>
-            <strong style={{ color: '#2f5540', fontSize: '0.86rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <strong style={{ color: 'var(--portal-primary-dark)', fontSize: '0.86rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Bell size={15} aria-hidden="true" /> Se avisó al equipo del refugio
             </strong>
             <span style={{ color: '#1f2430', fontSize: '0.82rem' }}>{avisoReciente}</span>
@@ -459,181 +541,107 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
         </div>
       )}
 
-      {/* BARRA DE BÚSQUEDA, FILTROS AVANZADOS, BAJAS Y ORDENAMIENTO POR FECHA DE INGRESO */}
-      <Card
-        className="portal-card"
-        style={{
-          padding: '14px 16px',
-          marginBottom: '18px',
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px'
-        }}
-      >
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '200px' }}>
-            <Search
-              size={16}
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                left: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--portal-text-light)',
-                pointerEvents: 'none'
-              }}
-            />
-            <Input
-              type="search"
-              placeholder="Buscar animal por nombre..."
-              aria-label="Buscar animal por nombre"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '9px 12px 9px 36px',
-                borderRadius: '8px',
-                border: 'var(--portal-border-emphasis) solid var(--portal-border)',
-                fontSize: '0.86rem',
-                background: 'var(--portal-surface)'
-              }}
-            />
+      <Card className="portal-card portal-filtros-card">
+        <div className="portal-filtros">
+          <div className="portal-filtros-campo portal-filtros-campo-busqueda">
+            <label htmlFor="animales-busqueda" className="portal-filtros-etiqueta">Buscar por nombre</label>
+            <div className="portal-filtros-buscador">
+              <Search size={16} aria-hidden="true" className="portal-filtros-buscador-icono" />
+              <Input
+                id="animales-busqueda"
+                type="search"
+                autoComplete="off"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Ej. Luna"
+                className="portal-input"
+              />
+            </div>
           </div>
 
-          <Input as="select"
-            value={especie}
-            onChange={(e) => setEspecie(e.target.value)}
-            aria-label="Filtrar por especie"
-            style={{
-              padding: '9px 12px',
-              borderRadius: '8px',
-              border: 'var(--portal-border-emphasis) solid var(--portal-border)',
-              fontSize: '0.85rem',
-              background: 'var(--portal-surface)',
-              color: 'var(--portal-text-main)'
-            }}
-          >
-            <option value="">Todas las especies</option>
-            <option value="Perro">Perros (Canina)</option>
-            <option value="Gato">Gatos (Felina)</option>
-          </Input>
-
-          <Input as="select"
-            value={estadoSalud}
-            onChange={(e) => setEstadoSalud(e.target.value)}
-            aria-label="Filtrar por estado de salud"
-            style={{
-              padding: '9px 12px',
-              borderRadius: '8px',
-              border: 'var(--portal-border-emphasis) solid var(--portal-border)',
-              fontSize: '0.85rem',
-              background: 'var(--portal-surface)',
-              color: 'var(--portal-text-main)'
-            }}
-          >
-            <option value="">Todos los estados de salud</option>
-            <option value="NORMAL">Salud: Normal</option>
-            <option value="CONDICION_ESPECIAL">Salud: Condición especial</option>
-            <option value="CRITICO">Salud: Crítico</option>
-          </Input>
-
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <ArrowUpDown size={15} color="var(--portal-text-muted)" aria-hidden="true" />
+          <div className="portal-filtros-campo portal-filtros-campo-estado">
+            <label htmlFor="animales-estado" className="portal-filtros-etiqueta">Estado de registro</label>
             <Input as="select"
+              id="animales-estado"
+              value={estadoRegistro}
+              onChange={(e) => setEstadoRegistro(e.target.value)}
+              className="portal-select"
+            >
+              <option value="ACTIVOS">Activos</option>
+              <option value="ADOPCIONES">Adopciones</option>
+              <option value="BAJA">Dados de baja</option>
+              <option value="TODOS">Todos</option>
+            </Input>
+          </div>
+
+          <div className="portal-filtros-campo portal-filtros-campo-tercio">
+            <label htmlFor="animales-especie" className="portal-filtros-etiqueta">Especie</label>
+            <Input as="select"
+              id="animales-especie"
+              value={especie}
+              onChange={(e) => setEspecie(e.target.value)}
+              className="portal-select"
+            >
+              <option value="">Todas las especies</option>
+              <option value="Perro">Perros (Canina)</option>
+              <option value="Gato">Gatos (Felina)</option>
+            </Input>
+          </div>
+
+          <div className="portal-filtros-campo portal-filtros-campo-tercio">
+            <label htmlFor="animales-salud" className="portal-filtros-etiqueta">Estado de salud</label>
+            <Input as="select"
+              id="animales-salud"
+              value={estadoSalud}
+              onChange={(e) => setEstadoSalud(e.target.value)}
+              className="portal-select"
+            >
+              <option value="">Todos los estados de salud</option>
+              <option value="NORMAL">Normal</option>
+              <option value="CONDICION_ESPECIAL">Condición especial</option>
+              <option value="CRITICO">Crítico</option>
+            </Input>
+          </div>
+
+          <div className="portal-filtros-campo portal-filtros-campo-tercio">
+            <label htmlFor="animales-orden" className="portal-filtros-etiqueta">Fecha de ingreso</label>
+            <Input as="select"
+              id="animales-orden"
               value={ordenFecha}
               onChange={(e) => setOrdenFecha(e.target.value)}
-              aria-label="Ordenar por fecha de ingreso"
-              style={{
-                padding: '9px 12px',
-                borderRadius: '8px',
-                border: 'var(--portal-border-emphasis) solid var(--portal-border)',
-                fontSize: '0.85rem',
-                background: 'var(--portal-surface)',
-                color: 'var(--portal-text-main)',
-                fontWeight: 600
-              }}
+              className="portal-select"
             >
-              <option value="desc">Fecha de ingreso: Más recientes primero</option>
-              <option value="asc">Fecha de ingreso: Más antiguos primero</option>
+              <option value="desc">Más recientes primero</option>
+              <option value="asc">Más antiguos primero</option>
             </Input>
           </div>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '10px',
-            borderTop: 'var(--portal-border-emphasis) solid var(--portal-border-subtle)',
-            paddingTop: '10px'
-          }}
-        >
-          {/* Control dedicado para filtrar animales dados de baja */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <span
-              style={{
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                color: 'var(--portal-text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-            >
-              <Archive size={14} aria-hidden="true" /> Estado de registro:
-            </span>
-            <div className="perfil-estado-switch" role="group" aria-label="Filtrar animales activos o dados de baja">
+        {(hayFiltrosActivos || (cargando && animales)) && (
+          <div className="portal-filtros-acciones">
+            {cargando && animales && (
+              <span className="portal-filtros-buscando" role="status">
+                Actualizando resultados…
+              </span>
+            )}
+            {hayFiltrosActivos && (
               <Button
                 type="button"
-                className={estadoRegistro === 'ACTIVOS' ? 'active' : ''}
-                onClick={() => setEstadoRegistro('ACTIVOS')}
-                aria-pressed={estadoRegistro === 'ACTIVOS'}
+                onClick={restablecerFiltros}
+                className="portal-btn portal-btn-secondary portal-filtros-limpiar"
               >
-                Activos
+                <X size={14} aria-hidden="true" /> Limpiar filtros
               </Button>
-              <Button
-                type="button"
-                className={estadoRegistro === 'BAJA' ? 'active' : ''}
-                onClick={() => setEstadoRegistro('BAJA')}
-                aria-pressed={estadoRegistro === 'BAJA'}
-              >
-                Dados de baja
-              </Button>
-              <Button
-                type="button"
-                className={estadoRegistro === 'TODOS' ? 'active' : ''}
-                onClick={() => setEstadoRegistro('TODOS')}
-                aria-pressed={estadoRegistro === 'TODOS'}
-              >
-                Todos
-              </Button>
-            </div>
+            )}
           </div>
-
-          {hayFiltrosActivos && (
-            <Button
-              type="button"
-              onClick={restablecerFiltros}
-              className="portal-btn portal-btn-secondary"
-              style={{ minHeight: '34px', padding: '6px 12px', fontSize: '0.8rem' }}
-            >
-              <RotateCcw size={14} aria-hidden="true" /> Limpiar filtros
-            </Button>
-          )}
-        </div>
+        )}
       </Card>
 
       {/* LISTADO DE ANIMALES INGRESADOS — solo esta zona hace scroll */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '6px', marginRight: '-6px', paddingBottom: '8px' }}>
-        {cargando ? (
+      <div className="portal-page-scroll-content">
+        {cargando && !animales ? (
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--portal-text-muted)' }}>Cargando animales ingresados...</div>
-        ) : animales.length === 0 ? (
+        ) : !animales?.length ? (
           <div
             style={{
               textAlign: 'center',
@@ -680,8 +688,8 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                         position: 'absolute',
                         top: '12px',
                         right: '12px',
-                        background: esBaja ? '#fbeae8' : badge.bg,
-                        color: esBaja ? '#d1453b' : badge.color,
+                        background: esBaja ? '#ffe4e6' : badge.bg,
+                        color: esBaja ? '#b82d44' : badge.color,
                         padding: '4px 10px',
                         borderRadius: '8px',
                         fontSize: '0.72rem',
@@ -710,7 +718,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                           </Button>
                         </h3>
                         {a.estadoAdopcion === 'ADOPTADO' && (
-                          <span style={{ color: '#2f5540', fontSize: '.8rem', fontWeight: 700, display: 'block' }}>
+                          <span style={{ color: 'var(--portal-primary-dark)', fontSize: '.8rem', fontWeight: 700, display: 'block' }}>
                             Adoptado
                           </span>
                         )}
@@ -734,30 +742,6 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                       </span>
                     </div>
 
-                    {/* Canil asignado en tiempo real */}
-                    <div
-                      style={{
-                        margin: '6px 0',
-                        padding: '6px 8px',
-                        borderRadius: '8px',
-                        background: a.canil ? '#e8f0e8' : '#f8f9fa',
-                        border: a.canil ? 'var(--portal-border-emphasis) solid #c9dfcd' : 'var(--portal-border-emphasis) dashed #e9eaed',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '0.76rem'
-                      }}
-                    >
-                      <DoorOpen size={14} aria-hidden="true" />
-                      <span>
-                        Ubicación: <strong>{a.canil ? `${a.canil.nombre} (${a.canil.sector})` : 'Sin canil asignado'}</strong>
-                      </span>
-                    </div>
-
-                    <p style={{ fontSize: '0.81rem', color: '#555e6d', margin: '0 0 8px', flex: 1 }}>
-                      {limpiarNotaCausal(a.nota) || 'Sin antecedentes clínicos registrados.'}
-                    </p>
-
                     <div
                       style={{
                         display: 'flex',
@@ -765,6 +749,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                         alignItems: 'center',
                         borderTop: 'var(--portal-border-emphasis) solid #f0f1f3',
                         paddingTop: '8px',
+                        marginTop: 'auto',
                         gap: '6px',
                         flexWrap: 'wrap'
                       }}
@@ -772,32 +757,9 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                       <span style={{ fontSize: '0.73rem', color: 'var(--portal-text-muted)' }}>
                         {a.raza || 'Desconocida'} · {a.peso > 0 ? `${a.peso} kg` : 'Peso s/i'}
                       </span>
-
-                      <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
-                        {!esBaja ? (
-                          <Button
-                            type="button"
-                            onClick={(e) => handleDelete(a.id, a.nombre, e)}
-                            title="Dar de baja al animal"
-                            style={{
-                              background: '#fbeae8',
-                              border: 'var(--portal-border-emphasis) solid #f3c9c4',
-                              color: '#d1453b',
-                              padding: '5px 8px',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              fontWeight: '700',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Baja
-                          </Button>
-                        ) : (
-                          <span className="portal-badge portal-badge-danger" style={{ fontSize: '0.7rem' }}>
-                            Dado de baja
-                          </span>
-                        )}
-                      </div>
+                      <span style={{ marginLeft: 'auto', textAlign: 'right', fontSize: '0.73rem', fontWeight: 700, color: 'var(--portal-text-muted)' }}>
+                        {a.canil?.nombre || 'Sin canil'}
+                      </span>
                     </div>
                   </div>
                 </Card>
@@ -881,7 +843,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                             fontWeight: '800',
                             textTransform: 'uppercase',
                             background: 'var(--portal-primary-soft)',
-                            color: '#2f5540',
+                            color: 'var(--portal-primary-dark)',
                             padding: '2px 8px',
                             borderRadius: '6px'
                           }}
@@ -903,9 +865,19 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                       </Button>
                     </div>
                     <h3 style={{ margin: '10px 0 4px', fontSize: '1.5rem', color: '#1f2430' }}>{fichaSeleccionada.nombre}</h3>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--portal-text-muted)' }}>
-                      {fichaSeleccionada.especie} · {fichaSeleccionada.sexo} · Edad: {fichaSeleccionada.edad || 'Desconocida'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 10px' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--portal-text-muted)' }}>
+                        {fichaSeleccionada.especie} · {fichaSeleccionada.sexo} · Edad: {fichaSeleccionada.edad || 'Desconocida'}
+                      </span>
+                      <Button
+                        type="button"
+                        onClick={(e) => abrirEdicionFicha(fichaSeleccionada, e)}
+                        className="portal-btn portal-btn-secondary"
+                        style={{ marginLeft: 'auto', fontSize: '0.82rem' }}
+                      >
+                        <Pencil size={14} aria-hidden="true" /> Editar ficha
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -949,55 +921,43 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                   </div>
                   <div>
                     <strong style={{ color: 'var(--portal-text-muted)' }}>Estado de Registro:</strong>{' '}
-                    {fichaSeleccionada.activo === false ? 'Dado de baja' : 'Activo'}
+                    {fichaSeleccionada.activo === false ? 'Dado de baja' : fichaSeleccionada.estadoAdopcion === 'ADOPTADO' ? 'Adoptado' : 'Activo'}
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <strong style={{ color: 'var(--portal-text-muted)' }}>Comportamiento:</strong> {fichaSeleccionada.comportamiento || 'Por evaluar'}
                   </div>
                 </div>
 
-                {/* Historial Médico / Notas Clínicas */}
-                <div style={{ marginBottom: '16px' }}>
-                  <div style={{ fontSize: '0.76rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--portal-text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Stethoscope size={14} aria-hidden="true" /> Antecedentes Clínicos e Historial Médico
-                  </div>
-                  <div
-                    style={{
-                      background: '#faf1de',
-                      borderLeft: '4px solid #d99a3d',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      fontSize: '0.84rem',
-                      color: '#1f2430'
-                    }}
-                  >
-                    {limpiarNotaCausal(fichaSeleccionada.nota) || 'Sin antecedentes médicos registrados.'}
-                  </div>
-                </div>
+                <section style={{ marginBottom: '16px' }}>
+                  <h4 style={estiloTituloSeccionFicha}>
+                    <ClipboardList size={14} aria-hidden="true" /> Notas y Observaciones
+                  </h4>
+                  <p style={notaFicha ? { ...estiloRegistroFicha, whiteSpace: 'pre-wrap' } : estiloFichaVacia}>
+                    {notaFicha || 'Sin Observaciones'}
+                  </p>
+                </section>
 
-                {/* Sección de Postulantes / Adopciones con Protección de Datos */}
-                <div style={{ marginBottom: '18px' }}>
-                  <div style={{ fontSize: '0.76rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--portal-text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <ClipboardList size={14} aria-hidden="true" /> Trazabilidad de Adopciones y Devoluciones
-                  </div>
-                  {fichaSeleccionada.adopciones && fichaSeleccionada.adopciones.length > 0 && (
-                    <div
-                      style={{
-                        background: '#fbeae8',
-                        border: 'var(--portal-border-emphasis) solid #f3c9c4',
-                        padding: '9px 12px',
-                        borderRadius: '8px',
-                        fontSize: '0.78rem',
-                        color: '#d1453b',
-                        marginBottom: '8px'
-                      }}
-                    >
-                      <Lock size={12} aria-hidden="true" /> Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en
-                      los documentos exportados.
+                <section style={{ marginBottom: '16px' }}>
+                  <h4 style={estiloTituloSeccionFicha}><Stethoscope size={14} aria-hidden="true" /> Instrucciones Médicas</h4>
+                  {fichaSeleccionada.indicacionesCuidado?.length ? (
+                    <div style={{ display: 'grid', gap: '8px' }}>
+                      {fichaSeleccionada.indicacionesCuidado.map(ind => (
+                        <div key={ind.id} style={estiloRegistroFicha}>
+                          <strong>{ind.titulo}</strong>
+                          <div style={{ whiteSpace: 'pre-wrap' }}>{ind.instruccion}</div>
+                          <small>Vigencia: {formatearFechaIngreso(ind.fechaInicio)} al {formatearFechaIngreso(ind.fechaFin)} · {ind.franjaHoraria}</small>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  ) : <p style={estiloFichaVacia}>Sin instrucciones médicas registradas.</p>}
+                </section>
+
+                <section style={{ marginBottom: '16px' }}>
+                  <h4 style={estiloTituloSeccionFicha}>
+                    <ClipboardList size={14} aria-hidden="true" /> Trazabilidad de Adopciones y Devoluciones
+                  </h4>
                   {!fichaSeleccionada.adopciones || fichaSeleccionada.adopciones.length === 0 ? (
-                    <div style={{ fontSize: '0.82rem', color: 'var(--portal-text-muted)', padding: '4px 0' }}>
+                    <div style={estiloFichaVacia}>
                       No existen solicitudes de adopción asociadas a este animal.
                     </div>
                   ) : (
@@ -1005,13 +965,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                       {fichaSeleccionada.adopciones.map((ad) => (
                         <div
                           key={ad.id}
-                          style={{
-                            padding: '10px 12px',
-                            background: '#f5f9f6',
-                            border: 'var(--portal-border-emphasis) solid #c9dfcd',
-                            borderRadius: '8px',
-                            fontSize: '0.8rem'
-                          }}
+                          style={estiloRegistroFicha}
                         >
                           <strong>Solicitud de adopción</strong> — Etapa: <strong>{ad.etapa}</strong> · Devolución:{' '}
                           <strong>{ad.devolucion ? 'Sí' : 'No'}</strong>
@@ -1019,7 +973,9 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                       ))}
                     </div>
                   )}
-                </div>
+                </section>
+
+                <TrazabilidadTrasladosExternos traslados={fichaSeleccionada.traslados ?? []} />
 
                 {/* Botones de Acción del Modal */}
                 <div
@@ -1033,24 +989,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                     gap: '8px'
                   }}
                 >
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <Button
-                      type="button"
-                      onClick={(e) => abrirEdicionFicha(fichaSeleccionada, e)}
-                      style={{
-                        background: '#faf1de',
-                        color: '#9c6818',
-                        border: 'var(--portal-border-emphasis) solid #f2d59b',
-                        padding: '9px 14px',
-                        borderRadius: '8px',
-                        fontWeight: '700',
-                        fontSize: '0.82rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Pencil size={14} aria-hidden="true" /> Editar Ficha del Animal
-                    </Button>
-
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
                     {puedeExportarExpediente ? (
                       <>
                         <Button
@@ -1058,7 +997,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                           onClick={(e) => handleExportExpediente(fichaSeleccionada, 'PDF', e)}
                           disabled={descargandoId === `${fichaSeleccionada.id}-PDF`}
                           style={{
-                            background: '#3f6c52',
+                            background: 'var(--portal-primary)',
                             color: '#fff',
                             border: 'none',
                             padding: '9px 14px',
@@ -1100,9 +1039,10 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                         onClick={(e) => handleDelete(fichaSeleccionada.id, fichaSeleccionada.nombre, e)}
                         title="Dar de baja al animal"
                         style={{
-                          background: '#fbeae8',
+                          marginLeft: 'auto',
+                          background: '#ffe4e6',
                           border: 'var(--portal-border-emphasis) solid #f3c9c4',
-                          color: '#d1453b',
+                          color: '#b82d44',
                           padding: '9px 14px',
                           borderRadius: '8px',
                           fontSize: '0.82rem',

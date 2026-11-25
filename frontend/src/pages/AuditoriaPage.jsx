@@ -1,4 +1,5 @@
 import Button from '../components/ui/Button.jsx';
+import Card from '../components/ui/Card.jsx';
 import Input from '../components/ui/Input.jsx';
 import Modal from '../components/ui/Modal.jsx';
 import { formatearErrorApi } from '../utils/errores';
@@ -17,6 +18,7 @@ import {
   Lock,
   Pencil,
   Plus,
+  Search,
   ShieldCheck,
   Tag,
   Trash2,
@@ -87,6 +89,7 @@ const ETIQUETAS_CAMPOS = {
   animal: 'Animal',
   diagnostico: 'Diagnóstico',
   codigo: 'Código',
+  notaMantencion: 'Nota de mantención',
   chip: 'Número de microchip',
   edad: 'Edad',
   tipoIngreso: 'Tipo de ingreso',
@@ -178,7 +181,8 @@ const formatearValorLegible = (valor) => {
 };
 
 export default function AuditoriaPage({ user }) {
-  const [auditorias, setAuditorias] = useState([]);
+  const [resultado, setResultado] = useState(null);
+  const auditorias = resultado ?? [];
   const [total, setTotal] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -195,9 +199,9 @@ export default function AuditoriaPage({ user }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    const timer = setTimeout(() => {
-      fetchAuditorias(controller.signal);
-    }, 300);
+    setCargando(true);
+    setError(null);
+    const timer = setTimeout(() => fetchAuditorias(controller.signal), 220);
     return () => {
       clearTimeout(timer);
       controller.abort();
@@ -205,11 +209,9 @@ export default function AuditoriaPage({ user }) {
   }, [filtroUsuario, filtroEntidad, fechaDesde, fechaHasta]);
 
   const fetchAuditorias = async (signal) => {
-    setCargando(true);
-    setError(null);
     try {
       const params = new URLSearchParams();
-      if (filtroUsuario) params.append('usuarioResponsable', filtroUsuario);
+      if (filtroUsuario.trim()) params.append('usuarioResponsable', filtroUsuario.trim());
       if (filtroEntidad) params.append('entidad', filtroEntidad);
       if (fechaDesde) params.append('fechaDesde', fechaDesde);
       if (fechaHasta) params.append('fechaHasta', fechaHasta);
@@ -224,7 +226,7 @@ export default function AuditoriaPage({ user }) {
 
       const data = await res.json();
       if (signal.aborted) return;
-      setAuditorias(data.registros || []);
+      setResultado(data.registros || []);
       setTotal(data.total || 0);
     } catch (err) {
       if (!signal.aborted) setError(formatearErrorApi(err));
@@ -232,6 +234,8 @@ export default function AuditoriaPage({ user }) {
       if (!signal.aborted) setCargando(false);
     }
   };
+
+  const hayFiltrosActivos = Boolean(filtroUsuario || filtroEntidad || fechaDesde || fechaHasta);
 
   const handleLimpiarFiltros = () => {
     setFiltroUsuario('');
@@ -241,9 +245,9 @@ export default function AuditoriaPage({ user }) {
   };
 
   const accionColor = {
-    CREACION: { bg: '#e8f0e8', color: '#2f5540', label: 'Creación' },
-    MODIFICACION: { bg: '#edeffb', color: '#4550c0', label: 'Modificación' },
-    BAJA_LOGICA: { bg: '#fbeae8', color: '#d1453b', label: 'Baja Lógica' }
+    CREACION: { bg: 'var(--portal-primary-soft)', color: 'var(--portal-primary-dark)', label: 'Creación' },
+    MODIFICACION: { bg: '#e5e8ff', color: '#4550c0', label: 'Modificación' },
+    BAJA_LOGICA: { bg: '#ffe4e6', color: '#b82d44', label: 'Baja Lógica' }
   };
 
   const accionNombres = {
@@ -268,17 +272,17 @@ export default function AuditoriaPage({ user }) {
   const auditoriasFiltradas = auditorias.filter(item => tabAccion === 'TODAS' || item.accion === tabAccion);
 
   // Obtener la lista unificada de campos cambiados o registrados
-  const obtenerCamposRelevantes = (anterior, nuevo) => {
+  const obtenerCamposRelevantes = (anterior, nuevo, entidad) => {
     const claves = new Set([
       ...Object.keys(anterior || {}),
       ...Object.keys(nuevo || {})
     ]);
 
-    return Array.from(claves).filter(c => Object.hasOwn(ETIQUETAS_CAMPOS, c));
+    return Array.from(claves).filter(c => Object.hasOwn(ETIQUETAS_CAMPOS, c) && !(entidad === 'Canil' && ['codigo', 'tipo'].includes(c)));
   };
 
   return (
-    <div className="portal-page-container">
+    <div className="portal-page-container portal-page-scroll portal-page-scroll-con-filtros">
       {/* ENCABEZADO */}
       <div className="portal-header">
         <div>
@@ -329,172 +333,183 @@ export default function AuditoriaPage({ user }) {
       </div>
 
       {error && (
-        <div style={{ background: '#fbeae8', border: 'var(--portal-border-emphasis) solid #f3c9c4', color: '#d1453b', padding: '14px', borderRadius: '10px', marginBottom: '20px' }}>
+        <div style={{ background: '#ffe4e6', border: 'var(--portal-border-emphasis) solid #f3c9c4', color: '#b82d44', padding: '14px', borderRadius: '10px', marginBottom: '20px' }}>
           {error}
         </div>
       )}
 
-      {/* BARRA DE FILTROS */}
-      <div style={{
-        background: 'var(--portal-surface)', borderRadius: '14px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', padding: '18px 20px',
-        marginBottom: '22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', alignItems: 'flex-end'
-      }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
-            Usuario Responsable
-          </label>
-          <Input
-            type="text"
-            placeholder="Nombre o correo..."
-            value={filtroUsuario}
-            onChange={e => setFiltroUsuario(e.target.value)}
-            style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', fontSize: '0.85rem', boxSizing: 'border-box' }}
-          />
+      <Card className="portal-card portal-filtros-card">
+        <div className="portal-filtros portal-filtros-cuatro-campos">
+          <div className="portal-filtros-campo portal-filtros-campo-busqueda">
+            <label htmlFor="auditoria-usuario" className="portal-filtros-etiqueta">Usuario responsable</label>
+            <div className="portal-filtros-buscador">
+              <Search size={16} aria-hidden="true" className="portal-filtros-buscador-icono" />
+              <Input
+                id="auditoria-usuario"
+                type="search"
+                autoComplete="off"
+                placeholder="Nombre o correo..."
+                value={filtroUsuario}
+                onChange={e => setFiltroUsuario(e.target.value)}
+                className="portal-input"
+              />
+            </div>
+          </div>
+
+          <div className="portal-filtros-campo portal-filtros-campo-estado">
+            <label htmlFor="auditoria-entidad" className="portal-filtros-etiqueta">Entidad afectada</label>
+            <Input as="select"
+              id="auditoria-entidad"
+              value={filtroEntidad}
+              onChange={e => setFiltroEntidad(e.target.value)}
+              className="portal-select"
+            >
+              <option value="">Todas las entidades</option>
+              <option value="Animal">Ficha Animal</option>
+              <option value="Postulante">Postulantes Adopción</option>
+              <option value="Inventario">Inventario / Insumos</option>
+              <option value="Canil">Caniles / Espacios</option>
+              <option value="Traslado">Traslados</option>
+              <option value="Usuario">Usuarios / Perfiles</option>
+            </Input>
+          </div>
+
+          <div className="portal-filtros-campo portal-filtros-campo-mitad">
+            <label htmlFor="auditoria-desde" className="portal-filtros-etiqueta">Fecha desde</label>
+            <Input
+              id="auditoria-desde"
+              type="date"
+              value={fechaDesde}
+              max={fechaHasta || undefined}
+              onChange={e => setFechaDesde(e.target.value)}
+              className="portal-input"
+            />
+          </div>
+
+          <div className="portal-filtros-campo portal-filtros-campo-mitad">
+            <label htmlFor="auditoria-hasta" className="portal-filtros-etiqueta">Fecha hasta</label>
+            <Input
+              id="auditoria-hasta"
+              type="date"
+              value={fechaHasta}
+              min={fechaDesde || undefined}
+              onChange={e => setFechaHasta(e.target.value)}
+              className="portal-input"
+            />
+          </div>
         </div>
 
-        <div>
-          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
-            Entidad Afectada
-          </label>
-          <Input as="select"
-            value={filtroEntidad}
-            onChange={e => setFiltroEntidad(e.target.value)}
-            style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', fontSize: '0.85rem', boxSizing: 'border-box' }}
-          >
-            <option value="">Todas las entidades</option>
-            <option value="Animal">Ficha Animal</option>
-            <option value="Postulante">Postulantes Adopción</option>
-            <option value="Inventario">Inventario / Insumos</option>
-            <option value="Canil">Caniles / Espacios</option>
-            <option value="Traslado">Traslados</option>
-            <option value="Usuario">Usuarios / Perfiles</option>
-          </Input>
-        </div>
+        {(hayFiltrosActivos || (cargando && resultado)) && (
+          <div className="portal-filtros-acciones">
+            {cargando && resultado && (
+              <span className="portal-filtros-buscando" role="status">
+                Actualizando resultados…
+              </span>
+            )}
+            {hayFiltrosActivos && (
+              <Button
+                type="button"
+                onClick={handleLimpiarFiltros}
+                className="portal-btn portal-btn-secondary portal-filtros-limpiar"
+              >
+                <X size={14} aria-hidden="true" /> Limpiar filtros
+              </Button>
+            )}
+          </div>
+        )}
+      </Card>
 
-        <div>
-          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
-            Fecha Desde
-          </label>
-          <Input
-            type="date"
-            value={fechaDesde}
-            onChange={e => setFechaDesde(e.target.value)}
-            style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', fontSize: '0.85rem', boxSizing: 'border-box' }}
-          />
-        </div>
+      <div className="portal-page-scroll-content">
+        {/* TABLA DE AUDITORÍA CON CLIC EN FILA */}
+        <div style={{ background: 'var(--portal-surface)', borderRadius: '16px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(20,24,32,0.03)' }}>
+          <div style={{ padding: '16px 20px', borderBottom: 'var(--portal-border-emphasis) solid #f0f1f3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1f2430' }}>
+              Total de registros: {total} {auditoriasFiltradas.length !== auditorias.length && `(mostrando ${auditoriasFiltradas.length})`}
+            </span>
+            <span style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)', fontStyle: 'italic' }}>
+              Haz clic en cualquier fila para ver el detalle comparativo y trazabilidad
+            </span>
+          </div>
 
-        <div>
-          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
-            Fecha Hasta
-          </label>
-          <Input
-            type="date"
-            value={fechaHasta}
-            onChange={e => setFechaHasta(e.target.value)}
-            style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', fontSize: '0.85rem', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Button
-            type="button"
-            onClick={handleLimpiarFiltros}
-            style={{ padding: '9px 12px', background: 'var(--portal-surface-muted)', color: 'var(--portal-text-muted)', border: 'var(--portal-border-emphasis) solid var(--portal-border)', borderRadius: '7px', fontWeight: '700', fontSize: '0.84rem', cursor: 'pointer' }}
-          >
-            Limpiar
-          </Button>
-        </div>
-      </div>
-
-      {/* TABLA DE AUDITORÍA CON CLIC EN FILA */}
-      <div style={{ background: 'var(--portal-surface)', borderRadius: '16px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(20,24,32,0.03)' }}>
-        <div style={{ padding: '16px 20px', borderBottom: 'var(--portal-border-emphasis) solid #f0f1f3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1f2430' }}>
-            Total de registros: {total} {auditoriasFiltradas.length !== auditorias.length && `(mostrando ${auditoriasFiltradas.length})`}
-          </span>
-          <span style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)', fontStyle: 'italic' }}>
-            Haz clic en cualquier fila para ver el detalle comparativo y trazabilidad
-          </span>
-        </div>
-
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
-            <thead>
-              <tr style={{ background: 'var(--portal-surface-muted)', borderBottom: 'var(--portal-border-emphasis) solid var(--portal-border)', textAlign: 'left', color: 'var(--portal-text-muted)' }}>
-                <th style={{ padding: '12px 16px' }}>Fecha y Hora</th>
-                <th style={{ padding: '12px 16px' }}>Usuario Responsable</th>
-                <th style={{ padding: '12px 16px' }}>Entidad Afectada</th>
-                <th style={{ padding: '12px 16px' }}>Acción</th>
-                <th style={{ padding: '12px 16px' }}>Descripción de la Acción</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Detalle</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cargando ? (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--portal-text-muted)' }}>
-                    Cargando bitácora de auditoría...
-                  </td>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+              <thead>
+                <tr style={{ background: 'var(--portal-surface-muted)', borderBottom: 'var(--portal-border-emphasis) solid var(--portal-border)', textAlign: 'left', color: 'var(--portal-text-muted)' }}>
+                  <th style={{ padding: '12px 16px' }}>Fecha y Hora</th>
+                  <th style={{ padding: '12px 16px' }}>Usuario Responsable</th>
+                  <th style={{ padding: '12px 16px' }}>Entidad Afectada</th>
+                  <th style={{ padding: '12px 16px' }}>Acción</th>
+                  <th style={{ padding: '12px 16px' }}>Descripción de la Acción</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>Detalle</th>
                 </tr>
-              ) : auditoriasFiltradas.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--portal-text-muted)' }}>
-                    No se encontraron registros que coincidan con los filtros aplicados.
-                  </td>
-                </tr>
-              ) : (
-                auditoriasFiltradas.map(item => {
-                  const badge = accionColor[item.accion] || { bg: '#e9eaed', color: 'var(--portal-text-muted)', label: item.accion };
-                  const fechaObj = new Date(item.fechaHora);
+              </thead>
+              <tbody>
+                {cargando && !resultado ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--portal-text-muted)' }}>
+                      Cargando bitácora de auditoría...
+                    </td>
+                  </tr>
+                ) : auditoriasFiltradas.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--portal-text-muted)' }}>
+                      No se encontraron registros que coincidan con los filtros aplicados.
+                    </td>
+                  </tr>
+                ) : (
+                  auditoriasFiltradas.map(item => {
+                    const badge = accionColor[item.accion] || { bg: '#e9eaed', color: 'var(--portal-text-muted)', label: item.accion };
+                    const fechaObj = new Date(item.fechaHora);
 
-                  return (
-                    <tr
-                      key={item.id}
-                      onClick={() => setDetalleRegistro(item)}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#f8faf8'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                      style={{ borderBottom: 'var(--portal-border-emphasis) solid #f0f1f3', cursor: 'pointer', transition: 'background 0.15s ease' }}
-                    >
-                      <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
-                        <strong>{fechaObj.toLocaleDateString('es-CL')}</strong>{' '}
-                        <span style={{ color: 'var(--portal-text-muted)' }}>{fechaObj.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</span>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <strong>{item.usuarioNombre || 'Sistema'}</strong>
-                        <div style={{ fontSize: '0.74rem', color: 'var(--portal-text-muted)' }}>{item.usuarioEmail || 'Automático'}</div>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontWeight: '700', color: '#1f2430' }}>
-                        {etiquetaEntidad(item.entidad)}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{
-                          fontSize: '0.72rem', fontWeight: '800', padding: '3px 8px', borderRadius: '6px',
-                          background: badge.bg, color: badge.color, textTransform: 'uppercase'
-                        }}>
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', color: '#1f2430' }}>
-                        {describirAccion(item)}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          color: '#3f6c52',
-                          fontWeight: '700',
-                          fontSize: '0.78rem'
-                        }}>
-                          Ver detalle <ChevronRight size={14} aria-hidden="true" />
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                    return (
+                      <tr
+                        key={item.id}
+                        onClick={() => setDetalleRegistro(item)}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--portal-surface-muted)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        style={{ borderBottom: 'var(--portal-border-emphasis) solid #f0f1f3', cursor: 'pointer', transition: 'background 0.15s ease' }}
+                      >
+                        <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                          <strong>{fechaObj.toLocaleDateString('es-CL')}</strong>{' '}
+                          <span style={{ color: 'var(--portal-text-muted)' }}>{fechaObj.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <strong>{item.usuarioNombre || 'Sistema'}</strong>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--portal-text-muted)' }}>{item.usuarioEmail || 'Automático'}</div>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontWeight: '700', color: '#1f2430' }}>
+                          {etiquetaEntidad(item.entidad)}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{
+                            fontSize: '0.72rem', fontWeight: '800', padding: '3px 8px', borderRadius: '6px',
+                            background: badge.bg, color: badge.color, textTransform: 'uppercase'
+                          }}>
+                            {badge.label}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 16px', color: '#1f2430' }}>
+                          {describirAccion(item)}
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            color: 'var(--portal-primary)',
+                            fontWeight: '700',
+                            fontSize: '0.78rem'
+                          }}>
+                            Ver detalle <ChevronRight size={14} aria-hidden="true" />
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -509,7 +524,7 @@ export default function AuditoriaPage({ user }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
               <div>
                 <h3 style={{ margin: 0, color: '#1f2430', fontSize: '1.2rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FileText size={20} color="#3f6c52" aria-hidden="true" />
+                  <FileText size={20} color="var(--portal-primary)" aria-hidden="true" />
                   Detalle del Registro de Auditoría
                 </h3>
                 <span style={{ fontSize: '0.8rem', color: 'var(--portal-text-muted)', display: 'block', marginTop: '4px' }}>
@@ -592,7 +607,7 @@ export default function AuditoriaPage({ user }) {
             </h4>
 
             {(() => {
-              const campos = obtenerCamposRelevantes(detalleRegistro.valorAnterior, detalleRegistro.valorNuevo);
+              const campos = obtenerCamposRelevantes(detalleRegistro.valorAnterior, detalleRegistro.valorNuevo, detalleRegistro.entidad);
 
               if (campos.length === 0) {
                 return (
@@ -612,7 +627,7 @@ export default function AuditoriaPage({ user }) {
                           <ArrowLeft size={13} style={{ verticalAlign: 'text-bottom', marginRight: '4px' }} />
                           Valor Anterior
                         </th>
-                        <th style={{ padding: '10px 14px', width: '36%', color: '#2f5540', fontWeight: '800' }}>
+                        <th style={{ padding: '10px 14px', width: '36%', color: 'var(--portal-primary-dark)', fontWeight: '800' }}>
                           <ArrowRight size={13} style={{ verticalAlign: 'text-bottom', marginRight: '4px' }} />
                           Valor Nuevo
                         </th>
@@ -644,7 +659,7 @@ export default function AuditoriaPage({ user }) {
                             <td style={{ padding: '10px 14px', color: '#475569', background: valAnt !== null && valAnt !== undefined ? '#fef2f2' : 'transparent' }}>
                               {formatearValorLegible(campo === 'rol' ? detalleRegistro.rolEtiquetaAnterior || valAnt : valAnt)}
                             </td>
-                            <td style={{ padding: '10px 14px', color: '#1e293b', fontWeight: huboCambio ? '600' : 'normal', background: valNue !== null && valNue !== undefined ? '#f0fdf4' : 'transparent' }}>
+                            <td style={{ padding: '10px 14px', color: '#1e293b', fontWeight: huboCambio ? '600' : 'normal', background: valNue !== null && valNue !== undefined ? 'var(--portal-surface-muted)' : 'transparent' }}>
                               {formatearValorLegible(campo === 'rol' ? detalleRegistro.rolEtiquetaNuevo || valNue : valNue)}
                             </td>
                           </tr>
@@ -663,7 +678,7 @@ export default function AuditoriaPage({ user }) {
                 onClick={() => setDetalleRegistro(null)}
                 style={{
                   padding: '9px 20px',
-                  background: '#3f6c52',
+                  background: 'var(--portal-primary)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '8px',

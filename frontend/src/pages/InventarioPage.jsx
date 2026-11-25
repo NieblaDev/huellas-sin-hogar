@@ -312,14 +312,14 @@ export default function InventarioPage({ user }) {
         </div>
 
         <div style={{ background: 'var(--portal-surface)', borderRadius: '12px', border: 'var(--portal-border-emphasis) solid #f3c9c4', padding: '18px' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#d1453b' }}>Stock Mínimo / Crítico</div>
-          <div style={{ fontSize: '2rem', fontWeight: '800', color: '#d1453b', marginTop: '4px' }}>{alertas.stockCriticoCount}</div>
+          <div style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#b82d44' }}>Stock Mínimo / Crítico</div>
+          <div style={{ fontSize: '2rem', fontWeight: '800', color: '#b82d44', marginTop: '4px' }}>{alertas.stockCriticoCount}</div>
           <div style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)' }}>Requieren reposición urgente</div>
         </div>
 
         <div style={{ background: 'var(--portal-surface)', borderRadius: '12px', border: 'var(--portal-border-emphasis) solid #f2dfbe', padding: '18px' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#b37416' }}>Próximos a Vencer</div>
-          <div style={{ fontSize: '2rem', fontWeight: '800', color: '#b37416', marginTop: '4px' }}>{alertas.vencimientoCount}</div>
+          <div style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', color: '#895100' }}>Próximos a Vencer</div>
+          <div style={{ fontSize: '2rem', fontWeight: '800', color: '#895100', marginTop: '4px' }}>{alertas.vencimientoCount}</div>
           <div style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)' }}>Vencen en los próximos 30 días</div>
         </div>
 
@@ -421,7 +421,7 @@ export default function InventarioPage({ user }) {
                       </span>
                     </td>
 
-                    <td style={{ padding: '14px 18px', fontWeight: '800', fontSize: '1rem', color: agotado ? '#d1453b' : (stockCritico ? '#b37416' : '#1f2430') }}>
+                    <td style={{ padding: '14px 18px', fontWeight: '800', fontSize: '1rem', color: agotado ? '#b82d44' : (stockCritico ? '#895100' : '#1f2430') }}>
                       {ins.stock} <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--portal-text-muted)' }}>{ins.unidad}</span>
                     </td>
 
@@ -431,15 +431,15 @@ export default function InventarioPage({ user }) {
 
                     <td style={{ padding: '14px 18px' }}>
                       {agotado ? (
-                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: '#fbeae8', color: '#d1453b', border: 'var(--portal-border-emphasis) solid #f3c9c4', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: '#ffe4e6', color: '#b82d44', border: 'var(--portal-border-emphasis) solid #f3c9c4', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <CircleX size={12} aria-hidden="true" /> AGOTADO
                         </span>
                       ) : stockCritico ? (
-                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: '#fff4e5', color: '#b37416', border: 'var(--portal-border-emphasis) solid #f2dfbe', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: '#fff4e5', color: '#895100', border: 'var(--portal-border-emphasis) solid #f2dfbe', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <TriangleAlert size={12} aria-hidden="true" /> STOCK CRÍTICO
                         </span>
                       ) : (
-                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: 'var(--portal-primary-soft)', color: '#2f5540', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', background: 'var(--portal-primary-soft)', color: 'var(--portal-primary-dark)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <CircleCheck size={12} aria-hidden="true" /> NORMAL
                         </span>
                       )}
@@ -448,10 +448,10 @@ export default function InventarioPage({ user }) {
                     <td style={{ padding: '14px 18px' }}>
                       {ins.fechaVencimiento ? (
                         <div>
-                          <div style={{ fontSize: '0.84rem', fontWeight: '700', color: ins.estaVencido ? '#d1453b' : (ins.alertaVencimiento ? '#b37416' : '#1f2430') }}>
+                          <div style={{ fontSize: '0.84rem', fontWeight: '700', color: ins.estaVencido ? '#b82d44' : (ins.alertaVencimiento ? '#895100' : '#1f2430') }}>
                             {new Date(ins.fechaVencimiento).toLocaleDateString()}
                           </div>
-                          <div style={{ fontSize: '0.74rem', color: ins.estaVencido ? '#d1453b' : (ins.alertaVencimiento ? '#b37416' : '#7c8592'), fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ fontSize: '0.74rem', color: ins.estaVencido ? '#b82d44' : (ins.alertaVencimiento ? '#895100' : '#7c8592'), fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             {ins.estaVencido ? <><Ban size={12} aria-hidden="true" /> ¡VENCIDO!</> : (ins.alertaVencimiento ? <><Clock size={12} aria-hidden="true" /> Vence en {ins.diasParaVencer}d</> : `${ins.diasParaVencer}d restantes`)}
                           </div>
                         </div>
@@ -466,7 +466,7 @@ export default function InventarioPage({ user }) {
                           onClick={() => abrirModalMovimiento(ins)}
                           title="Registrar entrada o salida"
                           style={{
-                            background: 'var(--portal-primary-soft)', color: '#2f5540', border: 'none', borderRadius: '6px',
+                            background: 'var(--portal-primary-soft)', color: 'var(--portal-primary-dark)', border: 'none', borderRadius: '6px',
                             padding: '6px 10px', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer'
                           }}
                         >
@@ -538,7 +538,7 @@ export default function InventarioPage({ user }) {
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Stock Disponible Actual:</span>
-                    <strong style={{ color: insumoSeleccionado.stock === 0 ? '#d1453b' : '#2f5540' }}>
+                    <strong style={{ color: insumoSeleccionado.stock === 0 ? '#b82d44' : 'var(--portal-primary-dark)' }}>
                       {insumoSeleccionado.stock} {insumoSeleccionado.unidad}
                     </strong>
                   </div>
@@ -561,9 +561,9 @@ export default function InventarioPage({ user }) {
                     onClick={() => setFormMovimiento(prev => ({ ...prev, tipo: 'SALIDA', subtipo: 'CONSUMO' }))}
                     style={{
                       flex: 1, padding: '10px', borderRadius: '8px', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
-                      background: formMovimiento.tipo === 'SALIDA' ? '#fbeae8' : '#f8f9fa',
-                      color: formMovimiento.tipo === 'SALIDA' ? '#d1453b' : '#7c8592',
-                      border: `var(--portal-border-emphasis) solid ${formMovimiento.tipo === 'SALIDA' ? '#d1453b' : '#e9eaed'}`
+                      background: formMovimiento.tipo === 'SALIDA' ? '#ffe4e6' : '#f8f9fa',
+                      color: formMovimiento.tipo === 'SALIDA' ? '#b82d44' : '#7c8592',
+                      border: `var(--portal-border-emphasis) solid ${formMovimiento.tipo === 'SALIDA' ? '#b82d44' : '#e9eaed'}`
                     }}
                   >
                     <ArrowDown size={15} aria-hidden="true" /> Salida (Consumo / Tratamiento)
@@ -574,9 +574,9 @@ export default function InventarioPage({ user }) {
                     onClick={() => setFormMovimiento(prev => ({ ...prev, tipo: 'ENTRADA', subtipo: 'DONACION' }))}
                     style={{
                       flex: 1, padding: '10px', borderRadius: '8px', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
-                      background: formMovimiento.tipo === 'ENTRADA' ? '#eef3ec' : '#f8f9fa',
-                      color: formMovimiento.tipo === 'ENTRADA' ? '#2f5540' : '#7c8592',
-                      border: `var(--portal-border-emphasis) solid ${formMovimiento.tipo === 'ENTRADA' ? '#2f5540' : '#e9eaed'}`
+                      background: formMovimiento.tipo === 'ENTRADA' ? 'var(--portal-primary-soft)' : '#f8f9fa',
+                      color: formMovimiento.tipo === 'ENTRADA' ? 'var(--portal-primary-dark)' : '#7c8592',
+                      border: `var(--portal-border-emphasis) solid ${formMovimiento.tipo === 'ENTRADA' ? 'var(--portal-primary-dark)' : '#e9eaed'}`
                     }}
                   >
                     <ArrowUp size={15} aria-hidden="true" /> Entrada (Donación / Compra)
@@ -678,8 +678,8 @@ export default function InventarioPage({ user }) {
               {/* Advertencia visual en vivo si excede el saldo */}
               {formMovimiento.tipo === 'SALIDA' && insumoSeleccionado && Number(formMovimiento.cantidad) > insumoSeleccionado.stock && (
                 <div style={{
-                  padding: '10px 14px', borderRadius: '8px', background: '#fbeae8',
-                  border: 'var(--portal-border-emphasis) solid #d1453b', color: '#d1453b', fontSize: '0.82rem', fontWeight: '700', marginBottom: '14px'
+                  padding: '10px 14px', borderRadius: '8px', background: '#ffe4e6',
+                  border: 'var(--portal-border-emphasis) solid #b82d44', color: '#b82d44', fontSize: '0.82rem', fontWeight: '700', marginBottom: '14px'
                 }}>
                   <Siren size={14} aria-hidden="true" /> Saldo negativo prohibido: El stock actual es {insumoSeleccionado.stock} {insumoSeleccionado.unidad} y no se puede retirar {formMovimiento.cantidad}.
                 </div>
@@ -713,7 +713,7 @@ export default function InventarioPage({ user }) {
                   type="submit"
                   disabled={formMovimiento.tipo === 'SALIDA' && insumoSeleccionado && Number(formMovimiento.cantidad) > insumoSeleccionado.stock}
                   style={{
-                    background: formMovimiento.tipo === 'SALIDA' && insumoSeleccionado && Number(formMovimiento.cantidad) > insumoSeleccionado.stock ? '#ccc' : '#3f6c52',
+                    background: formMovimiento.tipo === 'SALIDA' && insumoSeleccionado && Number(formMovimiento.cantidad) > insumoSeleccionado.stock ? '#ccc' : 'var(--portal-primary)',
                     color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer'
                   }}
                 >
@@ -878,7 +878,7 @@ export default function InventarioPage({ user }) {
 
                 <Button cargando={insumoForm.isSubmitting}
                   type="submit"
-                  style={{ background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer' }}
+                  style={{ background: 'var(--portal-primary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer' }}
                 >
                   {insumoEditar ? 'Guardar Cambios' : 'Registrar Insumo'}
                 </Button>

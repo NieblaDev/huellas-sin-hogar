@@ -1,4 +1,4 @@
-export default function Logo({ size = 24, color = '#3f6c52' }) {
+export default function Logo({ size = 24, color = 'var(--portal-primary)' }) {
   return (
     <svg
       width={size}

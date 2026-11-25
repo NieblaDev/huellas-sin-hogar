@@ -147,6 +147,7 @@ enum EstadoAdopcion {
 }
 
 model Usuario {
+  lecturasNotificaciones LecturaNotificacion[]
   id                             Int                      @id @default(autoincrement())
   email                          String                   @unique @db.VarChar(120)
   password                       String                   @db.VarChar(255)
@@ -263,10 +264,11 @@ model Traslado {
   destinoContacto      String?        @db.VarChar(120)
   destinoDireccion     String?        @db.VarChar(200)
   destinoEmail         String?        @db.VarChar(254)
-  correoEstado         EstadoCorreoTraslado?
-  correoIntentos       Int            @default(0)
-  correoDisponibleEn   DateTime?
-  correoEnviadoEn      DateTime?
+  // Columnas históricas de envío, excluidas del cliente Prisma.
+  correoEstado         EstadoCorreoTraslado? @ignore
+  correoIntentos       Int            @default(0) @ignore
+  correoDisponibleEn   DateTime?      @ignore
+  correoEnviadoEn      DateTime?      @ignore
 
   responsableId        Int
   responsable          Usuario        @relation("TrasladoSolicitante", fields: [responsableId], references: [id], onDelete: Restrict)
@@ -675,6 +677,15 @@ model IntentoSeguimiento {
 
   @@index([seguimientoId, fecha])
   @@map("intentos_seguimiento")
+}
+
+model LecturaNotificacion {
+  usuarioId Int
+  clave     String  @db.VarChar(100)
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, clave])
+  @@map("lecturas_notificaciones")
 }
 
 model ConfiguracionSistema {

@@ -1,5 +1,5 @@
 /* Módulo de Adopciones: ventanas modales y filtros.
-   Usa la misma paleta del portal: #3f6c52 (primario), #e8f0e8 (suave) y #1f2430 (texto). */
+   Usa la misma paleta del portal: var(--portal-primary) (primario), var(--portal-primary-soft) (suave) y #1f2430 (texto). */
 
 .adop-modal-fondo {
   position: fixed;
@@ -73,7 +73,7 @@
   transition: background 0.15s, color 0.15s;
 }
 
-.adop-modal-cerrar:hover:not(:disabled) { background: var(--portal-primary-soft); color: #2f5540; }
+.adop-modal-cerrar:hover:not(:disabled) { background: var(--portal-primary-soft); color: var(--portal-primary-dark); }
 .adop-modal-cerrar:disabled { opacity: 0.5; cursor: not-allowed; }
 .adop-modal-cerrar:focus-visible { outline: 3px solid #3478c4; outline-offset: 2px; }
 
@@ -105,9 +105,7 @@
 @keyframes adopFondoEntrada { from { opacity: 0; } to { opacity: 1; } }
 @keyframes adopModalEntrada { from { opacity: 0; transform: translateY(8px) scale(0.99); } to { opacity: 1; transform: none; } }
 
-/* Campos uniformes dentro de filtros y modales de Adopciones */
-.adop-filtros-card .portal-input,
-.adop-filtros-card .portal-select,
+/* Campos de los modales de Adopciones */
 .adop-modal .portal-input,
 .adop-modal .portal-select,
 .adop-modal .portal-textarea {
@@ -122,8 +120,6 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.adop-filtros-card .portal-input,
-.adop-filtros-card .portal-select,
 .adop-modal .portal-input,
 .adop-modal .portal-select {
   height: 40px;
@@ -135,106 +131,47 @@
   line-height: 1.45;
 }
 
-.adop-filtros-card .portal-input:focus,
-.adop-filtros-card .portal-select:focus,
 .adop-modal .portal-input:focus,
 .adop-modal .portal-select:focus,
 .adop-modal .portal-textarea:focus {
   outline: none;
-  border-color: #3f6c52;
-  box-shadow: 0 0 0 3px rgba(63, 108, 82, 0.15);
+  border-color: var(--portal-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--portal-primary) 15%, transparent);
 }
 
-/* Barra de búsqueda y filtros equilibrada y centrada */
-.adop-filtros-card {
-  background: var(--portal-surface);
-  border: var(--portal-border-emphasis) solid #e9eaed;
-  border-radius: 14px;
-  padding: 20px 24px;
-  margin-bottom: 20px;
-}
-
-.adop-filtros {
+.portal-card.adop-cabecera-seguimientos {
   display: grid;
-  grid-template-columns: minmax(240px, 1.8fr) repeat(2, minmax(165px, 1fr)) repeat(2, minmax(148px, 0.9fr));
-  gap: 14px 16px;
-  align-items: end;
-  max-width: 1080px;
-  margin: 0 auto;
-}
-
-.adop-filtros-campo {
-  min-width: 0;
-}
-
-.adop-filtros-etiqueta {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #1f2430;
-  margin-bottom: 6px;
-}
-
-.adop-filtros-buscador {
-  position: relative;
-}
-
-.adop-filtros-buscador-icono {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #64748b;
-  pointer-events: none;
-}
-
-.adop-filtros-buscador .portal-input {
-  padding-left: 36px;
-}
-
-.adop-filtros-acciones {
-  display: flex;
-  justify-content: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  grid-template-areas: "titulo filtros";
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: var(--portal-border-emphasis) solid #f0f2f5;
+  gap: 12px 24px;
+  padding: 12px 16px;
+}
+
+.adop-titulo-seguimientos {
+  grid-area: titulo;
+  text-align: left;
 }
 
 .adop-filtros-seguimientos {
+  grid-area: filtros;
   display: grid;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
-  gap: 14px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
   align-items: end;
-  max-width: 680px;
-  margin: 0 auto;
 }
 
-@media (max-width: 1120px) {
-  .adop-filtros {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+@media (max-width: 960px) {
+  .portal-card.adop-cabecera-seguimientos {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "titulo" "filtros";
   }
-  .adop-filtros-campo-busqueda { grid-column: span 4; }
-  .adop-filtros-campo-estado { grid-column: span 2; }
-  .adop-filtros-campo-tercio { grid-column: span 2; }
 }
 
-@media (max-width: 640px) {
-  .adop-filtros-card {
-    padding: 16px;
-  }
-  .adop-filtros,
+@media (max-width: 480px) {
   .adop-filtros-seguimientos {
     grid-template-columns: 1fr;
   }
-  .adop-filtros-campo-busqueda,
-  .adop-filtros-campo-estado,
-  .adop-filtros-campo-tercio {
-    grid-column: span 1;
-  }
 }
 
-.adop-folio { font-family: ui-monospace, Menlo, monospace; font-size: 0.8rem; font-weight: 700; color: #2f5540; white-space: nowrap; }
-.adop-buscando { font-size: 0.78rem; font-weight: 600; color: #3f6c52; }
+.adop-folio { font-family: ui-monospace, Menlo, monospace; font-size: 0.8rem; font-weight: 700; color: var(--portal-primary-dark); white-space: nowrap; }

@@ -8,7 +8,29 @@ import Button from '../src/components/ui/Button.jsx';
 import Input from '../src/components/ui/Input.jsx';
 import Modal from '../src/components/ui/Modal.jsx';
 import AnimalFormModal from '../src/components/AnimalFormModal.jsx';
+import LoginPage from '../src/pages/LoginPage.jsx';
 import { loginSchema } from '../src/schemas/auth.schema.js';
+
+it('muestra y oculta la contraseña sin borrar el valor ni enviar el formulario', async () => {
+  const user = userEvent.setup();
+  render(<LoginPage onLoginSuccess={vi.fn()} />);
+  const password = screen.getByLabelText('Contraseña');
+  const submit = vi.fn(event => event.preventDefault());
+  password.form.addEventListener('submit', submit);
+
+  await user.clear(password);
+  await user.type(password, 'clave-de-prueba');
+  expect(password).toHaveAttribute('type', 'password');
+
+  await user.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
+  expect(password).toHaveAttribute('type', 'text');
+  expect(password).toHaveValue('clave-de-prueba');
+
+  await user.click(screen.getByRole('button', { name: 'Ocultar contraseña' }));
+  expect(password).toHaveAttribute('type', 'password');
+  expect(password).toHaveValue('clave-de-prueba');
+  expect(submit).not.toHaveBeenCalled();
+});
 
 function LoginDePrueba({ onSubmit }) {
   const { register, handleSubmit, formState: { errors }, setFocus } = useForm({

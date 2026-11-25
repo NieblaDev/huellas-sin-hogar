@@ -57,7 +57,7 @@ export default function CuidadosPage({ user }) {
     cuidadoForm.cambiar('animalId', id);
   };
 
-  const tienePermisoMedico = ['PERSONAL_VETERINARIO', 'DIRECCION'].includes(user?.rol);
+  const tienePermisoMedico = user?.rol === 'PERSONAL_VETERINARIO';
 
   useEffect(() => {
     cargarInicial();
@@ -155,10 +155,10 @@ export default function CuidadosPage({ user }) {
   };
 
   const criticidadEstilos = {
-    CRITICA: { bg: '#fbeae8', border: '#e57373', text: '#b71c1c', badge: 'CRITICIDAD CRÍTICA', Icono: CircleAlert },
+    CRITICA: { bg: '#ffe4e6', border: '#e57373', text: '#b71c1c', badge: 'CRITICIDAD CRÍTICA', Icono: CircleAlert },
     ALTA: { bg: '#fff3e0', border: '#ffb74d', text: '#e65100', badge: 'CRITICIDAD ALTA', Icono: CircleAlert },
     MEDIA: { bg: '#fffbf2', border: '#fae2b8', text: '#b7791f', badge: 'CRITICIDAD MEDIA', Icono: Circle },
-    BAJA: { bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d', badge: 'CRITICIDAD BAJA', Icono: CircleCheck }
+    BAJA: { bg: 'var(--portal-surface-muted)', border: 'var(--portal-primary-active)', text: 'var(--portal-primary-dark)', badge: 'CRITICIDAD BAJA', Icono: CircleCheck }
   };
 
   const contextoLabel = {
@@ -269,7 +269,7 @@ export default function CuidadosPage({ user }) {
                   </div>
 
                   <div style={{ background: 'var(--portal-surface-muted)', padding: '10px 12px', borderRadius: '8px', border: 'var(--portal-border-emphasis) solid #f0f1f3', margin: '10px 0' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#3f6c52', fontWeight: '700', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--portal-primary)', fontWeight: '700', marginBottom: '4px' }}>
                       {contextoLabel[t.contexto] || t.contexto} · Vigente hasta {new Date(t.fechaFin).toLocaleDateString()}
                     </div>
                     <strong style={{ fontSize: '0.88rem', color: '#1f2430', display: 'block', marginBottom: '4px' }}>{t.titulo}</strong>
@@ -282,7 +282,7 @@ export default function CuidadosPage({ user }) {
 
                   <div style={{ marginTop: 'auto', borderTop: 'var(--portal-border-emphasis) solid #f0f1f3', paddingTop: '12px' }}>
                     {t.atendidoHoy ? (
-                      <div style={{ background: 'var(--portal-primary-soft)', color: '#2f5540', padding: '8px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '700' }}>
+                      <div style={{ background: 'var(--portal-primary-soft)', color: 'var(--portal-primary-dark)', padding: '8px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '700' }}>
                         ✓ Cumplida por {t.detalleAtencion.por} ({new Date(t.detalleAtencion.hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
                       </div>
                     ) : (
@@ -290,7 +290,7 @@ export default function CuidadosPage({ user }) {
                         onClick={() => abrirCumplimiento(t.id)}
                         style={{
                           width: '100%', padding: '9px', borderRadius: '8px', border: 'none', fontWeight: '700',
-                          cursor: 'pointer', background: '#3f6c52', color: '#fff'
+                          cursor: 'pointer', background: 'var(--portal-primary)', color: '#fff'
                         }}
                       >
                         Marcar Cumplimiento en Turno
@@ -312,7 +312,7 @@ export default function CuidadosPage({ user }) {
             <label style={{ fontSize: '0.85rem', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
               Seleccionar Animal con Ficha Activa:
             </label>
-            <div style={{ maxWidth: '380px' }}>
+            <div>
               <AnimalSelect
                 animales={animales}
                 value={selectedAnimalId}
@@ -338,7 +338,7 @@ export default function CuidadosPage({ user }) {
                   <div key={ind.id} style={{ background: 'var(--portal-surface-muted)', padding: '14px', borderRadius: '10px', marginBottom: '12px', border: 'var(--portal-border-emphasis) solid var(--portal-border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                       <strong>{ind.titulo}</strong>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#3f6c52' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-primary)' }}>
                         {ind.criticidad} · {contextoLabel[ind.contexto] || ind.contexto}
                       </span>
                     </div>
@@ -356,7 +356,7 @@ export default function CuidadosPage({ user }) {
 
       {/* PESTAÑA 3: FORMULARIO DE CUIDADOS (SOLO PERMISOS MÉDICOS AUTORIZADOS) */}
       {tabCuidados === 'nuevo' && tienePermisoMedico && (
-        <form noValidate onSubmit={cuidadoForm.handleSubmit(handleCrearIndicacion)} style={{ background: 'var(--portal-surface)', borderRadius: '14px', padding: '24px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', maxWidth: '640px' }}>
+        <form noValidate onSubmit={cuidadoForm.handleSubmit(handleCrearIndicacion)} style={{ background: 'var(--portal-surface)', borderRadius: '14px', padding: '24px', border: 'var(--portal-border-emphasis) solid var(--portal-border)' }}>
           <h3 style={{ margin: '0 0 16px', color: '#1f2430' }}>Formulario de Cuidados e Indicaciones Operativas</h3>
 
           <div style={{ marginBottom: '14px' }}>
@@ -475,7 +475,7 @@ export default function CuidadosPage({ user }) {
             />
           </div>
 
-          <Button cargando={cuidadoForm.isSubmitting} type="submit" style={{ background: '#3f6c52', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer' }}>
+          <Button cargando={cuidadoForm.isSubmitting} type="submit" style={{ background: 'var(--portal-primary)', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer' }}>
             Registrar y Publicar en Turno
           </Button>
         </form>
@@ -508,7 +508,7 @@ export default function CuidadosPage({ user }) {
               </Button>
               <Button
                 type="submit" cargando={cumplimientoForm.isSubmitting}
-                style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#3f6c52', color: '#fff', fontWeight: '700', cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'var(--portal-primary)', color: '#fff', fontWeight: '700', cursor: 'pointer' }}
               >
                 Confirmar
               </Button>

@@ -17,8 +17,8 @@ it('calcula días y URLs públicas',()=>{
   expect(urlCanil(1)).toBe(location.origin+'/caniles/1'); vi.unstubAllEnvs();
 });
 it('valida destinos del mapa',()=>{
-  expect(destinoInvalido(animales[0],c)).toBe('');
-  for (const cambio of [{estado:'MANTENIMIENTO'},{estado:'CUARENTENA'},{ocupacion:{libres:0}},{tipo:'Gato'}])
+  expect(destinoInvalido(animales[0], { ...c, tipo: 'Gato' })).toBe('');
+  for (const cambio of [{estado:'MANTENIMIENTO'},{estado:'CUARENTENA'},{ocupacion:{libres:0}}])
     expect(destinoInvalido(animales[0],{...c,...cambio})).toBeTruthy();
 });
 it('muestra cupos, nombres y días en la tarjeta grupal',()=>{

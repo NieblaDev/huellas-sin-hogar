@@ -18,7 +18,7 @@ router.get('/animal/:animalId', validate(animalIdParamSchema, 'params'), cuidado
 // Registro de indicaciones de cuidado: SOLO personal con permisos médicos autorizados
 router.post(
   '/indicaciones',
-  requireRole('PERSONAL_VETERINARIO', 'DIRECCION'),
+  requireRole('PERSONAL_VETERINARIO'),
   validate(crearIndicacionSchema),
   cuidadosCtrl.crearIndicacion
 );

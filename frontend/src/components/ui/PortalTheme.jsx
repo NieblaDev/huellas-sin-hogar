@@ -4,10 +4,10 @@ import CssBaseline from '@mui/material/CssBaseline';
 
 const theme = createTheme({
   palette: {
-    primary: { main: '#3f6c52' },
+    primary: { main: '#447913' },
     error: { main: '#b43730' },
-    background: { default: '#f4f6f8', paper: '#ffffff' },
-    text: { primary: '#1a2420', secondary: '#4f5d66' },
+    background: { default: '#f7f8f2', paper: '#ffffff' },
+    text: { primary: '#202b1a', secondary: '#505e4a' },
     divider: '#e8ebef'
   },
   typography: { fontFamily: 'inherit' },

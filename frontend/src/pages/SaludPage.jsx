@@ -206,7 +206,7 @@ export default function SaludPage({ user }) {
           
           {/* 1. Vencidos (Vacunas y Tratamientos) */}
           <div style={{ background: 'var(--portal-surface)', borderRadius: '14px', border: 'var(--portal-border-emphasis) solid #f3c9c4', padding: '18px' }}>
-            <h3 style={{ color: '#d1453b', margin: '0 0 12px', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <h3 style={{ color: '#b82d44', margin: '0 0 12px', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <CircleX size={17} aria-hidden="true" /> Vencidos ({alertas?.vencidas?.length || 0})
             </h3>
             {alertas?.vencidas?.length === 0 ? (
@@ -215,7 +215,7 @@ export default function SaludPage({ user }) {
               alertas?.vencidas?.map(item => (
                 <div key={item.id} style={{ padding: '10px 12px', background: '#fdf3f2', borderRadius: '8px', marginBottom: '8px' }}>
                   <Button className="bienestar-enlace-animal" aria-label={`Ver historial de ${item.animal.nombre}`} onClick={() => verHistorialAnimal(item.animal.id)}>{item.animal.nombre} ({item.animal.especie})</Button>
-                  <div style={{ fontSize: '0.82rem', color: '#d1453b', fontWeight: '600' }}>{item.tipo}: {item.titulo}</div>
+                  <div style={{ fontSize: '0.82rem', color: '#b82d44', fontWeight: '600' }}>{item.tipo}: {item.titulo}</div>
                   <div style={{ fontSize: '0.74rem', color: 'var(--portal-text-muted)' }}>{item.subtitulo} · Venció: {new Date(item.fecha).toLocaleDateString()}</div>
                 </div>
               ))
@@ -241,7 +241,7 @@ export default function SaludPage({ user }) {
           </div>
 
           {/* 3. Refuerzo Requerido */}
-          <div style={{ background: 'var(--portal-surface)', borderRadius: '14px', border: 'var(--portal-border-emphasis) solid #bfdbfe', padding: '18px' }}>
+          <div style={{ background: 'var(--portal-surface)', borderRadius: '14px', border: 'var(--portal-border-emphasis) solid #a5caff', padding: '18px' }}>
             <h3 style={{ color: '#2563eb', margin: '0 0 12px', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <RefreshCw size={17} aria-hidden="true" /> Refuerzo Requerido ({alertas?.refuerzoRequerido?.length || 0})
             </h3>
@@ -249,7 +249,7 @@ export default function SaludPage({ user }) {
               <p style={{ color: 'var(--portal-text-muted)', fontSize: '0.85rem' }}>Sin refuerzos pendientes.</p>
             ) : (
               alertas?.refuerzoRequerido?.map(item => (
-                <div key={item.id} style={{ padding: '10px 12px', background: '#eff6ff', borderRadius: '8px', marginBottom: '8px' }}>
+                <div key={item.id} style={{ padding: '10px 12px', background: '#e3efff', borderRadius: '8px', marginBottom: '8px' }}>
                   <Button className="bienestar-enlace-animal" aria-label={`Ver historial de ${item.animal.nombre}`} onClick={() => verHistorialAnimal(item.animal.id)}>{item.animal.nombre} ({item.animal.especie})</Button>
                   <div style={{ fontSize: '0.82rem', color: '#2563eb', fontWeight: '600' }}>{item.titulo}</div>
                   <div style={{ fontSize: '0.74rem', color: 'var(--portal-text-muted)' }}>{item.subtitulo} · Fecha límite: {new Date(item.fecha).toLocaleDateString()}</div>
@@ -268,7 +268,7 @@ export default function SaludPage({ user }) {
             <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1f2430', display: 'block', marginBottom: '6px' }}>
               Seleccionar Animal Activo:
             </label>
-            <div style={{ maxWidth: '380px' }}>
+            <div>
               <AnimalSelect
                 animales={animales}
                 value={selectedAnimalId}
@@ -289,7 +289,7 @@ export default function SaludPage({ user }) {
                 Historial de {historial.animal.nombre}
               </h3>
               
-              <h4 style={{ margin: '14px 0 8px', color: '#3f6c52', display: 'flex', alignItems: 'center', gap: '6px' }}><Syringe size={16} aria-hidden="true" /> Vacunas Registradas:</h4>
+              <h4 style={{ margin: '14px 0 8px', color: 'var(--portal-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}><Syringe size={16} aria-hidden="true" /> Vacunas Registradas:</h4>
               {historial.vacunas.length === 0 ? (
                 <p style={{ fontSize: '0.85rem', color: 'var(--portal-text-muted)' }}>Sin vacunas registradas en la ficha.</p>
               ) : (
@@ -302,7 +302,7 @@ export default function SaludPage({ user }) {
                 </ul>
               )}
 
-              <h4 style={{ margin: '20px 0 8px', color: '#3f6c52', display: 'flex', alignItems: 'center', gap: '6px' }}><Stethoscope size={16} aria-hidden="true" /> Atenciones Médicas y Revisiones:</h4>
+              <h4 style={{ margin: '20px 0 8px', color: 'var(--portal-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}><Stethoscope size={16} aria-hidden="true" /> Atenciones Médicas y Revisiones:</h4>
               {historial.atenciones.length === 0 ? (
                 <p style={{ fontSize: '0.85rem', color: 'var(--portal-text-muted)' }}>Sin atenciones médicas previas.</p>
               ) : (
@@ -327,7 +327,7 @@ export default function SaludPage({ user }) {
 
       {/* PESTAÑA 3: FORMULARIO REGISTRAR VACUNA */}
       {tabSalud === 'nueva_vacuna' && (
-        <form noValidate onSubmit={formularioVacuna.handleSubmit(handleGuardarVacuna)} style={{ background: 'var(--portal-surface)', borderRadius: '14px', padding: '24px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', maxWidth: '600px' }}>
+        <form noValidate onSubmit={formularioVacuna.handleSubmit(handleGuardarVacuna)} style={{ background: 'var(--portal-surface)', borderRadius: '14px', padding: '24px', border: 'var(--portal-border-emphasis) solid var(--portal-border)'}}>
           <h3 style={{ margin: '0 0 16px', color: '#1f2430' }}>Registro de Vacuna (Dosis Válida)</h3>
           
           <div style={{ marginBottom: '14px' }}>
@@ -389,7 +389,7 @@ export default function SaludPage({ user }) {
             />
           </div>
 
-          <Button cargando={formularioVacuna.isSubmitting} type="submit" style={{ background: '#3f6c52', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer' }}>
+          <Button cargando={formularioVacuna.isSubmitting} type="submit" style={{ background: 'var(--portal-primary)', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer' }}>
             Guardar Vacuna en Ficha
           </Button>
         </form>
@@ -397,7 +397,7 @@ export default function SaludPage({ user }) {
 
       {/* PESTAÑA 4: FORMULARIO REGISTRAR ATENCIÓN */}
       {tabSalud === 'nueva_atencion' && (
-        <form noValidate onSubmit={formularioAtencion.handleSubmit(handleGuardarAtencion)} style={{ background: 'var(--portal-surface)', borderRadius: '14px', padding: '24px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', maxWidth: '600px' }}>
+        <form noValidate onSubmit={formularioAtencion.handleSubmit(handleGuardarAtencion)} style={{ background: 'var(--portal-surface)', borderRadius: '14px', padding: '24px', border: 'var(--portal-border-emphasis) solid var(--portal-border)'}}>
           <h3 style={{ margin: '0 0 16px', color: '#1f2430' }}>Consulta y Revisión Clínica Estructurada</h3>
 
           <div style={{ marginBottom: '14px' }}>
@@ -460,7 +460,7 @@ export default function SaludPage({ user }) {
             </div>
           </div>
 
-          <Button cargando={formularioAtencion.isSubmitting} type="submit" style={{ background: '#3f6c52', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer' }}>
+          <Button cargando={formularioAtencion.isSubmitting} type="submit" style={{ background: 'var(--portal-primary)', color: '#fff', padding: '10px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer' }}>
             Guardar Ficha Clínica
           </Button>
         </form>

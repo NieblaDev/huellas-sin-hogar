@@ -1,16 +1,20 @@
+import PatronHuellas from '../components/PatronHuellas.jsx';
 import Button from '../components/ui/Button.jsx';
+import IconButton from '@mui/material/IconButton';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema } from '../schemas/auth.schema.js';
 import Input from '../components/ui/Input.jsx';
 import { formatearErrorApi } from '../utils/errores';
 import React, { useState } from 'react';
-import { Crown, Handshake, Star, Stethoscope, Wrench } from 'lucide-react';
+import { Crown, Eye, EyeOff, Handshake, House, Star, Stethoscope, Wrench } from 'lucide-react';
 import { iniciarSesion } from '../services/auth.service.js';
 import Logo from '../components/Logo';
 
 export default function LoginPage({ onLoginSuccess }) {
   const [error, setError] = useState(null);
+  const [mostrarContrasena, setMostrarContrasena] = useState(false);
+  const etiquetaVisibilidad = mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña';
   const { register, handleSubmit, reset, formState: { errors, isSubmitting: cargando } } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: import.meta.env.DEV ? { email: 'directora@huellas.cl', password: 'admin123' } : { email: '', password: '' }
@@ -22,24 +26,32 @@ export default function LoginPage({ onLoginSuccess }) {
       Icono: Crown,
       email: 'directora@huellas.cl',
       password: 'admin123',
-      color: '#3f6c52',
-      bg: '#e8f0e8'
+      color: 'var(--portal-primary)',
+      bg: 'var(--portal-primary-soft)'
     },
     {
       titulo: 'Personal veterinario',
       Icono: Stethoscope,
       email: 'veterinaria@huellas.cl',
       password: 'admin123',
-      color: '#2f5540',
-      bg: '#eef3ec'
+      color: 'var(--portal-primary-dark)',
+      bg: 'var(--portal-primary-soft)'
+    },
+    {
+      titulo: 'Adopciones',
+      Icono: House,
+      email: 'adopciones@huellas.cl',
+      password: 'admin123',
+      color: '#6b3e84',
+      bg: '#f2e3ff'
     },
     {
       titulo: 'Voluntariado avanzado',
       Icono: Star,
       email: 'voluntario.avanzado@huellas.cl',
       password: 'admin123',
-      color: '#b37416',
-      bg: '#faf1de'
+      color: '#895100',
+      bg: '#fff0ca'
     },
     {
       titulo: 'Voluntariado inicial',
@@ -47,7 +59,7 @@ export default function LoginPage({ onLoginSuccess }) {
       email: 'voluntario@huellas.cl',
       password: 'admin123',
       color: '#4550c0',
-      bg: '#edeffb'
+      bg: '#e5e8ff'
     }
   ] : [];
 
@@ -71,7 +83,8 @@ export default function LoginPage({ onLoginSuccess }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '85vh', padding: '20px' }}>
+    <div className="portal-login">
+      <PatronHuellas />
       <form noValidate onSubmit={handleSubmit(handleLogin)} style={{
         background: 'var(--portal-surface)', padding: '32px', borderRadius: '18px', border: 'var(--portal-border-emphasis) solid var(--portal-border)',
         boxShadow: '0 8px 24px rgba(20,24,32,.06)', width: '100%', maxWidth: '420px', boxSizing: 'border-box'
@@ -88,7 +101,7 @@ export default function LoginPage({ onLoginSuccess }) {
         </div>
 
         {error && (
-          <div style={{ background: '#fbeae8', color: '#d1453b', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '16px', border: 'var(--portal-border-emphasis) solid #f3c9c4' }}>
+          <div style={{ background: '#ffe4e6', color: '#b82d44', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '16px', border: 'var(--portal-border-emphasis) solid #f3c9c4' }}>
             {error}
           </div>
         )}
@@ -97,14 +110,35 @@ export default function LoginPage({ onLoginSuccess }) {
           <Input label="Correo electrónico" type="email" autoComplete="username" error={errors.email} {...register('email')} />
         </div>
         <div style={{ marginBottom: '20px' }}>
-          <Input label="Contraseña" type="password" autoComplete="current-password" error={errors.password} {...register('password')} />
+          <Input
+            id="login-password"
+            label="Contraseña"
+            type={mostrarContrasena ? 'text' : 'password'}
+            autoComplete="current-password"
+            error={errors.password}
+            {...register('password')}
+            endAdornment={
+              <IconButton
+                type="button"
+                edge="end"
+                aria-label={etiquetaVisibilidad}
+                title={etiquetaVisibilidad}
+                aria-controls="login-password"
+                onMouseDown={event => event.preventDefault()}
+                onClick={() => setMostrarContrasena(valor => !valor)}
+                sx={{ color: 'var(--portal-text-muted)' }}
+              >
+                {mostrarContrasena ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
+              </IconButton>
+            }
+          />
         </div>
 
         <Button
           type="submit"
           cargando={cargando}
           style={{
-            width: '100%', background: '#3f6c52', color: '#fff', border: 'none', padding: '12px',
+            width: '100%', background: 'var(--portal-primary)', color: '#fff', border: 'none', padding: '12px',
             borderRadius: '9px', fontWeight: '700', fontSize: '0.92rem', cursor: 'pointer', transition: 'opacity .15s'
           }}
         >
@@ -132,7 +166,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 style={{
                   background: role.bg,
                   color: role.color,
-                  border: `var(--portal-border-emphasis) solid ${role.color}33`,
+                  border: `var(--portal-border-emphasis) solid color-mix(in srgb, ${role.color} 20%, transparent)`,
                   borderRadius: '8px',
                   padding: '9px 10px',
                   fontSize: '0.78rem',

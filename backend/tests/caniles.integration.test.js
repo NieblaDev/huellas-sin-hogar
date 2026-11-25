@@ -42,12 +42,13 @@ const crearCanil = (codigo,capacidad,tipo='Perro',estado='LIBRE') => db.canil.cr
 const crearAnimal = (nombre,especie='Perro') => db.animal.create({data:{nombre,especie,sexo:'Hembra',edad:'2 años'}});
 const asignar = (c,a,extra={}) => pedir('/asignar','POST',{canilId:c.id,animalId:a?.id,...extra});
 
-test('el grupo valida especie, mantenimiento, último cupo concurrente y liberación',async () => {
+test('el grupo acepta especies distintas y valida mantenimiento, cupo concurrente y liberación',async () => {
   const c=await crearCanil('Grupo',2), m=await crearCanil('Taller',1,'Mixto','MANTENIMIENTO');
   const [a,b,d,gato]=await Promise.all([crearAnimal('A'),crearAnimal('B'),crearAnimal('D'),crearAnimal('G','Gato')]);
   assert.equal((await asignar(m,a)).status,409);
-  assert.equal((await asignar(c,gato)).status,409);
+  assert.equal((await asignar(c,gato)).status,200);
   assert.equal((await asignar(c,a)).status,200);
+  assert.equal((await asignar(c,gato,{estado:'LIBRE'})).status,200);
   const carrera=await Promise.all([asignar(c,b),asignar(c,d)]);
   assert.deepEqual(carrera.map(r=>r.status).sort(),[200,409]);
   assert.equal((await pedir('/'+c.id,'PUT',{capacidad:1})).status,409);
@@ -58,15 +59,32 @@ test('el grupo valida especie, mantenimiento, último cupo concurrente y liberac
   await asignar(c,a);
   assert.equal((await asignar(c,null,{estado:'LIBRE',confirmarLiberacionMultiple:true})).data.canil.estado,'LIBRE');
 });
+test('la nota se guarda y se muestra durante la mantención', async () => {
+  const canil = await crearCanil('Mantención con nota', 1);
+  const ruta = '/' + canil.id;
+  await db.canil.update({ where: { id: canil.id }, data: { notas: 'Nota general antigua' } });
+  assert.equal((await pedir(ruta, 'GET')).data.notaMantencion, null);
+  assert.equal((await pedir(ruta, 'PUT', { notas: 'Nota general' })).status, 400);
+  assert.equal((await asignar(canil, null, { estado: 'LIBRE', notaMantencion: 'Reparación' })).status, 400);
+  const inicio = await asignar(canil, null, { estado: 'MANTENIMIENTO', notaMantencion: '  Cambiar pestillo  ' });
+  assert.equal(inicio.status, 200);
+  assert.equal(inicio.data.canil.notaMantencion, 'Cambiar pestillo');
+  const edicion = await asignar(canil, null, { estado: 'MANTENIMIENTO', notaMantencion: 'Pintar la puerta' });
+  assert.equal(edicion.data.canil.notaMantencion, 'Pintar la puerta');
+  assert.equal((await asignar(canil, null, { estado: 'LIBRE' })).data.canil.notaMantencion, null);
+  assert.equal((await asignar(canil, null, { estado: 'MANTENIMIENTO' })).data.canil.notaMantencion, null);
+});
+
 test('cuarentena individual, fecha, duplicados, permiso y cierre',async () => {
   const c=await crearCanil('Individual',1), grupo=await crearCanil('Camada',3);
   const a=await crearAnimal('Mora');
   const q={estado:'CUARENTENA',motivo:'Observación',fechaFinEstimada:new Date(Date.now()+86400000).toISOString()};
   assert.equal((await asignar(grupo,a,q)).status,409);
   assert.equal((await asignar(c,a,{estado:'CUARENTENA'})).status,400);
-  const inicio=await asignar(c,a,q);
+  const inicio=await asignar(c,a,{...q,observaciones:'Revisar mañana'});
   assert.equal(inicio.status,200);
   assert.equal(inicio.data.cuarentena.canilId,c.id);
+  assert.equal(inicio.data.cuarentena.observaciones,'Revisar mañana');
   assert.equal(inicio.data.canil.estado,'CUARENTENA');
   assert.equal((await asignar(c,a,q)).status,409);
   assert.equal((await asignar(grupo,a)).status,409);
@@ -75,6 +93,7 @@ test('cuarentena individual, fecha, duplicados, permiso y cierre',async () => {
   const fin=await pedir(ruta,'POST',{observaciones:'Alta'});
   assert.equal(fin.data.cuarentena.estado,'FINALIZADA');
   assert.ok(fin.data.cuarentena.fechaFinReal);
+  assert.equal(fin.data.cuarentena.observaciones,'Revisar mañana\nAlta');
   assert.equal(fin.data.canil.estado,'OCUPADO');
 });
 test('historial conserva dos estadías y pagina sin duplicar movimientos',async () => {

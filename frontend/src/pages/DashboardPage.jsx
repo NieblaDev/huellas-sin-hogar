@@ -101,7 +101,6 @@ export default function DashboardPage({ user, onNavigate }) {
       <div className="portal-header">
         <div>
           <h2 className="portal-header-title">
-            <Hand size={26} aria-hidden="true" />
             <span>¡Hola, {user?.nombre || "Equipo"}!</span>
           </h2>
           <p className="portal-header-subtitle">
@@ -125,8 +124,8 @@ export default function DashboardPage({ user, onNavigate }) {
             title="Avisos prioritarios del refugio"
             style={{
               position: "relative",
-              background: avisosOpen ? "#eef3ec" : "#fff",
-              border: `var(--portal-border-emphasis) solid ${avisosOpen ? "#3f6c52" : "#e9eaed"}`,
+              background: avisosOpen ? "var(--portal-primary-soft)" : "#fff",
+              border: `var(--portal-border-emphasis) solid ${avisosOpen ? "var(--portal-primary)" : "#e9eaed"}`,
               borderRadius: "8px",
               width: "40px",
               height: "40px",
@@ -148,7 +147,7 @@ export default function DashboardPage({ user, onNavigate }) {
                   height: "18px",
                   padding: "0 4px",
                   borderRadius: "9px",
-                  background: "#d1453b",
+                  background: "#b82d44",
                   color: "#fff",
                   fontSize: "0.68rem",
                   fontWeight: "800",
@@ -244,21 +243,21 @@ export default function DashboardPage({ user, onNavigate }) {
                       {alertasPrioritarias.map((alerta, idx) => {
                         const bg =
                           alerta.tipo === "CRITICA"
-                            ? "#fbeae8"
+                            ? "#ffe4e6"
                             : alerta.tipo === "ALERTA"
-                              ? "#faf1de"
-                              : "#edeffb";
+                              ? "#fff0ca"
+                              : "#e5e8ff";
                         const border =
                           alerta.tipo === "CRITICA"
-                            ? "#d1453b"
+                            ? "#b82d44"
                             : alerta.tipo === "ALERTA"
                               ? "#d99a3d"
                               : "#6570e0";
                         const color =
                           alerta.tipo === "CRITICA"
-                            ? "#d1453b"
+                            ? "#b82d44"
                             : alerta.tipo === "ALERTA"
-                              ? "#b37416"
+                              ? "#895100"
                               : "#4550c0";
 
                         return (
@@ -338,10 +337,10 @@ export default function DashboardPage({ user, onNavigate }) {
           onClick={() => onNavigate && onNavigate("animales")}
           style={{
             background: "var(--portal-surface)",
-            border: "var(--portal-border-emphasis) solid #3f6c52",
+            border: "var(--portal-border-emphasis) solid var(--portal-primary)",
             borderRadius: "16px",
             padding: "20px",
-            boxShadow: "0 4px 14px rgba(63,108,82,0.08)",
+            boxShadow: "0 4px 14px color-mix(in srgb, var(--portal-primary) 8%, transparent)",
             cursor: "pointer",
             transition: "transform 0.15s",
           }}
@@ -365,7 +364,7 @@ export default function DashboardPage({ user, onNavigate }) {
                 fontSize: "0.74rem",
                 fontWeight: "800",
                 textTransform: "uppercase",
-                color: "#3f6c52",
+                color: "var(--portal-primary)",
                 letterSpacing: "0.04em",
               }}
             >
@@ -377,7 +376,7 @@ export default function DashboardPage({ user, onNavigate }) {
                 height: "38px",
                 borderRadius: "10px",
                 background: "var(--portal-primary-soft)",
-                color: "#3f6c52",
+                color: "var(--portal-primary)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -409,7 +408,7 @@ export default function DashboardPage({ user, onNavigate }) {
           onClick={() => onNavigate && onNavigate("caniles")}
           style={{
             background: "var(--portal-surface)",
-            border: "var(--portal-border-emphasis) solid #d1453b",
+            border: "var(--portal-border-emphasis) solid #b82d44",
             borderRadius: "16px",
             padding: "20px",
             boxShadow: "0 4px 14px rgba(209,69,59,0.08)",
@@ -436,7 +435,7 @@ export default function DashboardPage({ user, onNavigate }) {
                 fontSize: "0.74rem",
                 fontWeight: "800",
                 textTransform: "uppercase",
-                color: "#d1453b",
+                color: "#b82d44",
                 letterSpacing: "0.04em",
               }}
             >
@@ -447,8 +446,8 @@ export default function DashboardPage({ user, onNavigate }) {
                 width: "38px",
                 height: "38px",
                 borderRadius: "10px",
-                background: "#fbeae8",
-                color: "#d1453b",
+                background: "#ffe4e6",
+                color: "#b82d44",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -462,7 +461,7 @@ export default function DashboardPage({ user, onNavigate }) {
             style={{
               fontSize: "2.4rem",
               fontWeight: "800",
-              color: "#d1453b",
+              color: "#b82d44",
               lineHeight: 1,
             }}
           >
@@ -489,10 +488,10 @@ export default function DashboardPage({ user, onNavigate }) {
         <div
           onClick={() => onNavigate && onNavigate("caniles")}
           style={{
-            background: resumen.alertaSobrecupo ? "#fbeae8" : "#fff",
+            background: resumen.alertaSobrecupo ? "#ffe4e6" : "#fff",
             border: resumen.alertaSobrecupo
-              ? "var(--portal-border-emphasis) solid #d1453b"
-              : "var(--portal-border-emphasis) solid #3f6c52",
+              ? "var(--portal-border-emphasis) solid #b82d44"
+              : "var(--portal-border-emphasis) solid var(--portal-primary)",
             borderRadius: "16px",
             padding: "20px",
             boxShadow: "0 4px 14px rgba(20,24,32,0.06)",
@@ -519,7 +518,7 @@ export default function DashboardPage({ user, onNavigate }) {
                 fontSize: "0.74rem",
                 fontWeight: "800",
                 textTransform: "uppercase",
-                color: resumen.alertaSobrecupo ? "#d1453b" : "#3f6c52",
+                color: resumen.alertaSobrecupo ? "#b82d44" : "var(--portal-primary)",
                 letterSpacing: "0.04em",
               }}
             >
@@ -530,8 +529,8 @@ export default function DashboardPage({ user, onNavigate }) {
                 width: "38px",
                 height: "38px",
                 borderRadius: "10px",
-                background: resumen.alertaSobrecupo ? "#d1453b" : "#e8f0e8",
-                color: resumen.alertaSobrecupo ? "#fff" : "#3f6c52",
+                background: resumen.alertaSobrecupo ? "#b82d44" : "var(--portal-primary-soft)",
+                color: resumen.alertaSobrecupo ? "#fff" : "var(--portal-primary)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -545,7 +544,7 @@ export default function DashboardPage({ user, onNavigate }) {
             style={{
               fontSize: "2.4rem",
               fontWeight: "800",
-              color: resumen.alertaSobrecupo ? "#d1453b" : "#1f2430",
+              color: resumen.alertaSobrecupo ? "#b82d44" : "#1f2430",
               lineHeight: 1,
             }}
           >
@@ -554,7 +553,7 @@ export default function DashboardPage({ user, onNavigate }) {
           <div
             style={{
               fontSize: "0.78rem",
-              color: resumen.alertaSobrecupo ? "#d1453b" : "#7c8592",
+              color: resumen.alertaSobrecupo ? "#b82d44" : "#7c8592",
               marginTop: "8px",
               fontWeight: resumen.alertaSobrecupo ? "700" : "400",
             }}
@@ -623,7 +622,7 @@ export default function DashboardPage({ user, onNavigate }) {
             style={{
               fontSize: "2.4rem",
               fontWeight: "800",
-              color: resumen.stockCriticoCount > 0 ? "#d1453b" : "#1f2430",
+              color: resumen.stockCriticoCount > 0 ? "#b82d44" : "#1f2430",
               lineHeight: 1,
             }}
           >
@@ -670,7 +669,7 @@ export default function DashboardPage({ user, onNavigate }) {
                 fontSize: "0.74rem",
                 fontWeight: "800",
                 textTransform: "uppercase",
-                color: "#b37416",
+                color: "#895100",
                 letterSpacing: "0.04em",
               }}
             >
@@ -681,7 +680,7 @@ export default function DashboardPage({ user, onNavigate }) {
                 width: "38px",
                 height: "38px",
                 borderRadius: "10px",
-                background: "#faf1de",
+                background: "#fff0ca",
                 color: "#d99a3d",
                 display: "flex",
                 alignItems: "center",
@@ -697,7 +696,7 @@ export default function DashboardPage({ user, onNavigate }) {
               fontSize: "2.4rem",
               fontWeight: "800",
               color:
-                resumen.turnosDescubiertosCount > 0 ? "#d99a3d" : semanaSinTurnos ? "#64748b" : "#3f6c52",
+                resumen.turnosDescubiertosCount > 0 ? "#d99a3d" : semanaSinTurnos ? "#64748b" : "var(--portal-primary)",
               lineHeight: 1,
             }}
           >
@@ -783,7 +782,7 @@ export default function DashboardPage({ user, onNavigate }) {
                   width: `${Math.min(resumen.ocupacionPorcentaje, 100)}%`,
                   height: "100%",
                   background:
-                    resumen.ocupacionPorcentaje > 90 ? "#d1453b" : "#3f6c52",
+                    resumen.ocupacionPorcentaje > 90 ? "#b82d44" : "var(--portal-primary)",
                   transition: "width 0.5s ease",
                 }}
               />
@@ -866,9 +865,9 @@ export default function DashboardPage({ user, onNavigate }) {
                 CRITICO: "Crítico",
               };
               const colorMap = {
-                NORMAL: "#3f6c52",
+                NORMAL: "var(--portal-primary)",
                 CONDICION_ESPECIAL: "#d99a3d",
-                CRITICO: "#d1453b",
+                CRITICO: "#b82d44",
               };
               const pct =
                 resumen.animalesAlbergados > 0
@@ -945,7 +944,7 @@ export default function DashboardPage({ user, onNavigate }) {
             <div
               style={{
                 fontSize: "0.82rem",
-                color: "#3f6c52",
+                color: "var(--portal-primary)",
                 padding: "12px",
                 background: "var(--portal-primary-soft)",
                 borderRadius: "8px",
@@ -969,7 +968,7 @@ export default function DashboardPage({ user, onNavigate }) {
                     justifyContent: "space-between",
                     alignItems: "center",
                     padding: "8px 12px",
-                    background: "#fbeae8",
+                    background: "#ffe4e6",
                     borderRadius: "8px",
                   }}
                 >
@@ -979,14 +978,14 @@ export default function DashboardPage({ user, onNavigate }) {
                     style={{
                       fontSize: "0.82rem",
                       fontWeight: "700",
-                      color: "#d1453b",
+                      color: "#b82d44",
                     }}
                   >
                     {ins.nombre}
                   </span>
                   <span style={{ fontSize: "0.78rem", color: "var(--portal-text-muted)" }}>
                     Stock:{" "}
-                    <strong style={{ color: "#d1453b" }}>{ins.stock}</strong>{" "}
+                    <strong style={{ color: "#b82d44" }}>{ins.stock}</strong>{" "}
                     (Mínimo: {ins.stockMinimo})
                   </span>
                 </div>
@@ -1018,9 +1017,9 @@ export default function DashboardPage({ user, onNavigate }) {
             <div
               style={{
                 fontSize: "0.82rem",
-                color: semanaSinTurnos ? "#64748b" : "#3f6c52",
+                color: semanaSinTurnos ? "#64748b" : "var(--portal-primary)",
                 padding: "12px",
-                background: semanaSinTurnos ? "#f1f5f9" : "#e8f0e8",
+                background: semanaSinTurnos ? "#f1f5f9" : "var(--portal-primary-soft)",
                 borderRadius: "8px",
               }}
             >
@@ -1042,7 +1041,7 @@ export default function DashboardPage({ user, onNavigate }) {
                     justifyContent: "space-between",
                     alignItems: "center",
                     padding: "8px 12px",
-                    background: "#faf1de",
+                    background: "#fff0ca",
                     borderRadius: "8px",
                   }}
                 >
@@ -1052,7 +1051,7 @@ export default function DashboardPage({ user, onNavigate }) {
                     style={{
                       fontSize: "0.82rem",
                       fontWeight: "700",
-                      color: "#b37416",
+                      color: "#895100",
                     }}
                   >
                     {tur.diaSemana} ({tur.franja}) — {tur.area}
@@ -1060,7 +1059,7 @@ export default function DashboardPage({ user, onNavigate }) {
                   <span
                     style={{
                       fontSize: "0.74rem",
-                      background: "#d1453b",
+                      background: "#b82d44",
                       color: "#fff",
                       padding: "2px 8px",
                       borderRadius: "4px",
@@ -1103,7 +1102,7 @@ export default function DashboardPage({ user, onNavigate }) {
               <Button
                 onClick={() => onNavigate("auditoria")}
                 style={{
-                  background: "#3f6c52",
+                  background: "var(--portal-primary)",
                   color: "#fff",
                   border: "none",
                   padding: "6px 14px",
@@ -1163,7 +1162,7 @@ export default function DashboardPage({ user, onNavigate }) {
                         onClick={() => onNavigate && onNavigate("caniles")}
                         style={{
                           fontSize: "0.74rem",
-                          background: "#3f6c52",
+                          background: "var(--portal-primary)",
                           color: "#fff",
                           border: "none",
                           padding: "4px 8px",

@@ -392,7 +392,7 @@ export default function VoluntariosPage({ user }) {
             <span>{tab.label}</span>
             {tab.count !== null && tab.count > 0 && (
               <span style={{
-                background: tabActual === tab.key ? '#fff' : '#d1453b',
+                background: tabActual === tab.key ? '#fff' : '#b82d44',
                 color: tabActual === tab.key ? 'var(--portal-primary)' : '#fff',
                 fontSize: '0.72rem', padding: '1px 6px',
                 borderRadius: '10px', fontWeight: '800'
@@ -440,7 +440,7 @@ export default function VoluntariosPage({ user }) {
           }}>
             <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--portal-primary-soft)', border: 'var(--portal-border-emphasis) solid #c7dfc7' }}></span>
+                <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--portal-primary-soft)', border: 'var(--portal-border-emphasis) solid var(--portal-primary-border)' }}></span>
                 Turno Cubierto
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -448,13 +448,13 @@ export default function VoluntariosPage({ user }) {
                 Turno Descubierto (Vacante)
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#fbeae8', border: 'var(--portal-border-emphasis) solid #f3c9c4' }}></span>
+                <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#ffe4e6', border: 'var(--portal-border-emphasis) solid #f3c9c4' }}></span>
                 <ShieldCheck size={14} aria-hidden="true" /> Tarea Crítica (Solo Avanzados)
               </span>
             </div>
 
             <div style={{ fontWeight: '700', color: '#1f2430' }}>
-              Estado Planificación: <span style={{ color: matriz?.estadisticas?.planificacionConfirmada ? '#2f5540' : '#b37416' }}>
+              Estado Planificación: <span style={{ color: matriz?.estadisticas?.planificacionConfirmada ? 'var(--portal-primary-dark)' : '#895100' }}>
                 {matriz?.estadisticas?.planificacionConfirmada ? <><CircleCheck size={14} aria-hidden="true" /> CONFIRMADA</> : <><ClipboardList size={14} aria-hidden="true" /> EN PLANIFICACIÓN (Borrador)</>}
               </span>
             </div>
@@ -535,8 +535,8 @@ export default function VoluntariosPage({ user }) {
                                   <div
                                     key={turno.id}
                                     style={{
-                                      padding: '12px', borderRadius: '10px', border: `var(--portal-border-emphasis) solid ${usuarioInscrito ? '#3f6c52' : (esCritico ? '#f3c9c4' : (estaCubierto ? '#c7dfc7' : '#f2dfbe'))}`,
-                                      background: usuarioInscrito ? '#eef3ec' : (esCritico ? '#fff8f7' : (estaCubierto ? 'var(--portal-surface)' : 'var(--portal-surface-muted)')),
+                                      padding: '12px', borderRadius: '10px', border: `var(--portal-border-emphasis) solid ${usuarioInscrito ? 'var(--portal-primary)' : (esCritico ? '#f3c9c4' : (estaCubierto ? 'var(--portal-primary-border)' : '#f2dfbe'))}`,
+                                      background: usuarioInscrito ? 'var(--portal-primary-soft)' : (esCritico ? '#fff8f7' : (estaCubierto ? 'var(--portal-surface)' : 'var(--portal-surface-muted)')),
                                       boxShadow: '0 2px 5px rgba(0,0,0,0.03)', position: 'relative'
                                     }}
                                   >
@@ -553,14 +553,14 @@ export default function VoluntariosPage({ user }) {
                                     </div>
 
                                     {/* Aforo / Cupo */}
-                                    <div style={{ fontSize: '0.74rem', color: lleno ? '#d1453b' : '#7c8592', fontWeight: '700', marginBottom: '8px' }}>
+                                    <div style={{ fontSize: '0.74rem', color: lleno ? '#b82d44' : '#7c8592', fontWeight: '700', marginBottom: '8px' }}>
                                       Aforo: {inscritos.length} / {turno.cupoMaximo} {lleno ? '(Lleno)' : `(${cuposDisponibles} disp.)`}
                                     </div>
 
                                     {/* Lista de voluntarios inscritos */}
                                     <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                       {inscritos.length === 0 ? (
-                                        <div style={{ fontSize: '0.74rem', color: '#b37416', fontWeight: '700', fontStyle: 'italic' }}>
+                                        <div style={{ fontSize: '0.74rem', color: '#895100', fontWeight: '700', fontStyle: 'italic' }}>
                                           <TriangleAlert size={13} aria-hidden="true" /> Turno Descubierto
                                         </div>
                                       ) : (
@@ -569,7 +569,7 @@ export default function VoluntariosPage({ user }) {
                                             key={ins.id}
                                             style={{
                                               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                              padding: '4px 6px', background: ins.usuarioId === user?.id ? '#dbeadb' : '#f0f1f3',
+                                              padding: '4px 6px', background: ins.usuarioId === user?.id ? 'var(--portal-primary-subtle)' : '#f0f1f3',
                                               borderRadius: '6px', fontSize: '0.74rem', fontWeight: '700'
                                             }}
                                           >
@@ -580,7 +580,7 @@ export default function VoluntariosPage({ user }) {
                                               <Button
                                                 onClick={() => handleDesinscribirse(turno.id, ins.usuarioId)}
                                                 title="Quitar del turno"
-                                                style={{ background: 'transparent', border: 'none', color: '#d1453b', cursor: 'pointer', fontSize: '0.75rem', padding: '0 2px' }}
+                                                style={{ background: 'transparent', border: 'none', color: '#b82d44', cursor: 'pointer', fontSize: '0.75rem', padding: '0 2px' }}
                                               >
                                                 ✕
                                               </Button>
@@ -596,19 +596,19 @@ export default function VoluntariosPage({ user }) {
                                         <Button
                                           onClick={() => handleDesinscribirse(turno.id)}
                                           style={{
-                                            width: '100%', background: '#fbeae8', border: 'var(--portal-border-emphasis) solid #f3c9c4',
-                                            color: '#d1453b', padding: '6px', borderRadius: '6px', fontSize: '0.75rem',
+                                            width: '100%', background: '#ffe4e6', border: 'var(--portal-border-emphasis) solid #f3c9c4',
+                                            color: '#b82d44', padding: '6px', borderRadius: '6px', fontSize: '0.75rem',
                                             fontWeight: '700', cursor: 'pointer'
                                           }}
                                         >
                                           Cancelar mi inscripción
                                         </Button>
                                       ) : tieneCruce ? (
-                                        <div style={{ fontSize: '0.7rem', color: '#d1453b', fontWeight: '700', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.7rem', color: '#b82d44', fontWeight: '700', textAlign: 'center' }}>
                                           <Ban size={12} aria-hidden="true" /> Cruce de horario
                                         </div>
                                       ) : !puedeInscribirsePorRol ? (
-                                        <div style={{ fontSize: '0.7rem', color: '#b37416', fontWeight: '700', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.7rem', color: '#895100', fontWeight: '700', textAlign: 'center' }}>
                                           <Lock size={12} aria-hidden="true" /> Solo Personal Avanzado
                                         </div>
                                       ) : lleno ? (
@@ -619,7 +619,7 @@ export default function VoluntariosPage({ user }) {
                                         <Button
                                           onClick={() => handleInscribirse(turno)}
                                           style={{
-                                            width: '100%', background: '#3f6c52', border: 'none',
+                                            width: '100%', background: 'var(--portal-primary)', border: 'none',
                                             color: '#fff', padding: '6px', borderRadius: '6px', fontSize: '0.75rem',
                                             fontWeight: '800', cursor: 'pointer'
                                           }}
@@ -709,7 +709,7 @@ export default function VoluntariosPage({ user }) {
                 setModalPermutaOpen(true);
               }}
               style={{
-                background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px',
+                background: 'var(--portal-primary)', color: '#fff', border: 'none', borderRadius: '8px',
                 padding: '8px 16px', fontWeight: '700', fontSize: '0.84rem', cursor: 'pointer'
               }}
             >
@@ -744,8 +744,8 @@ export default function VoluntariosPage({ user }) {
                         </span>
                         <span style={{
                           padding: '3px 8px', borderRadius: '6px', fontSize: '0.74rem', fontWeight: '800',
-                          background: p.estado === 'APROBADA' ? '#e8f0e8' : (p.estado === 'RECHAZADA' ? '#fbeae8' : '#fff4e5'),
-                          color: p.estado === 'APROBADA' ? '#2f5540' : (p.estado === 'RECHAZADA' ? '#d1453b' : '#b37416')
+                          background: p.estado === 'APROBADA' ? 'var(--portal-primary-soft)' : (p.estado === 'RECHAZADA' ? '#ffe4e6' : '#fff4e5'),
+                          color: p.estado === 'APROBADA' ? 'var(--portal-primary-dark)' : (p.estado === 'RECHAZADA' ? '#b82d44' : '#895100')
                         }}>
                           {p.estado}
                         </span>
@@ -768,7 +768,7 @@ export default function VoluntariosPage({ user }) {
                           <Button
                             onClick={() => handleResponderPermuta(p.id, 'APROBAR')}
                             style={{
-                              background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '6px',
+                              background: 'var(--portal-primary)', color: '#fff', border: 'none', borderRadius: '6px',
                               padding: '8px 14px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer'
                             }}
                           >
@@ -777,7 +777,7 @@ export default function VoluntariosPage({ user }) {
                           <Button
                             onClick={() => handleResponderPermuta(p.id, 'RECHAZAR')}
                             style={{
-                              background: '#fbeae8', color: '#d1453b', border: 'var(--portal-border-emphasis) solid #f3c9c4', borderRadius: '6px',
+                              background: '#ffe4e6', color: '#b82d44', border: 'var(--portal-border-emphasis) solid #f3c9c4', borderRadius: '6px',
                               padding: '8px 14px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer'
                             }}
                           >
@@ -848,7 +848,7 @@ export default function VoluntariosPage({ user }) {
                           setModalBitacoraOpen(true);
                         }}
                         style={{
-                          background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '6px',
+                          background: 'var(--portal-primary)', color: '#fff', border: 'none', borderRadius: '6px',
                           padding: '8px 14px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer'
                         }}
                       >
@@ -878,14 +878,14 @@ export default function VoluntariosPage({ user }) {
                         <span>{b.usuario?.nombre || 'Voluntario'}</span>
                         <span style={{ color: 'var(--portal-text-muted)', fontWeight: '600' }}>{new Date(b.fechaHora).toLocaleDateString()}</span>
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#3f6c52', fontWeight: '700', marginTop: '2px' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--portal-primary)', fontWeight: '700', marginTop: '2px' }}>
                         {b.turnoDia} · {b.turnoArea}
                       </div>
                       <div style={{ fontSize: '0.84rem', color: '#1f2430', marginTop: '6px' }}>
                         {b.tareasRealizadas}
                       </div>
                       {b.incidentes && (
-                        <div style={{ fontSize: '0.78rem', color: '#d1453b', marginTop: '4px', fontWeight: '600' }}>
+                        <div style={{ fontSize: '0.78rem', color: '#b82d44', marginTop: '4px', fontWeight: '600' }}>
                           <TriangleAlert size={13} aria-hidden="true" /> Incidente: {b.incidentes}
                         </div>
                       )}
@@ -923,8 +923,8 @@ export default function VoluntariosPage({ user }) {
                   <td style={{ padding: '14px 18px' }}>
                     <span style={{
                       padding: '4px 8px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '700',
-                      background: v.esAvanzado ? '#e8f0e8' : '#f0f1f3',
-                      color: v.esAvanzado ? '#2f5540' : '#57606a'
+                      background: v.esAvanzado ? 'var(--portal-primary-soft)' : '#f0f1f3',
+                      color: v.esAvanzado ? 'var(--portal-primary-dark)' : '#57606a'
                     }}>
                       {v.rolEtiqueta}
                     </span>
@@ -938,7 +938,7 @@ export default function VoluntariosPage({ user }) {
                     {v.turnos && v.turnos.length > 0 ? (
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {v.turnos.map((t, idx) => (
-                          <span key={idx} style={{ padding: '3px 6px', background: 'var(--portal-primary-soft)', color: '#2f5540', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '700' }}>
+                          <span key={idx} style={{ padding: '3px 6px', background: 'var(--portal-primary-soft)', color: 'var(--portal-primary-dark)', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '700' }}>
                             {etiquetaTurno(t)} ({t.area})
                           </span>
                         ))}
@@ -1016,7 +1016,7 @@ export default function VoluntariosPage({ user }) {
                 </Button>
                 <Button cargando={bitacoraForm.isSubmitting}
                   type="submit"
-                  style={{ background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer' }}
+                  style={{ background: 'var(--portal-primary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer' }}
                 >
                   Confirmar Bitácora
                 </Button>
@@ -1095,7 +1095,7 @@ export default function VoluntariosPage({ user }) {
                 </Button>
                 <Button cargando={permutaForm.isSubmitting}
                   type="submit"
-                  style={{ background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer' }}
+                  style={{ background: 'var(--portal-primary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer' }}
                 >
                   Enviar Solicitud
                 </Button>
@@ -1145,7 +1145,7 @@ export default function VoluntariosPage({ user }) {
                 </Button>
                 <Button cargando={asignarForm.isSubmitting}
                   type="submit"
-                  style={{ background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer' }}
+                  style={{ background: 'var(--portal-primary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer' }}
                 >
                   Confirmar Asignación
                 </Button>
@@ -1248,7 +1248,7 @@ export default function VoluntariosPage({ user }) {
                 </Button>
                 <Button cargando={turnoForm.isSubmitting}
                   type="submit"
-                  style={{ background: '#3f6c52', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer' }}
+                  style={{ background: 'var(--portal-primary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: '800', cursor: 'pointer' }}
                 >
                   Crear Turno
                 </Button>

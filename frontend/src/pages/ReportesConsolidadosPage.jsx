@@ -139,15 +139,6 @@ export default function ReportesConsolidadosPage({ user }) {
           </p>
         </div>
 
-        <div className="portal-header-actions">
-          <span
-            className="portal-badge portal-badge-danger"
-            style={{ padding: '7px 12px', fontSize: '0.76rem' }}
-            title="Por seguridad y protección de datos personales, la información de contacto de los postulantes no se incluye en los documentos exportados."
-          >
-            <Lock size={13} aria-hidden="true" /> Sin datos personales de postulantes
-          </span>
-        </div>
       </div>
 
       {exito && (

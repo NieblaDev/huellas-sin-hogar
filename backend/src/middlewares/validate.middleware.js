@@ -66,7 +66,7 @@ const NOMBRES_CAMPOS = {
   incidentes: 'Incidentes reportados',
   destinoNombre: 'Nombre del destino',
   destinoContacto: 'Contacto del destino',
-  destinoEmail: 'Correo de la protectora',
+  destinoEmail: 'Correo electrónico del destino',
   destinoDireccion: 'Dirección del destino',
   accion: 'Acción',
   cantidad: 'Cantidad',

@@ -7,6 +7,7 @@ export const asignarCanilSchema = z.object({
   motivo: z.string().trim().nullish(),
   fechaFinEstimada: z.union([z.string().date(), z.string().datetime({ offset: true })]).nullish(),
   observaciones: z.string().max(4000).nullish(),
+  notaMantencion: z.string().trim().max(500).nullish(),
   confirmarLiberacionMultiple: z.boolean().optional(),
   origenEsperadoId: z.number().int().positive().nullish(),
   estado: z.enum(['LIBRE', 'OCUPADO', 'CUARENTENA', 'MANTENIMIENTO']).default('OCUPADO')
@@ -18,10 +19,11 @@ export const trasladoExternoSchema = z.object({
   motivo: z.string().min(3, 'El motivo del traslado es obligatorio'),
   destinoNombre: z.string().min(2, 'El nombre del destino es obligatorio'),
   destinoContacto: z.string().optional().nullable(),
-  destinoEmail: z.string().trim().max(254).email('Ingresa un correo electrónico válido.').nullish(),
+  destinoEmail: z.string().trim().pipe(z.union([
+    z.literal('').transform(() => null),
+    z.string().max(254).email('Ingresa un correo electrónico válido.')
+  ])).nullish(),
   destinoDireccion: z.string().optional().nullable()
-}).refine(datos => datos.tipo !== 'PROTECTORA_ALIADA' || Boolean(datos.destinoEmail), {
-  path: ['destinoEmail'], message: 'Ingresa el correo de la protectora aliada.'
 });
 
 export const gestionAprobacionSchema = z.object({
@@ -33,13 +35,11 @@ export const crearCanilSchema = z.object({
   codigo: z.string().min(1, 'El código del canil es obligatorio'),
   nombre: z.string().min(1, 'El nombre del canil es obligatorio'),
   sector: z.string().trim().min(1).max(60).default('General'),
-  tipo: z.enum(['Perro','Gato','Mixto']).default('Mixto'),
-  notas: z.string().max(500).nullish(),
   capacidad: z.number().int().min(1).max(20).optional().default(1),
   estado: z.enum(['LIBRE','MANTENIMIENTO']).default('LIBRE')
 });
 
-export const actualizarCanilSchema = crearCanilSchema.pick({ sector: true, tipo: true, capacidad: true, notas: true }).extend({ sector: z.string().trim().min(1).max(60) }).partial().strict();
+export const actualizarCanilSchema = crearCanilSchema.pick({ sector: true, capacidad: true }).extend({ sector: z.string().trim().min(1).max(60) }).partial().strict();
 export const finalizarCuarentenaSchema = z.object({ animalId: z.number().int().positive().optional(), observaciones: z.string().max(4000).nullish() });
 export const historialCanilSchema = z.object({ limit: z.coerce.number().int().min(1).max(100).default(20), cursor: z.coerce.number().int().positive().optional() });
 

@@ -8,7 +8,7 @@ export async function iniciarCuarentena(tx, { animal, canil, motivo, fechaFinEst
   if (!motivo?.trim() || motivo.trim().length < 5 || !(fin > new Date())) throw new ErrorDominio(400, 'Ingresa un motivo de al menos cinco caracteres y una fecha de término futura.');
   if (canil && (canil.capacidad !== 1 || canil.estado === 'MANTENIMIENTO')) throw new ErrorDominio(409, 'La cuarentena requiere un canil individual disponible.');
   if (await tx.cuarentenaAnimal.findFirst({ where: { animalId: animal.id, estado: 'ACTIVA' } })) throw new ErrorDominio(409, 'El animal ya tiene una cuarentena activa.');
-  const registro = await tx.cuarentenaAnimal.create({ data: { animalId: animal.id, canilId: canil?.id, canilAislamiento: canilAislamiento || canil?.codigo, motivo, fechaFinEstimada: fin, observaciones } });
+  const registro = await tx.cuarentenaAnimal.create({ data: { animalId: animal.id, canilId: canil?.id, canilAislamiento: canilAislamiento || canil?.nombre, motivo, fechaFinEstimada: fin, observaciones } });
   await sincronizarEstadoCanil(tx, canil?.id);
   await registrarAuditoria({ entidad: 'CuarentenaAnimal', entidadId: registro.id, accion: 'CREACION', valorNuevo: registro, usuario: user, ip }, tx);
   return registro;

@@ -70,12 +70,10 @@ describe('trasladoSchema', () => {
     expect(trasladoSchema.safeParse(valido).success).toBe(true);
   });
 
-  it('pide un correo válido cuando el destino es una protectora aliada', () => {
-    const protectora = { ...valido, tipo: 'PROTECTORA_ALIADA' };
-    expect(trasladoSchema.safeParse(protectora).success).toBe(false);
-    expect(trasladoSchema.safeParse({ ...protectora, destinoEmail: '123456' }).success).toBe(false);
-    expect(trasladoSchema.safeParse({ ...protectora, destinoEmail: 'contacto@example.test' }).success).toBe(true);
-    expect(trasladoSchema.safeParse({ ...valido, destinoEmail: '123456' }).success).toBe(true);
+  it('acepta un correo opcional y rechaza direcciones inválidas', () => {
+    expect(trasladoSchema.safeParse({ ...valido, destinoEmail: '' }).success).toBe(true);
+    expect(trasladoSchema.parse({ ...valido, destinoEmail: ' contacto@example.test ' }).destinoEmail).toBe('contacto@example.test');
+    expect(trasladoSchema.safeParse({ ...valido, destinoEmail: 'contacto' }).success).toBe(false);
   });
 
   it.each([

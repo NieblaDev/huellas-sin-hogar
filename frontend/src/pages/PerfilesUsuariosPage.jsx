@@ -37,9 +37,9 @@ const ICONOS_ROL = {
 };
 
 const COLORES_ROL = {
-  DIRECCION: { bg: '#e8f0e8', color: '#2f5540' },
+  DIRECCION: { bg: 'var(--portal-primary-soft)', color: 'var(--portal-primary-dark)' },
   PERSONAL_VETERINARIO: { bg: '#e8f1f7', color: '#25637d' },
-  PERSONAL_ADOPCIONES: { bg: '#f3ecf8', color: '#6b3e84' },
+  PERSONAL_ADOPCIONES: { bg: '#f2e3ff', color: '#6b3e84' },
   VOLUNTARIO_AVANZADO: { bg: '#fff4d9', color: '#a66a00' },
   VOLUNTARIO_NOVATO: { bg: '#eef0fb', color: '#4550c0' }
 };

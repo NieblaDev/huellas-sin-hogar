@@ -1,3 +1,4 @@
+import { observacionesAnimal } from '../utils/observacionesAnimal.js';
 import Button from './ui/Button.jsx';
 import Input from './ui/Input.jsx';
 import Modal from './ui/Modal.jsx';
@@ -62,7 +63,6 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
       const notaRaw = animalEditar.nota || '';
       const matchCausal = notaRaw.match(/^\[Ingreso por (Rescate|Abandono|Decomiso)\]\s*/i);
       const causalExtraida = animalEditar.tipoIngreso || (matchCausal ? matchCausal[1] : 'Rescate');
-      const notaLimpia = notaRaw.replace(/^\[Ingreso por (Rescate|Abandono|Decomiso)\]\s*/i, '');
 
       setFormData({
         nombre: animalEditar.nombre || '',
@@ -80,7 +80,7 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
             : '',
         estadoSalud: animalEditar.estadoSalud || 'NORMAL',
         estadoAdopcion: animalEditar.estadoAdopcion || 'EN_REFUGIO',
-        nota: notaLimpia === 'Sin antecedentes médicos registrados al ingreso.' ? '' : notaLimpia,
+        nota: observacionesAnimal(notaRaw),
         canilId: animalEditar.canilId
           ? String(animalEditar.canilId)
           : animalEditar.canil?.id
@@ -221,11 +221,11 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
     <Modal onClose={onClose} nombre="Ficha del animal" bloqueado={guardando || Boolean(archivoParaRecortar)}
       papel={{ style: {
           background: 'var(--portal-surface)',
-          borderRadius: '16px',
+          borderRadius: esEdicion ? '18px' : '16px',
           padding: '26px',
           width: '100%',
-          maxWidth: '560px',
-          maxHeight: '92vh',
+          maxWidth: esEdicion ? '640px' : '560px',
+          maxHeight: esEdicion ? '90vh' : '92vh',
           overflowY: 'auto',
           boxShadow: '0 16px 40px rgba(20,24,32,0.2)'
         } }}>
@@ -254,9 +254,9 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
         {error && (
           <div
             style={{
-              color: '#d1453b',
+              color: '#b82d44',
               fontSize: '0.82rem',
-              background: '#fbeae8',
+              background: '#ffe4e6',
               border: 'var(--portal-border-emphasis) solid #f3c9c4',
               padding: '10px 12px',
               borderRadius: '8px',
@@ -330,8 +330,8 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
                 type="button"
                 onClick={quitarFoto}
                 style={{
-                  background: '#fbeae8',
-                  color: '#d1453b',
+                  background: '#ffe4e6',
+                  color: '#b82d44',
                   border: 'none',
                   borderRadius: '6px',
                   padding: '4px 8px',
@@ -394,17 +394,17 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
               padding: '10px',
               background: 'var(--portal-primary-soft)',
               borderRadius: '9px',
-              border: 'var(--portal-border-emphasis) solid #c9dfcd'
+              border: 'var(--portal-border-emphasis) solid var(--portal-primary-border)'
             }}
           >
             <div>
-              <label htmlFor={animalForm.idCampo('especie')} style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: '#2f5540', marginBottom: '4px' }}>
+              <label htmlFor={animalForm.idCampo('especie')} style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: 'var(--portal-primary-dark)', marginBottom: '4px' }}>
                 Especie (Canina / Felina) *
               </label>
               <Input as="select" {...animalForm.campo("especie")}
                 value={formData.especie}
                 onChange={(e) => animalForm.cambiar('especie', e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid #c9dfcd', background: 'var(--portal-surface)', fontWeight: '700' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-primary-border)', background: 'var(--portal-surface)', fontWeight: '700' }}
               >
                 <option value="Perro">Perro (Canina)</option>
                 <option value="Gato">Gato (Felina)</option>
@@ -412,13 +412,13 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
               </Input>
             </div>
             <div>
-              <label htmlFor={animalForm.idCampo('sexo')} style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: '#2f5540', marginBottom: '4px' }}>
+              <label htmlFor={animalForm.idCampo('sexo')} style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: 'var(--portal-primary-dark)', marginBottom: '4px' }}>
                 Sexo *
               </label>
               <Input as="select" {...animalForm.campo("sexo")}
                 value={formData.sexo}
                 onChange={(e) => animalForm.cambiar('sexo', e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid #c9dfcd', background: 'var(--portal-surface)', fontWeight: '700' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-primary-border)', background: 'var(--portal-surface)', fontWeight: '700' }}
               >
                 <option value="Macho">Macho</option>
                 <option value="Hembra">Hembra</option>
@@ -550,7 +550,7 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
               >
                 <option value="">— Sin asignar —</option>
                 {caniles
-                  .filter((c) => c.estado !== 'MANTENIMIENTO' && (c.tipo === 'Mixto' || c.tipo === formData.especie) && ((c.estado !== 'CUARENTENA' && c.ocupacion?.libres > 0) || Number(c.id) === Number(canilActualId)))
+                  .filter((c) => c.estado !== 'MANTENIMIENTO' && ((c.estado !== 'CUARENTENA' && c.ocupacion?.libres > 0) || Number(c.id) === Number(canilActualId)))
                   .map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre} ({c.sector}){canilActualId && Number(c.id) === Number(canilActualId) ? ' — Actual' : ''}
@@ -575,11 +575,11 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
 
           <div style={{ marginBottom: '16px' }}>
             <label htmlFor={animalForm.idCampo('nota')} style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '3px' }}>
-              Historial Médico / Antecedentes Clínicos (Opcional)
+              Notas y Observaciones (opcional)
             </label>
             <Input as="textarea" {...animalForm.campo("nota")}
               rows={3}
-              placeholder="Deja en blanco si no se cuenta con historial médico o antecedentes previos..."
+              placeholder="Escribe las observaciones sobre el animal…"
               value={formData.nota}
               onChange={(e) => animalForm.cambiar('nota', e.target.value)}
               style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)' }}
@@ -606,7 +606,7 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
               disabled={guardando || Boolean(archivoParaRecortar)}
               style={{
                 padding: '9px 18px',
-                background: '#3f6c52',
+                background: 'var(--portal-primary)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '7px',

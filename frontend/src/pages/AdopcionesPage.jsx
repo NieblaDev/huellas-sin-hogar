@@ -59,20 +59,20 @@ import {
 // Constantes y diccionarios
 export const ESTADOS_SOLICITUD = {
   RECIBIDA: { etiqueta: 'Recibida', bg: '#eef2f7', color: '#4b5b70' },
-  EN_EVALUACION: { etiqueta: 'En evaluación', bg: '#faf1de', color: '#b37416' },
-  VISITA_AGENDADA: { etiqueta: 'Visita agendada', bg: '#f3ecf8', color: '#6b3e84' },
+  EN_EVALUACION: { etiqueta: 'En evaluación', bg: '#fff0ca', color: '#895100' },
+  VISITA_AGENDADA: { etiqueta: 'Visita agendada', bg: '#f2e3ff', color: '#6b3e84' },
   VISITA_REALIZADA: { etiqueta: 'Visita realizada', bg: '#e8f1f7', color: '#25637d' },
-  APROBADA: { etiqueta: 'Aprobada (pendiente entrega)', bg: '#e8f0e8', color: '#2f5540' },
-  ENTREGADA: { etiqueta: 'Adopción exitosa', bg: '#e8f0e8', color: '#2f5540' },
-  RECHAZADA: { etiqueta: 'Rechazada', bg: '#fbeae8', color: '#d1453b' },
-  CANCELADA: { etiqueta: 'Cancelada', bg: '#fbeae8', color: '#d1453b' }
+  APROBADA: { etiqueta: 'Aprobada (pendiente entrega)', bg: 'var(--portal-primary-soft)', color: 'var(--portal-primary-dark)' },
+  ENTREGADA: { etiqueta: 'Adopción exitosa', bg: 'var(--portal-primary-soft)', color: 'var(--portal-primary-dark)' },
+  RECHAZADA: { etiqueta: 'Rechazada', bg: '#ffe4e6', color: '#b82d44' },
+  CANCELADA: { etiqueta: 'Cancelada', bg: '#ffe4e6', color: '#b82d44' }
 };
 
 export const ESTADOS_SEGUIMIENTO = {
-  PENDIENTE: { etiqueta: 'Pendiente', bg: '#faf1de', color: '#b37416' },
+  PENDIENTE: { etiqueta: 'Pendiente', bg: '#fff0ca', color: '#895100' },
   REPROGRAMADO: { etiqueta: 'Reprogramado', bg: '#fff7e5', color: '#704d0e' },
-  COMPLETADO: { etiqueta: 'Completado', bg: '#e8f0e8', color: '#2f5540' },
-  SIN_CONTACTO: { etiqueta: 'Sin contacto', bg: '#fbeae8', color: '#d1453b' }
+  COMPLETADO: { etiqueta: 'Completado', bg: 'var(--portal-primary-soft)', color: 'var(--portal-primary-dark)' },
+  SIN_CONTACTO: { etiqueta: 'Sin contacto', bg: '#ffe4e6', color: '#b82d44' }
 };
 
 export const TIPOS_SEGUIMIENTO = {
@@ -825,7 +825,7 @@ export default function AdopcionesPage({ user }) {
                 {cargandoAnimales && <p role="status">Cargando animales disponibles…</p>}
                 <ErrorCampo error={solicitudForm.errorCampo("animalId")} />
                 {errorAnimales && (
-                  <p style={{ color: '#d1453b', fontSize: '0.78rem', margin: '4px 0 0' }}>{errorAnimales}</p>
+                  <p style={{ color: '#b82d44', fontSize: '0.78rem', margin: '4px 0 0' }}>{errorAnimales}</p>
                 )}
               </div>
 
@@ -870,7 +870,7 @@ export default function AdopcionesPage({ user }) {
 
   return (
     <div className="portal-page-container">
-      <div className="portal-header" style={{ marginBottom: '16px' }}>
+      <div className="portal-header">
         <div>
           <h2 className="portal-header-title">
             <House size={26} aria-hidden="true" />
@@ -922,14 +922,14 @@ export default function AdopcionesPage({ user }) {
       {/* ============================================================== */}
       {tab === 'lista' && (
         <div>
-          <Card className="portal-card adop-filtros-card">
-            <div className="adop-filtros">
-              <div className="adop-filtros-campo adop-filtros-campo-busqueda">
-                <label htmlFor="adop-busqueda" className="adop-filtros-etiqueta">
+          <Card className="portal-card portal-filtros-card">
+            <div className="portal-filtros">
+              <div className="portal-filtros-campo portal-filtros-campo-busqueda">
+                <label htmlFor="adop-busqueda" className="portal-filtros-etiqueta">
                   Buscar por postulante, RUT o animal
                 </label>
-                <div className="adop-filtros-buscador">
-                  <Search size={16} aria-hidden="true" className="adop-filtros-buscador-icono" />
+                <div className="portal-filtros-buscador">
+                  <Search size={16} aria-hidden="true" className="portal-filtros-buscador-icono" />
                   <Input
                     id="adop-busqueda"
                     type="search"
@@ -945,8 +945,8 @@ export default function AdopcionesPage({ user }) {
                 </div>
               </div>
 
-              <div className="adop-filtros-campo adop-filtros-campo-estado">
-                <label htmlFor="adop-estado" className="adop-filtros-etiqueta">Estado de la solicitud</label>
+              <div className="portal-filtros-campo portal-filtros-campo-estado">
+                <label htmlFor="adop-estado" className="portal-filtros-etiqueta">Estado de la solicitud</label>
                 <Input as="select"
                   id="adop-estado"
                   value={filtroEstado}
@@ -963,8 +963,8 @@ export default function AdopcionesPage({ user }) {
                 </Input>
               </div>
 
-              <div className="adop-filtros-campo adop-filtros-campo-tercio">
-                <label htmlFor="adop-orden" className="adop-filtros-etiqueta">Ordenar por fecha</label>
+              <div className="portal-filtros-campo portal-filtros-campo-tercio">
+                <label htmlFor="adop-orden" className="portal-filtros-etiqueta">Ordenar por fecha</label>
                 <Input as="select"
                   id="adop-orden"
                   value={ordenSolicitudes}
@@ -979,8 +979,8 @@ export default function AdopcionesPage({ user }) {
                 </Input>
               </div>
 
-              <div className="adop-filtros-campo adop-filtros-campo-tercio">
-                <label htmlFor="adop-desde" className="adop-filtros-etiqueta">Solicitadas desde</label>
+              <div className="portal-filtros-campo portal-filtros-campo-tercio">
+                <label htmlFor="adop-desde" className="portal-filtros-etiqueta">Solicitadas desde</label>
                 <Input
                   id="adop-desde"
                   type="date"
@@ -994,8 +994,8 @@ export default function AdopcionesPage({ user }) {
                 />
               </div>
 
-              <div className="adop-filtros-campo adop-filtros-campo-tercio">
-                <label htmlFor="adop-hasta" className="adop-filtros-etiqueta">Hasta</label>
+              <div className="portal-filtros-campo portal-filtros-campo-tercio">
+                <label htmlFor="adop-hasta" className="portal-filtros-etiqueta">Hasta</label>
                 <Input
                   id="adop-hasta"
                   type="date"
@@ -1011,9 +1011,9 @@ export default function AdopcionesPage({ user }) {
             </div>
 
             {(hayFiltrosSolicitudes || (solicitudesCargando && solicitudesData)) && (
-              <div className="adop-filtros-acciones">
+              <div className="portal-filtros-acciones">
                 {solicitudesCargando && solicitudesData && (
-                  <span className="adop-buscando" role="status" aria-live="polite">
+                  <span className="portal-filtros-buscando" role="status" aria-live="polite">
                     Actualizando resultados…
                   </span>
                 )}
@@ -1021,8 +1021,7 @@ export default function AdopcionesPage({ user }) {
                   <Button
                     type="button"
                     onClick={limpiarFiltrosSolicitudes}
-                    className="portal-btn portal-btn-secondary"
-                    style={{ minHeight: '34px', padding: '6px 14px', fontSize: '0.82rem' }}
+                    className="portal-btn portal-btn-secondary portal-filtros-limpiar"
                   >
                     <X size={14} aria-hidden="true" /> Limpiar filtros
                   </Button>
@@ -1163,17 +1162,17 @@ export default function AdopcionesPage({ user }) {
       {/* ============================================================== */}
       {tab === 'seguimientos' && (
         <div>
-          <Card className="portal-card adop-filtros-card">
-            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <Card className="portal-card portal-filtros-card adop-cabecera-seguimientos">
+            <div className="adop-titulo-seguimientos">
               <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>Seguimientos Post-Adopción</h3>
               <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: 'var(--portal-text-muted)' }}>
-                Programación automatizada (15 y 30 días) para verificar adaptación, salud y bienestar del animal adoptado.
+                Controles automáticos a los 15 y 30 días para revisar la adaptación, salud y bienestar del animal.
               </p>
             </div>
 
             <div className="adop-filtros-seguimientos">
-              <div className="adop-filtros-campo">
-                <label htmlFor="seg-estado" className="adop-filtros-etiqueta">
+              <div className="portal-filtros-campo">
+                <label htmlFor="seg-estado" className="portal-filtros-etiqueta">
                   Estado
                 </label>
                 <Input as="select"
@@ -1192,8 +1191,8 @@ export default function AdopcionesPage({ user }) {
                 </Input>
               </div>
 
-              <div className="adop-filtros-campo">
-                <label htmlFor="seg-alerta" className="adop-filtros-etiqueta">
+              <div className="portal-filtros-campo">
+                <label htmlFor="seg-alerta" className="portal-filtros-etiqueta">
                   Alerta sin contacto
                 </label>
                 <Input as="select"
@@ -1269,7 +1268,7 @@ export default function AdopcionesPage({ user }) {
                           <td style={{ padding: '14px 16px', fontSize: '0.85rem' }}>
                             <div>{formatearFecha(s.fechaProgramada, true)}</div>
                             {s.fechaEjecucion && (
-                              <div style={{ fontSize: '0.76rem', color: '#2f5540' }}>
+                              <div style={{ fontSize: '0.76rem', color: 'var(--portal-primary-dark)' }}>
                                 Realizado: {formatearFecha(s.fechaEjecucion, true)}
                               </div>
                             )}
@@ -1290,7 +1289,7 @@ export default function AdopcionesPage({ user }) {
                               {estadoInfo.etiqueta}
                             </span>
                             {s.alertaSinContacto && (
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, color: '#d1453b', fontSize: '0.74rem', fontWeight: 700 }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, color: '#b82d44', fontSize: '0.74rem', fontWeight: 700 }}>
                                 <AlertTriangle size={12} /> Límite de intentos
                               </div>
                             )}
@@ -1325,7 +1324,7 @@ export default function AdopcionesPage({ user }) {
                                     type="button"
                                     onClick={() => abrirModalDevolucion(s.adopcion.id, s.adopcion.animal?.nombre, s.adopcion.postulante?.nombre)}
                                     className="portal-btn portal-btn-secondary"
-                                    style={{ padding: '6px 10px', minHeight: '32px', fontSize: '0.78rem', color: '#d1453b' }}
+                                    style={{ padding: '6px 10px', minHeight: '32px', fontSize: '0.78rem', color: '#b82d44' }}
                                   >
                                     <RotateCcw size={13} /> Devolución
                                   </Button>
@@ -1476,7 +1475,7 @@ export default function AdopcionesPage({ user }) {
                         detalleData.solicitud.datosPostulante?.nombre
                       )}
                       className="portal-btn portal-btn-secondary"
-                      style={{ minHeight: '36px', padding: '6px 14px', color: '#d1453b' }}
+                      style={{ minHeight: '36px', padding: '6px 14px', color: '#b82d44' }}
                     >
                       <RotateCcw size={15} /> Registrar Devolución
                     </Button>
@@ -1589,9 +1588,9 @@ export default function AdopcionesPage({ user }) {
                             style={{
                               padding: '10px',
                               borderRadius: '8px',
-                              background: esCompletado ? '#edf4ee' : esActual ? 'var(--portal-primary-soft)' : 'var(--portal-surface-muted)',
-                              border: `var(--portal-border-emphasis) solid ${esCompletado ? '#bdd1c2' : esActual ? 'var(--portal-primary)' : 'transparent'}`,
-                              color: esCompletado ? '#2f5540' : esActual ? 'var(--portal-primary)' : '#64748b'
+                              background: esCompletado ? 'var(--portal-surface-muted)' : esActual ? 'var(--portal-primary-soft)' : 'var(--portal-surface-muted)',
+                              border: `var(--portal-border-emphasis) solid ${esCompletado ? 'var(--portal-primary-border)' : esActual ? 'var(--portal-primary)' : 'transparent'}`,
+                              color: esCompletado ? 'var(--portal-primary-dark)' : esActual ? 'var(--portal-primary)' : '#64748b'
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, fontSize: '0.82rem' }}>
@@ -1837,7 +1836,7 @@ export default function AdopcionesPage({ user }) {
                               )}
                               {etapa.observaciones}
                               {etapa.motivoOmision && (
-                                <div style={{ fontSize: '0.78rem', color: '#b37416', marginTop: 4 }}>
+                                <div style={{ fontSize: '0.78rem', color: '#895100', marginTop: 4 }}>
                                   Omisión: {etapa.motivoOmision}
                                 </div>
                               )}
@@ -2039,7 +2038,7 @@ export default function AdopcionesPage({ user }) {
           titulo="Registrar devolución de adopción"
           subtitulo={`${modalDevolucion.animalNombre || 'El animal'} · Adoptante: ${modalDevolucion.postulanteNombre || '—'}`}
           icono={<RotateCcw size={20} aria-hidden="true" />}
-          tono="#d1453b"
+          tono="#b82d44"
           ancho="md"
           bloqueado={guardandoDevolucion}
           onClose={() => setModalDevolucion(null)}

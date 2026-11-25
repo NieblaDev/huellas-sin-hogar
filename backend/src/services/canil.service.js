@@ -18,11 +18,11 @@ const incluir = {
   animales: { orderBy: { id: 'asc' }, select: { id: true, nombre: true, especie: true, sexo: true, edad: true, raza: true, estadoSalud: true, fotoUrl: true, nota: true, fechaIngresoCanil: true, creadoEn: true, activo: true, estadoAdopcion: true } },
   cuarentenas: { where: { estado: 'ACTIVA' }, orderBy: { id: 'asc' }, take: 1 }
 };
-function detalle({ animales, cuarentenas, ...canil }) {
+function detalle({ animales, cuarentenas, notas, ...canil }) {
   animales = animales.map(a => ({ ...a, diasEnCanil: diasEntre(a.fechaIngresoCanil) }));
   const q = cuarentenas[0];
   const diasRestantes = q && diferenciaDias(new Date(), q.fechaFinEstimada);
-  return { ...canil, animales, animalAlojado: animales[0] || null, ocupacion: ocupacionDeCanil({ ...canil, animales }),
+  return { ...canil, notaMantencion: canil.estado === 'MANTENIMIENTO' ? notas : null, animales, animalAlojado: animales[0] || null, ocupacion: ocupacionDeCanil({ ...canil, animales }),
     cuarentena: q ? { ...q, diasRestantes, vencida: diasRestantes < 0 } : null };
 }
 export async function getCanil(id, db = prisma) {
@@ -42,6 +42,8 @@ export async function getAllCaniles() {
 }
 
 export async function asignarCanil(datos, user, ip) {
+  if (datos.notaMantencion && datos.estado !== 'MANTENIMIENTO')
+    throw new ErrorDominio(400, 'La nota de mantención solo se puede guardar durante la mantención.');
   if (datos.estado === 'MANTENIMIENTO' && datos.animalId) throw new ErrorDominio(400, 'El mantenimiento requiere un canil vacío.');
   const { canilId, animalId, estado, confirmarLiberacionMultiple, origenEsperadoId } = datos;
   const resultado = await prisma.$transaction(async tx => {
@@ -68,7 +70,10 @@ export async function asignarCanil(datos, user, ip) {
         await tx.animal.update({ where: { id: a.id }, data: { canilId: null, fechaIngresoCanil: null } });
       }
       if (estado === 'MANTENIMIENTO' || (estado === 'LIBRE' && anterior.estado === 'MANTENIMIENTO'))
-        await tx.canil.update({ where: { id: canilId }, data: { estado } });
+        await tx.canil.update({
+          where: { id: canilId },
+          data: { estado, notas: estado === 'MANTENIMIENTO' ? datos.notaMantencion?.trim() || null : null }
+        });
     } else {
       validarIngresoAnimal({ animal, canil: anterior });
       if (animal.canilId !== canilId) {
@@ -81,7 +86,7 @@ export async function asignarCanil(datos, user, ip) {
     }
     await sincronizarEstadoCanil(tx, canilId);
     const canil = await getCanil(canilId, tx);
-    await registrarAuditoria({ entidad: 'Canil', entidadId: canilId, accion: 'MODIFICACION', valorAnterior: { origen: animal?.canilId, animales: anterior.animales, dias: diasEntre(animal?.fechaIngresoCanil) }, valorNuevo: { animales: canil.animales, estado: canil.estado, motivo }, usuario: user, ip }, tx);
+    await registrarAuditoria({ entidad: 'Canil', entidadId: canilId, accion: 'MODIFICACION', valorAnterior: { origen: animal?.canilId, animales: anterior.animales, dias: diasEntre(animal?.fechaIngresoCanil), notaMantencion: anterior.notaMantencion }, valorNuevo: { animales: canil.animales, estado: canil.estado, motivo, notaMantencion: canil.notaMantencion }, usuario: user, ip }, tx);
     return { success: true, mensaje: 'Canil actualizado.', canil, animales: canil.animales, animal: canil.animales.find(a => a.id === animalId), cuarentena: canil.cuarentena };
   });
   const { resumen } = await getAllCaniles();
@@ -93,7 +98,6 @@ export const actualizarCanil = (id, data, user, ip) => prisma.$transaction(async
   const anterior = await buscarCanil(tx, id);
   if (data.capacidad < anterior.animales.length) throw new ErrorDominio(409, `No puedes reducir la capacidad por debajo de los ${anterior.animales.length} animales alojados.`);
   if (data.capacidad > 1 && anterior.estado === 'CUARENTENA') throw new ErrorDominio(409, 'El canil está en cuarentena.');
-  if (data.tipo && data.tipo !== 'Mixto' && anterior.animales.some(a => a.especie !== data.tipo)) throw new ErrorDominio(409, 'Hay animales incompatibles con el nuevo tipo.');
   const canil = await tx.canil.update({ where: { id }, data });
   await registrarAuditoria({ entidad: 'Canil', entidadId: id, accion: 'MODIFICACION', valorAnterior: anterior, valorNuevo: canil, usuario: user, ip }, tx);
   return canil;
@@ -135,11 +139,7 @@ export const solicitarTrasladoExterno = async ({
       motivo,
       destinoNombre,
       destinoContacto,
-      ...(tipo === 'PROTECTORA_ALIADA' && {
-        destinoEmail,
-        correoEstado: 'PENDIENTE',
-        correoDisponibleEn: new Date()
-      }),
+      destinoEmail,
       destinoDireccion,
       canilOrigenId: animal.canilId,
       responsableId: user.id,
@@ -231,15 +231,15 @@ export const gestionarAprobacionTraslado = async (trasladoId, { aprobar, comenta
 /**
  * Crear un nuevo canil
  */
-export const createCanil = async ({ codigo, nombre, sector, tipo, capacidad, notas, estado = 'LIBRE' }, user, ip) => {
+export const createCanil = async ({ codigo, nombre, sector, capacidad, estado = 'LIBRE' }, user, ip) => {
   // Verificar que el código no exista ya
   const existing = await prisma.canil.findUnique({ where: { codigo } });
   if (existing) {
-    throw new ErrorDominio(400, `Ya existe un canil con el código ${codigo}`);
+    throw new ErrorDominio(400, `No se pudo generar un identificador único para el canil. Actualiza el mapa y vuelve a intentarlo.`);
   }
 
   const canil = await prisma.canil.create({
-    data: { codigo, nombre, sector, tipo, notas, capacidad: Number(capacidad) || 1, estado }
+    data: { codigo, nombre, sector, capacidad: Number(capacidad) || 1, estado }
   });
 
   await registrarAuditoria({
@@ -247,7 +247,7 @@ export const createCanil = async ({ codigo, nombre, sector, tipo, capacidad, not
     entidadId: canil.id,
     accion: 'CREACION',
     valorAnterior: null,
-    valorNuevo: { codigo, nombre, sector, tipo, capacidad, estado },
+    valorNuevo: { nombre, sector, capacidad, estado },
     usuario: user,
     ip
   });
@@ -318,7 +318,7 @@ export const deleteCanil = async ({ canilId }, user, ip) => {
     entidadId: targetCanil.id,
     accion: 'BAJA_LOGICA',
     valorAnterior,
-    valorNuevo: { nombre: targetCanil.nombre, codigo: targetCanil.codigo },
+    valorNuevo: { nombre: targetCanil.nombre },
     usuario: user,
     ip
   }, tx);

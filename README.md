@@ -232,12 +232,6 @@ huellas-sin-hogar/
 - En `frontend/`, ejecuta `npm run test:run` para comprobar los esquemas y los controles de interfaz.
 - En `backend/`, ejecuta `npm run test:unit` para probar esquemas y middlewares. Para la suite completa, configura `TEST_DATABASE_URL` con una base PostgreSQL local cuyo nombre incluya `test`, agrega `psql` al `PATH` y ejecuta `npm test`.
 
-### Correo a protectoras aliadas
-
-Ejecuta `npm run prisma:deploy` y `npm run prisma:generate` en `backend/`. Configura `SMTP_HOST`, `SMTP_PORT` y `SMTP_FROM` en `backend/.env`, junto con `SMTP_USER` y `SMTP_PASS` si el servidor requiere autenticación. Reinicia el backend para que procese los correos pendientes. Usa el puerto 465 para TLS directo o 587 para STARTTLS.
-
-Al solicitar un traslado a una protectora aliada, ingresa su correo en el formulario. El sistema registra el traslado pendiente de aprobación y programa el envío de la ficha externa en PDF. El detalle del traslado muestra el estado del correo. Si el servidor de correo falla, el backend hace hasta tres intentos. Las solicitudes registradas antes del cambio conservan sus datos y se pueden consultar desde el historial.
-
 ---
 
 ## 🛡️ Seguridad y Reglas de Negocio
@@ -263,7 +257,7 @@ Este proyecto está desarrollado para fines académicos y comunitarios bajo la l
 
 ### Ocupación de caniles
 
-El mapa, el dashboard y los reportes calculan el porcentaje con los animales alojados divididos por la suma de capacidades. Los contadores de libres, ocupados, cuarentena y mantenimiento siguen contando caniles. El mapa permite alojar hasta 20 animales compatibles por canil. Las estadías se cuentan por días calendario UTC.
+El mapa, el dashboard y los reportes calculan el porcentaje con los animales alojados divididos por la suma de capacidades. Los contadores de libres, ocupados, cuarentena y mantenimiento siguen contando caniles. El mapa permite alojar hasta 20 animales por canil, sin categorías por especie. Las estadías se cuentan por días calendario UTC.
 
 Las etiquetas usan `VITE_PUBLIC_APP_URL` o el origen del navegador y requieren iniciar sesión. Un canil histórico marcado en cuarentena sin registro clínico conserva el aislamiento. Completa su motivo y fecha de término en la ficha para iniciar el seguimiento.
 

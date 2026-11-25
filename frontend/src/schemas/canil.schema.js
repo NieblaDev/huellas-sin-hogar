@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { idSeleccion, opcional, texto } from './campos.js';
 
-export const crearCanilSchema = z.object({ sector: texto(1, 60), tipo: z.enum(['Perro','Gato','Mixto']).default('Mixto'), capacidad: z.coerce.number().int().min(1).max(20).default(1), notas: z.string().max(500).optional() });
+export const crearCanilSchema = z.object({ sector: texto(1, 60), capacidad: z.coerce.number().int().min(1).max(20).default(1) });
 export const gestionarCanilSchema = z.object({
   sectorEdicion: crearCanilSchema.shape.sector,
   selectedAnimalId: z.union([z.literal(''), idSeleccion]),
@@ -14,10 +14,10 @@ export const trasladoSchema = z.object({
   motivo: texto(3),
   destinoNombre: texto(2),
   destinoContacto: opcional(),
-  destinoEmail: z.string().trim().optional(),
+  destinoEmail: z.string().trim().pipe(z.union([
+    z.literal(''), z.string().max(254).email('Ingresa un correo electrónico válido.')
+  ])).optional(),
   destinoDireccion: opcional()
-}).refine(datos => datos.tipo !== 'PROTECTORA_ALIADA' || z.string().max(254).email().safeParse(datos.destinoEmail).success, {
-  path: ['destinoEmail'], message: 'Ingresa un correo válido para la protectora aliada.'
 });
 
 export const aprobacionTrasladoSchema = z.object({

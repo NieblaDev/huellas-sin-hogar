@@ -16,11 +16,11 @@ export default function HistorialCanil({ id }) {
   }, [id, cursor]);
   if (error) return <p role="alert">{error}</p>;
   if (!data) return <p role="status">Cargando historial…</p>;
-  return <section><p>{data.resumen.residentes} residentes · {data.resumen.movimientos} movimientos · Estadía promedio de {data.resumen.promedioDias} días</p>
+  return <section className="canil-historial"><p className="canil-modal-chip">{data.resumen.residentes} residentes · {data.resumen.movimientos} movimientos · Estadía promedio de {data.resumen.promedioDias} días</p>
     <h3>Movimientos</h3>{!data.movimientos.length && <p>Este canil todavía no tiene movimientos registrados.</p>}
-    <ol>{data.movimientos.map(m => <li key={m.id}>{fecha(m.fecha)} · {m.animal.nombre} · {m.origen || 'Sin canil'} → {m.destino || 'Sin canil'} · {m.motivo} · {m.responsable.nombre}</li>)}</ol>
+    <ol>{data.movimientos.map(m => <li key={m.id}><small>{fecha(m.fecha)} · {m.responsable.nombre}</small><strong>{m.animal.nombre}</strong>{m.origen || 'Sin canil'} → {m.destino || 'Sin canil'}<span>{m.motivo}</span></li>)}</ol>
     {data.paginacion.nextCursor && <Button variante="secundaria" disabled={cargando} onClick={() => pagina(data.paginacion.nextCursor)}>Cargar más</Button>}
     <h3>Estadías</h3><ul>{data.estadias.map((e,i) => <li key={i}>{e.animal.nombre} · {fecha(e.desde)} – {fecha(e.hasta)} · {e.dias} días</li>)}</ul>
-    <h3>Cuarentenas</h3><ul>{data.cuarentenas.map(q => <li key={q.id}>{q.animal.nombre} · {fecha(q.fechaInicio)} – {fecha(q.fechaFinReal)} · {q.estado} · {q.motivo}</li>)}</ul>
+    <h3>Cuarentenas</h3><ul>{data.cuarentenas.map(q => <li key={q.id}>{q.animal.nombre} · {fecha(q.fechaInicio)} – {fecha(q.fechaFinReal)} · {q.estado} · {q.motivo}{q.observaciones && <span className="canil-nota">{q.observaciones}</span>}</li>)}</ul>
   </section>;
 }

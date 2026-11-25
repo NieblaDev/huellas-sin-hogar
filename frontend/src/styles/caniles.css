@@ -1,26 +1,91 @@
-.canil-grid,.qr-preview { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr)); gap:1rem; margin-top:1rem }
-.canil-tarjeta,.qr-etiqueta { background:var(--portal-surface,white); border:var(--portal-border-emphasis,2px) solid var(--portal-border,#ddd); border-radius:14px; padding:1rem; }
-.canil-tarjeta { border-top:4px solid var(--portal-primary); }
-.canil-tarjeta p,.canil-tarjeta small { color:var(--portal-text-muted); }
-.canil-tarjeta progress { display:block; width:100%; accent-color:var(--portal-primary); }
-.canil-resaltado { outline:3px solid var(--portal-primary); }
-.canil-abrir,.canil-residente { color:inherit; background:none; border:0; font:inherit; text-align:left; width:100%; cursor:pointer; }
-.canil-abrir,.canil-ficha header,.canil-ficha nav,.canil-fila,.canil-residente { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
-.canil-abrir,.canil-ficha header { justify-content:space-between; }
-.canil-residente,.canil-fila { background:var(--portal-surface-muted); border-radius:8px; margin:.5rem 0; padding:.5rem; }
-.canil-residente { cursor:grab; }
-.canil-cuarentena { display:block; color:#a02b38; padding:.4rem 0; }
-.canil-ficha { padding:1.5rem; width:min(620px,95vw); max-height:90dvh; overflow-y:auto; }
-.canil-ficha fieldset { border:0; padding:0; min-width:0; }
-.canil-ficha label,.canil-ficha section,.canil-ficha form { display:block; margin:.75rem 0; }
-.canil-ficha nav { flex-wrap:nowrap; overflow-x:auto; }
-.canil-ficha :is(input:not([type=checkbox]),textarea,select) { display:block; width:100%; padding:.5rem; }
-.canil-ficha button { margin:.2rem; }
-.canil-undo { position:fixed; bottom:1rem; right:1rem; padding:.8rem; z-index:1200; background:var(--portal-surface); border:2px solid var(--portal-primary); border-radius:8px; }
-.qr-print-area { display:none; }
-.qr-etiqueta { color:black; background:white; overflow-wrap:anywhere; }
-.qr-etiqueta img { display:block; width:30mm; height:30mm; }
-@media(max-width:600px) { .canil-grid { grid-template-columns:1fr; } .canil-ficha { width:100vw; height:100dvh; max-height:100dvh; } }
+.canil-grid,.qr-preview {display:grid;grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr));gap:16px}
+@media(min-width:900px){.portal-filtros.portal-filtros-caniles.canil-filtros-mapa {grid-template-columns:1.5fr repeat(3,minmax(0,1fr))}}
+[data-estado="LIBRE"] {--acento:var(--portal-primary);--fondo:var(--portal-primary-soft);--tinta:var(--portal-primary-dark)}
+[data-estado="OCUPADO"] {--acento:#d99a3d;--fondo:#fff0ca;--tinta:#895100}
+[data-estado="CUARENTENA"] {--acento:#b82d44;--fondo:#ffe4e6;--tinta:#a02b38}
+[data-estado="MANTENIMIENTO"] {--acento:#788397;--fondo:#eef2f7;--tinta:#4b5b70}
+.canil-tarjeta {position:relative;min-width:0;padding:16px;background:var(--portal-surface);border:var(--portal-border-emphasis) solid var(--portal-border);border-top:4px solid var(--acento,var(--portal-primary));border-radius:14px}
+.canil-resaltado,.canil-tarjeta:focus-within {outline:2px solid var(--portal-primary);outline-offset:2px}
+.canil-abrir,.canil-residente {width:100%;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.canil-abrir {display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0;background:transparent;font-size:.98rem}
+.canil-abrir::after {content:'';position:absolute;inset:0;border-radius:inherit}
+.canil-estado {padding:3px 8px;border-radius:6px;background:var(--fondo);color:var(--tinta);font-size:.7rem;font-weight:800;text-transform:uppercase}
+.canil-sector {margin:12px 0 10px;font-size:.78rem;color:var(--portal-text-muted)}
+.canil-residente {position:relative;margin-top:4px;cursor:grab}
+.canil-residente-info {display:grid;gap:3px;min-width:0;font-size:.88rem;font-weight:800;overflow-wrap:anywhere}
+.canil-residente-info small,.canil-tarjeta > small,.canil-campos small {font-size:.75rem;font-weight:500;color:var(--portal-text-muted)}
+.canil-vacio,.canil-fila {display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;background:var(--portal-surface-muted);font-size:.82rem}
+.canil-vacio {color:var(--portal-text-muted);padding-block:14px}
+.canil-avatares,.canil-chips,.canil-fila-acciones,.canil-nota {white-space:pre-wrap;overflow-wrap:anywhere}
+.canil-acciones {display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.canil-avatares {margin:5px 0;font-size:.78rem;color:var(--portal-text-muted)}
+.canil-avatares .portal-animal-photo-thumb {width:28px;height:28px;border:2px solid var(--portal-surface);border-radius:50%}
+.canil-avatares .portal-animal-photo-thumb + .portal-animal-photo-thumb {margin-left:-12px}
+.canil-tarjeta progress {width:100%;height:5px;accent-color:var(--portal-primary)}
+.canil-cuarentena {display:block;margin-top:8px;color:#a02b38;font-size:.8rem}
+.canil-icono,.canil-modal .canil-cerrar {display:grid;flex:0 0 auto;place-items:center;border-radius:10px}
+.canil-icono {width:42px;height:42px;background:var(--portal-primary-soft);color:var(--portal-primary)}
+.canil-modal .canil-cerrar {width:34px;height:34px;margin-left:auto;background:var(--portal-surface-muted)}
+.canil-identidad {flex:1;min-width:0}
+.canil-identidad > small {font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;font-weight:800;color:var(--portal-text-muted)}
+.canil-modal-header h2 {margin:2px 0 8px;font-size:1.2rem}
+.canil-nav {display:flex;flex-shrink:0;gap:16px;padding-inline:24px;border-bottom:1px solid var(--portal-border);overflow-x:auto}
+.canil-nav button {padding:10px 2px;font-size:.83rem;font-weight:700;color:var(--portal-text-muted);border-radius:0;border-bottom:2px solid transparent}
+.canil-nav button[aria-pressed=true] {color:var(--portal-primary-dark);border-bottom-color:var(--portal-primary)}
+.canil-modal.canil-ficha {
+  box-sizing: border-box;
+  width: min(100%, 640px);
+  height: min(680px, calc(100dvh - 32px));
+  overflow: hidden;
+}
+.canil-ficha > .canil-modal-body {flex:1 1 0; scrollbar-gutter:stable}
+.canil-ficha > :is(.canil-modal-header,.canil-modal-footer) {flex-shrink:0}
+.canil-ficha fieldset {min-width:0;margin:0;padding:0;border:0}
+.canil-ficha .canil-modal-seccion:last-child {margin-bottom:0}
+.canil-seccion-cabecera,.canil-fila {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.canil-seccion-cabecera {margin-bottom:8px}
+.canil-ficha .canil-modal-body,.canil-qr-modal .canil-modal-body {font-size:.84rem}
+.canil-fila {margin-top:6px;justify-content:flex-start;background:var(--portal-primary-soft)}
+.canil-fila-acciones {
+  flex-basis: 100%;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--portal-border);
+}
+.canil-fila-acciones .MuiButton-root {
+  gap: 6px;
+  min-width: 0;
+  padding-inline: 4px;
+  font-size: .78rem;
+}
+.canil-fila > label {width:100%}
+.canil-asignacion,.canil-campos {display:grid;gap:12px;margin:12px 0}
+.canil-asignacion {grid-template-columns:minmax(0,1fr) auto;align-items:end}
+.canil-campos {grid-template-columns:repeat(2,minmax(0,1fr))}
+.canil-campos label,.canil-ficha label:not(.canil-cuarentena-control),.canil-qr-modal label {display:grid;gap:4px;color:var(--portal-text-muted);font-size:.78rem;font-weight:700}
+.canil-ancho,.canil-campos small {grid-column:1/-1}
+.canil-campos button {justify-self:start;grid-column:1/-1}
+.canil-campos :is(input,select,textarea),.canil-ficha textarea,.canil-fila select,.canil-qr-modal select {box-sizing:border-box;width:100%;padding:8px 10px;border:var(--portal-border-emphasis) solid var(--portal-border);border-radius:8px;background:var(--portal-surface);color:var(--portal-text-main);font:inherit}
+.canil-acciones {width:100%;justify-content:space-between}
+.canil-acciones > :only-child {margin-left:auto}
+.canil-historial h3 {margin:16px 0 8px;font-size:.88rem}
+.canil-historial :is(ol,ul) {padding:0;margin:0;list-style:none}
+.canil-historial li {display:grid;gap:3px;padding:10px 12px;border-left:3px solid var(--portal-primary);margin-bottom:6px;border-radius:5px;background:var(--portal-surface-muted)}
+.canil-historial li :is(small,span) {color:var(--portal-text-muted)}
+.canil-undo {position:fixed;bottom:1rem;right:1rem;padding:.8rem;z-index:1200;background:var(--portal-surface);border:2px solid var(--portal-primary);border-radius:8px}
+.canil-qr-modal.canil-modal {max-width:760px}
+.canil-qr-modal .canil-modal-header {align-items:center;justify-content:flex-start}
+.canil-qr-modal h2 {margin:0}
+.canil-qr-modal label:has(input[type=checkbox]) {display:inline-flex;align-items:center;margin:10px 16px 8px 0}
+.qr-print-area {display:none}
+.qr-preview {padding:12px;border-radius:12px;background:var(--portal-surface-muted)}
+.qr-etiqueta {padding:1rem;border:var(--portal-border-emphasis,2px) solid var(--portal-border,#ddd);border-radius:12px;background:white;color:black;overflow-wrap:anywhere}
+.qr-etiqueta img {display:block;width:30mm;height:30mm}
+@media(max-width:600px){
+  .canil-grid,.canil-asignacion,.canil-campos {grid-template-columns:1fr}
+  .canil-ficha,.canil-qr-modal {max-height:92dvh}
+  .canil-nav {padding-inline:18px}
+}
 @media print {
   @page { size:A4; margin:10mm; }
   body:has(> .qr-print-area) > :not(.qr-print-area) { display:none !important; }
