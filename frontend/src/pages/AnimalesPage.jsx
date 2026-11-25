@@ -672,21 +672,6 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                       style={{
                         position: 'absolute',
                         top: '12px',
-                        left: '12px',
-                        background: 'rgba(31,36,48,0.75)',
-                        color: '#fff',
-                        padding: '3px 9px',
-                        borderRadius: '7px',
-                        fontSize: '0.68rem',
-                        fontWeight: '700'
-                      }}
-                    >
-                      {a.tipoIngreso || 'Rescate'}
-                    </span>
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: '12px',
                         right: '12px',
                         background: esBaja ? '#ffe4e6' : badge.bg,
                         color: esBaja ? '#b82d44' : badge.color,
@@ -848,7 +833,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                             borderRadius: '6px'
                           }}
                         >
-                          Ficha del animal · Ingreso por {fichaSeleccionada.tipoIngreso || 'Rescate'}
+                          Ficha del animal
                         </span>
                         {fichaSeleccionada.activo === false && (
                           <span className="portal-badge portal-badge-danger" style={{ fontSize: '0.7rem' }}>
