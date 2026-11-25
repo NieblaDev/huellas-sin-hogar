@@ -115,6 +115,20 @@ test('el flujo con visita conserva ficha, registra responsable y libera el canil
   assert.equal((await crear(body(identidad(), animal.id))).status, 404);
 });
 
+test('entregar un residente de un grupo conserva el canil ocupado hasta la última entrega', async () => {
+  const grupo = await prisma.canil.create({ data: { codigo: identidad(), nombre: 'Camada', capacidad: 2, estado: 'OCUPADO' } });
+  const residentes = [await crearAnimal(), await crearAnimal()];
+  await prisma.animal.updateMany({ where: { id: { in: residentes.map(a => a.id) } }, data: { canilId: grupo.id, fechaIngresoCanil: new Date() } });
+  for (const [i,animal] of residentes.entries()) {
+    let s = await avanzar(await nueva(animal), 'EVALUAR');
+    s = await avanzar(s, 'OMITIR_VISITA', { motivoOmision: 'Hogar previamente visitado.' });
+    s = await avanzar(s, 'APROBAR');
+    await avanzar(s, 'ENTREGAR');
+    assert.equal((await prisma.canil.findUnique({ where: { id: grupo.id } })).estado, i === 0 ? 'OCUPADO' : 'LIBRE');
+    assert.equal((await prisma.animal.findUnique({ where: { id: animal.id } })).fechaIngresoCanil, null);
+  }
+});
+
 test('exige visita o motivo explícito antes de aprobar y conserva la omisión en el historial', async () => {
   let s = await avanzar(await nueva(), 'EVALUAR');
   assert.equal((await paso(s, 'APROBAR')).status, 409);

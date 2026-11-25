@@ -260,3 +260,11 @@ Este proyecto está desarrollado para fines académicos y comunitarios bajo la l
 
 - En `backend/`, configura `.env`, ejecuta `npm run prisma:deploy` y arranca con `npm run start:prod`. La API escucha en el puerto `80`.
 - En `frontend/`, configura `VITE_API_URL` con la URL de la API accesible desde el navegador, ejecuta `npm run build` y arranca con `npm run start:prod`. Vite Preview sirve la SPA por HTTP en el puerto interno `443`.
+
+### Ocupación de caniles
+
+El mapa, el dashboard y los reportes calculan el porcentaje con los animales alojados divididos por la suma de capacidades. Los contadores de libres, ocupados, cuarentena y mantenimiento siguen contando caniles. El mapa permite alojar hasta 20 animales compatibles por canil. Las estadías se cuentan por días calendario UTC.
+
+Las etiquetas usan `VITE_PUBLIC_APP_URL` o el origen del navegador y requieren iniciar sesión. Un canil histórico marcado en cuarentena sin registro clínico conserva el aislamiento. Completa su motivo y fecha de término en la ficha para iniciar el seguimiento.
+
+En desarrollo, aplica las migraciones con `npm run prisma:deploy` y regenera el cliente con `npm run prisma:generate` desde `backend`. Para volver al modelo individual, restaura el respaldo previo en otra base y configura `DATABASE_URL` con el código y el cliente anteriores. Volver a imponer unicidad sobre una base con grupos requiere resolver antes sus asignaciones.

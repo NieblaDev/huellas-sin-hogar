@@ -52,7 +52,7 @@ test('incorpora RF1 a una base existente sin perder usuarios ni fichas', async (
       registrarMigracion(id);
     }
     execFileSync(process.execPath, [fileURLToPath(new URL('../prisma/migrate.js', import.meta.url))], { env, stdio: 'pipe' });
-    assert.deepEqual(await db.animal.findUnique({ where: { id: animal.id } }), { ...animal, estadoAdopcion: 'EN_REFUGIO' });
+    assert.deepEqual(await db.animal.findUnique({ where: { id: animal.id } }), { ...animal, fechaIngresoCanil: null, estadoAdopcion: 'EN_REFUGIO' });
     assert.deepEqual(await db.usuario.findUnique({ where: { id: usuario.id } }), { ...usuario, rol: 'DIRECCION', sexo: 'NEUTRO' });
     assert.deepEqual(await db.usuario.findMany({
       where: { id: { not: usuario.id } }, orderBy: { email: 'asc' }, select: { rol: true, sexo: true, activo: true }
