@@ -16,7 +16,7 @@ export const getDashboardMetrics = async (user) => {
     totalAnimales,
     animalesPorEspecie,
     animalesPorSalud,
-    totalCaniles,
+    totalCaniles, capacidad, alojados,
     canilesLibres,
     canilesOcupados,
     canilesCuarentena,
@@ -40,6 +40,8 @@ export const getDashboardMetrics = async (user) => {
 
     // 2. Caniles y ocupación
     prisma.canil.count(),
+    prisma.canil.aggregate({ _sum: { capacidad: true } }),
+    prisma.animal.count({ where: { canilId: { not: null } } }),
     prisma.canil.count({ where: { estado: 'LIBRE' } }),
     prisma.canil.count({ where: { estado: 'OCUPADO' } }),
     prisma.canil.count({ where: { estado: 'CUARENTENA' } }),
@@ -89,8 +91,8 @@ export const getDashboardMetrics = async (user) => {
   });
 
   // Porcentaje de ocupación
-  const ocupacionPorcentaje = totalCaniles > 0
-    ? Math.round(((canilesOcupados + canilesCuarentena) / totalCaniles) * 100)
+  const ocupacionPorcentaje = capacidad._sum.capacidad > 0
+    ? Math.round(alojados * 100 / capacidad._sum.capacidad)
     : 0;
 
   // Alertas prioritarias en tiempo real

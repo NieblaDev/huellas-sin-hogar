@@ -550,7 +550,7 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
               >
                 <option value="">— Sin asignar —</option>
                 {caniles
-                  .filter((c) => c.estado === 'LIBRE' || (canilActualId && Number(c.id) === Number(canilActualId)))
+                  .filter((c) => c.estado !== 'MANTENIMIENTO' && (c.tipo === 'Mixto' || c.tipo === formData.especie) && ((c.estado !== 'CUARENTENA' && c.ocupacion?.libres > 0) || Number(c.id) === Number(canilActualId)))
                   .map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre} ({c.sector}){canilActualId && Number(c.id) === Number(canilActualId) ? ' — Actual' : ''}

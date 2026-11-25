@@ -1,3 +1,4 @@
+import { bloquearCaniles, buscarCanil, registrarMovimiento, sincronizarEstadoCanil, validarIngresoAnimal, validarSalida } from './canilOcupacion.js';
 import { ErrorDominio } from '../utils/errorDominio.js';
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
@@ -133,17 +134,6 @@ export const createAnimal = async (data, user, ip) => {
   const sexoFinal = sexoNorm === 'macho' ? 'Macho' : 'Hembra';
   const causalIngreso = ['Rescate', 'Abandono', 'Decomiso'].includes(tipoIngreso) ? tipoIngreso : 'Rescate';
 
-  // Si se asigna un canil inicial, comprobar disponibilidad
-  let canilParaAsignar = null;
-  if (canilId) {
-    canilParaAsignar = await prisma.canil.findUnique({
-      where: { id: Number(canilId) },
-      include: { animalAlojado: true }
-    });
-    if (!canilParaAsignar) throw new ErrorDominio(404, 'El canil especificado no existe');
-    if (canilParaAsignar.animalAlojado) throw new ErrorDominio(409, `El canil ${canilParaAsignar.nombre} ya está ocupado`);
-  }
-
   const antecedenteClinico =
     (animalData.nota && animalData.nota.trim()) ||
     (historialMedico && historialMedico.trim()) ||
@@ -154,7 +144,13 @@ export const createAnimal = async (data, user, ip) => {
     : `[Ingreso por ${causalIngreso}] ${antecedenteClinico}`;
 
   // Flexibilidad de datos: antecedentes desconocidos se almacenan con valores seguros sin bloquear
-  const newAnimal = await prisma.animal.create({
+  const newAnimal = await prisma.$transaction(async tx => {
+    const destino = canilId ? Number(canilId) : null;
+    if (destino) {
+      await bloquearCaniles(tx, destino);
+      validarIngresoAnimal({ animal: { especie: especieFinal }, canil: await buscarCanil(tx, destino) });
+    }
+    const creado = await tx.animal.create({
     data: {
       nombre: animalData.nombre.trim(),
       especie: especieFinal,
@@ -169,7 +165,8 @@ export const createAnimal = async (data, user, ip) => {
       esterilizacion: animalData.esterilizacion && animalData.esterilizacion.trim() !== '' ? animalData.esterilizacion.trim() : 'Desconocido',
       comportamiento: animalData.comportamiento && animalData.comportamiento.trim() !== '' ? animalData.comportamiento.trim() : 'Por evaluar',
       activo: true,
-      canilId: canilId ? Number(canilId) : null,
+      canilId: destino,
+      fechaIngresoCanil: destino ? new Date() : null,
       creadoPorId: user?.id || null
     },
     include: {
@@ -178,24 +175,12 @@ export const createAnimal = async (data, user, ip) => {
     }
   });
 
-  if (canilParaAsignar) {
-    await prisma.canil.update({
-      where: { id: canilParaAsignar.id },
-      data: { estado: 'OCUPADO' }
-    });
-
-    // Registrar asignación inicial en traslados
-    await prisma.traslado.create({
-      data: {
-        animalId: newAnimal.id,
-        tipo: 'INTERNO_CANIL',
-        motivo: `Asignación de canil en ingreso al refugio (${causalIngreso})`,
-        estado: 'COMPLETADO',
-        canilDestinoId: canilParaAsignar.id,
-        responsableId: user.id
-      }
-    });
-  }
+    if (destino) {
+      await registrarMovimiento(tx, { ...creado, canilId: null }, destino, user.id, 'Ingreso al refugio');
+      await sincronizarEstadoCanil(tx, destino);
+    }
+    return creado;
+  });
 
   const fichaCreada = {
     ...newAnimal,
@@ -319,52 +304,29 @@ export const updateAnimal = async (id, data, user, ip) => {
     updatePayload.nota = `[Ingreso por ${causalNueva}] ${cuerpoNota}`;
   }
 
-  // Gestión de cambio de canil si se envía canilId
-  let canilAnteriorId = actual.canilId;
-  let nuevoCanilId = actual.canilId;
-  let cambioCanil = false;
-
-  if (data.canilId !== undefined) {
-    nuevoCanilId = data.canilId === null || data.canilId === '' ? null : Number(data.canilId);
-    if (nuevoCanilId !== actual.canilId) {
-      cambioCanil = true;
-      if (nuevoCanilId !== null) {
-        const canilDestino = await prisma.canil.findUnique({
-          where: { id: nuevoCanilId },
-          include: { animalAlojado: true }
-        });
-        if (!canilDestino) throw new ErrorDominio(404, 'El canil seleccionado no existe.');
-        if (canilDestino.animalAlojado && canilDestino.animalAlojado.id !== actual.id) {
-          throw new ErrorDominio(409, `El canil ${canilDestino.nombre} ya se encuentra ocupado.`);
-        }
-      }
-      updatePayload.canilId = nuevoCanilId;
+  const actualizado = await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT id FROM animales WHERE id = ${Number(id)} FOR UPDATE`;
+    const animal = await tx.animal.findUniqueOrThrow({ where: { id: Number(id) } });
+    const destino = updatePayload.estadoAdopcion === 'ADOPTADO' ? null : data.canilId === undefined ? animal.canilId : Number(data.canilId) || null;
+    const cambio = destino !== animal.canilId;
+    await bloquearCaniles(tx, animal.canilId, destino);
+    if (cambio) await validarSalida(tx, animal.id);
+    if (destino && (cambio || updatePayload.especie !== undefined)) {
+      validarIngresoAnimal({ animal: { ...animal, ...updatePayload }, canil: await buscarCanil(tx, destino) });
     }
-  }
-
-  const actualizado = await prisma.animal.update({
-    where: { id: Number(id) },
-    data: updatePayload,
-    include: {
-      canil: true,
-      creadoPor: { select: { id: true, nombre: true, rol: true } }
+    if (cambio) {
+      updatePayload.canilId = destino;
+      updatePayload.fechaIngresoCanil = destino ? new Date() : null;
+      await registrarMovimiento(tx, animal, destino, user.id, 'Actualización de ficha');
     }
+    const resultado = await tx.animal.update({ where: { id: animal.id }, data: updatePayload,
+      include: { canil: true, creadoPor: { select: { id: true, nombre: true, rol: true } } } });
+    if (cambio) {
+      await sincronizarEstadoCanil(tx, animal.canilId);
+      await sincronizarEstadoCanil(tx, destino);
+    }
+    return resultado;
   });
-
-  if (cambioCanil) {
-    if (canilAnteriorId) {
-      await prisma.canil.update({
-        where: { id: canilAnteriorId },
-        data: { estado: 'LIBRE' }
-      });
-    }
-    if (nuevoCanilId) {
-      await prisma.canil.update({
-        where: { id: nuevoCanilId },
-        data: { estado: 'OCUPADO' }
-      });
-    }
-  }
 
   const fichaActualizada = enriquecerFichaAnimal(actualizado);
 
@@ -406,20 +368,17 @@ export const deleteAnimal = async (id, user, ip) => {
   if (!animal) throw new ErrorDominio(404, 'Animal no encontrado');
 
   // Baja lógica: no se borra físicamente
-  const dadoDeBaja = await prisma.animal.update({
-    where: { id: Number(id) },
-    data: { activo: false, canilId: null }
+  const dadoDeBaja = await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT id FROM animales WHERE id = ${Number(id)} FOR UPDATE`;
+    const actual = await tx.animal.findUniqueOrThrow({ where: { id: Number(id) } });
+    await bloquearCaniles(tx, actual.canilId);
+    await tx.cuarentenaAnimal.updateMany({ where: { animalId: actual.id, estado: 'ACTIVA' }, data: { estado: 'INTERRUMPIDA', fechaFinReal: new Date() } });
+    await registrarMovimiento(tx, actual, null, user.id, 'Baja de animal');
+    const baja = await tx.animal.update({ where: { id: actual.id }, data: { activo: false, canilId: null, fechaIngresoCanil: null } });
+    await sincronizarEstadoCanil(tx, actual.canilId);
+    return baja;
   });
 
-  // Liberar el canil si tenía uno asignado
-  if (animal.canilId) {
-    await prisma.canil.update({
-      where: { id: animal.canilId },
-      data: { estado: 'LIBRE' }
-    });
-  }
-
-  // Auditoría automática de baja lógica
   await registrarAuditoria({
     entidad: 'Animal',
     entidadId: animal.id,

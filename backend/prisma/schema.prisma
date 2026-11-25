@@ -199,7 +199,8 @@ model Animal {
   creadoPorId         Int?
   creadoPor           Usuario?            @relation(fields: [creadoPorId], references: [id], onDelete: SetNull)
 
-  canilId             Int?                @unique
+  canilId             Int?
+  fechaIngresoCanil   DateTime?
   canil               Canil?              @relation(fields: [canilId], references: [id], onDelete: SetNull)
 
   traslados           Traslado[]
@@ -214,6 +215,7 @@ model Animal {
   devoluciones        Devolucion[]
   movimientosInventario MovimientoInventario[]
 
+  @@index([canilId])
   @@map("animales")
 }
 
@@ -222,11 +224,13 @@ model Canil {
   codigo           String     @unique @db.VarChar(30)
   nombre           String     @db.VarChar(80)
   sector           String     @default("General") @db.VarChar(60)
-  tipo             String     @default("Perro") @db.VarChar(40)
+  tipo             String     @default("Mixto") @db.VarChar(40)
   capacidad        Int        @default(1)
   estado           EstadoCanil @default(LIBRE)
 
-  animalAlojado    Animal?
+  animales         Animal[]
+  notas            String? @db.Text
+  cuarentenas      CuarentenaAnimal[]
 
   trasladosOrigen  Traslado[] @relation("TrasladoCanilOrigen")
   trasladosDestino Traslado[] @relation("TrasladoCanilDestino")
@@ -571,6 +575,11 @@ model CuarentenaAnimal {
   estado           EstadoCuarentena @default(ACTIVA)
   observaciones    String?          @db.Text
 
+  canilId          Int?
+  canil            Canil? @relation(fields: [canilId], references: [id], onDelete: SetNull)
+
+  @@index([animalId, estado])
+  @@index([canilId, estado])
   @@map("cuarentenas_animales")
 }
 

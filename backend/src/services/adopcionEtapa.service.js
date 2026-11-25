@@ -1,3 +1,4 @@
+import { registrarMovimiento, sincronizarEstadoCanil, validarSalida } from './canilOcupacion.js';
 import prisma from '../config/prisma.js';
 import { AdopcionError } from './adopcion.service.js';
 
@@ -74,11 +75,13 @@ export const actualizarEtapa = async (id, data, responsable, ip) => {
               { adopcionId: adopcion.id, tipoSeguimiento: 'SEGUIMIENTO_30_DIAS', diasProgramados: 30, fechaProgramada: fecha30, estado: 'PENDIENTE', limiteIntentos }
             ]
           });
-          const actualizado = await tx.animal.update({ where: { id: animal.id }, data: { estadoAdopcion: 'ADOPTADO', canilId: null } });
+          await validarSalida(tx, animal.id);
+          await registrarMovimiento(tx, animal, null, responsable.id, 'Adopción');
+          const actualizado = await tx.animal.update({ where: { id: animal.id }, data: { estadoAdopcion: 'ADOPTADO', canilId: null, fechaIngresoCanil: null } });
           await auditar('Animal', animal.id, animal, actualizado);
           if (animal.canilId) {
             const canil = await tx.canil.findUnique({ where: { id: animal.canilId } });
-            const libre = await tx.canil.update({ where: { id: animal.canilId }, data: { estado: 'LIBRE' } });
+            const libre = await sincronizarEstadoCanil(tx, animal.canilId);
             await auditar('Canil', canil.id, canil, libre);
           }
           await auditar('Adopcion', adopcion.id, null, adopcion);

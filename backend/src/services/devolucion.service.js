@@ -1,3 +1,4 @@
+import { buscarCanil, registrarMovimiento, sincronizarEstadoCanil, validarIngresoAnimal } from './canilOcupacion.js';
 import prisma from '../config/prisma.js';
 import { AdopcionError } from './adopcion.service.js';
 
@@ -51,9 +52,9 @@ export const registrarDevolucion = async (data, responsable, ip) => {
     if (data.canilId) {
       const canilId = Number(data.canilId);
       await tx.$queryRaw`SELECT id FROM caniles WHERE id = ${canilId} FOR UPDATE`;
-      const canil = await tx.canil.findUnique({ where: { id: canilId } });
+      const canil = await buscarCanil(tx, canilId);
       if (!canil) throw new AdopcionError(404, 'No encontramos el canil elegido.');
-      if (canil.estado !== 'LIBRE') throw new AdopcionError(409, 'El canil elegido no está libre. Elige otro.');
+      validarIngresoAnimal({ animal: { ...animal, estadoAdopcion: 'EN_REFUGIO' }, canil });
       canilAsignado = canil;
     }
 
@@ -86,16 +87,15 @@ export const registrarDevolucion = async (data, responsable, ip) => {
       where: { id: animal.id },
       data: {
         estadoAdopcion: 'EN_REFUGIO',
+        fechaIngresoCanil: data.canilId ? new Date() : null,
         canilId: data.canilId ? Number(data.canilId) : null
       }
     });
 
     // 4. Si se asignó canil, ocuparlo
     if (canilAsignado) {
-      await tx.canil.update({
-        where: { id: canilAsignado.id },
-        data: { estado: 'OCUPADO' }
-      });
+      await sincronizarEstadoCanil(tx, canilAsignado.id);
+      await registrarMovimiento(tx, animal, canilAsignado.id, responsable.id, 'Devolución al refugio');
       await tx.auditoria.create({
         data: {
           usuarioId: responsable.id,
@@ -106,7 +106,7 @@ export const registrarDevolucion = async (data, responsable, ip) => {
           entidadId: canilAsignado.id,
           accion: 'MODIFICACION',
           valorAnterior: json(canilAsignado),
-          valorNuevo: json({ ...canilAsignado, estado: 'OCUPADO', animalAlojadoId: animal.id })
+          valorNuevo: json({ ...canilAsignado, estado: 'OCUPADO', animalIngresadoId: animal.id })
         }
       });
     }

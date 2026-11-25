@@ -918,7 +918,7 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
       },
       orderBy: { id: 'asc' }
     }),
-    prisma.canil.findMany({ orderBy: { id: 'asc' } }),
+    prisma.canil.findMany({ orderBy: { id: 'asc' }, include: { _count: { select: { animales: true } } } }),
     prisma.insumo.findMany({ where: { activo: true }, orderBy: { id: 'asc' } }),
     prisma.turno.findMany({ orderBy: { id: 'asc' } }),
     prisma.traslado.findMany({
@@ -973,8 +973,9 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
   const canilesLibres = caniles.filter((c) => c.estado === 'LIBRE').length;
   const canilesOcupados = caniles.filter((c) => c.estado === 'OCUPADO').length;
   const canilesCuarentena = caniles.filter((c) => c.estado === 'CUARENTENA').length;
-  const ocupacionPct =
-    caniles.length > 0 ? Math.round(((canilesOcupados + canilesCuarentena) / caniles.length) * 100) : 0;
+  const capacidad = caniles.reduce((s,c) => s + c.capacidad, 0);
+  const alojados = caniles.reduce((s,c) => s + c._count.animales, 0);
+  const ocupacionPct = capacidad ? Math.round(alojados * 100 / capacidad) : 0;
 
   const insumosCriticos = insumos.filter((i) => i.stock <= i.stockMinimo);
   const turnosCubiertos = turnos.filter((t) => t.cubierto).length;

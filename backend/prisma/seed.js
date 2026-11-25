@@ -74,7 +74,7 @@ async function main() {
       codigo: `C-${i < 10 ? '0' + i : i}`,
       nombre: `Canil ${i}`,
       sector: i % 4 === 0 ? 'Cuarentena' : 'Patio Principal',
-      tipo: 'General',
+      tipo: 'Mixto',
       capacidad: 1,
       estado: 'LIBRE'
     });
@@ -113,33 +113,15 @@ async function main() {
   const canilesList = await prisma.canil.findMany({ orderBy: { id: 'asc' } });
   const animalesList = await prisma.animal.findMany({ orderBy: { id: 'asc' } });
 
-  // Asignamos 4 caniles para tener ocupación inicial
-  if (canilesList.length >= 4 && animalesList.length >= 4) {
-    await prisma.animal.update({
-      where: { id: animalesList[1].id }, // Rocky
-      data: { canilId: canilesList[0].id }
-    });
-    await prisma.canil.update({
-      where: { id: canilesList[0].id },
-      data: { estado: 'OCUPADO' }
-    });
-
-    await prisma.animal.update({
-      where: { id: animalesList[3].id }, // Bruno
-      data: { canilId: canilesList[1].id }
-    });
-    await prisma.canil.update({
-      where: { id: canilesList[1].id },
-      data: { estado: 'OCUPADO' }
-    });
-
-    await prisma.animal.update({
-      where: { id: animalesList[4].id }, // Nala
-      data: { canilId: canilesList[3].id }
-    });
-    await prisma.canil.update({
-      where: { id: canilesList[3].id },
-      data: { estado: 'CUARENTENA' }
+  for (const [indiceAnimal, indiceCanil] of [[1,0], [3,1], [4,3]]) {
+    const animal = animalesList[indiceAnimal], canil = canilesList[indiceCanil];
+    if (!animal || !canil || animal.canilId || canil.estado !== 'LIBRE') continue;
+    await prisma.$transaction(async tx => {
+      await tx.animal.update({ where: { id: animal.id }, data: { canilId: canil.id, fechaIngresoCanil: new Date() } });
+      const aislamiento = indiceAnimal === 4;
+      if (aislamiento) await tx.cuarentenaAnimal.create({ data: { animalId: animal.id, canilId: canil.id,
+        canilAislamiento: canil.codigo, motivo: 'Observación inicial del refugio', fechaFinEstimada: new Date(Date.now() + 14 * 86400000) } });
+      await tx.canil.update({ where: { id: canil.id }, data: { estado: aislamiento ? 'CUARENTENA' : 'OCUPADO' } });
     });
   }
 
