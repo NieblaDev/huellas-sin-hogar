@@ -1,3 +1,5 @@
+import { idParamSchema } from '../schemas/request.schema.js';
+import { alertasAnimalSchema, reporteAnimalSchema, listarAnimalesSchema, formatoFichaSchema } from '../schemas/animal.schema.js';
 import { Router } from 'express';
 import {
   getAnimals,
@@ -29,13 +31,13 @@ const ROLES_INGRESO_Y_CONSULTA = [
 const ROLES_EXPORTAR_PDF = ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES'];
 
 // Bandeja de notificaciones internas para el personal del refugio
-router.get('/notificaciones', authenticateToken, requireRole(...ROLES_INGRESO_Y_CONSULTA), getNotifications);
+router.get('/notificaciones', authenticateToken, requireRole(...ROLES_INGRESO_Y_CONSULTA), validate(alertasAnimalSchema, 'query'), getNotifications);
 
 // Exportación de reporte consolidado y balance general en CSV/PDF — EXCLUSIVO DIRECCION
-router.get('/reportes/export-csv', authenticateToken, requireRole('DIRECCION'), exportConsolidatedCsv);
+router.get('/reportes/export-csv', authenticateToken, requireRole('DIRECCION'), validate(reporteAnimalSchema, 'query'), exportConsolidatedCsv);
 
 // Catálogo general y Registro de ingreso de animales y creación de Ficha del Animal
-router.get('/', authenticateToken, getAnimals);
+router.get('/', authenticateToken, validate(listarAnimalesSchema, 'query'), getAnimals);
 router.post(
   '/',
   authenticateToken,
@@ -46,14 +48,15 @@ router.post(
 );
 
 // Exportación de Ficha del Animal en PDF/CSV — personal del refugio y Dirección
-router.get('/:id/export-pdf', authenticateToken, requireRole(...ROLES_EXPORTAR_PDF), exportAnimalPdf);
+router.get('/:id/export-pdf', authenticateToken, requireRole(...ROLES_EXPORTAR_PDF), validate(idParamSchema, 'params'), validate(formatoFichaSchema, 'query'), exportAnimalPdf);
 
 // Consulta de Ficha del Animal, edición (PUT / PATCH con soporte de foto Multer) y baja lógica
-router.get('/:id', authenticateToken, getAnimalById);
+router.get('/:id', authenticateToken, validate(idParamSchema, 'params'), getAnimalById);
 router.put(
   '/:id',
   authenticateToken,
   requireRole(...ROLES_INGRESO_Y_CONSULTA),
+  validate(idParamSchema, 'params'),
   uploadSingle('foto'),
   validate(updateAnimalSchema, 'body'),
   updateAnimal
@@ -62,10 +65,11 @@ router.patch(
   '/:id',
   authenticateToken,
   requireRole(...ROLES_INGRESO_Y_CONSULTA),
+  validate(idParamSchema, 'params'),
   uploadSingle('foto'),
   validate(updateAnimalSchema, 'body'),
   updateAnimal
 );
-router.delete('/:id', authenticateToken, deleteAnimal);
+router.delete('/:id', authenticateToken, validate(idParamSchema, 'params'), deleteAnimal);
 
 export default router;

@@ -1,3 +1,4 @@
+import { ErrorDominio } from '../utils/errorDominio.js';
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
 
@@ -33,7 +34,7 @@ export const createPostulante = async (data, user, ip) => {
 
 export const updatePostulante = async (id, data, user, ip) => {
   const anterior = await prisma.postulante.findUnique({ where: { id: Number(id) } });
-  if (!anterior) throw new Error('Postulante no encontrado');
+  if (!anterior) throw new ErrorDominio(404, 'Postulante no encontrado');
 
   const actualizado = await prisma.postulante.update({
     where: { id: Number(id) },
@@ -55,7 +56,7 @@ export const updatePostulante = async (id, data, user, ip) => {
 
 export const deletePostulante = async (id, user, ip) => {
   const anterior = await prisma.postulante.findUnique({ where: { id: Number(id) } });
-  if (!anterior) throw new Error('Postulante no encontrado');
+  if (!anterior) throw new ErrorDominio(404, 'Postulante no encontrado');
 
   const baja = await prisma.postulante.update({
     where: { id: Number(id) },

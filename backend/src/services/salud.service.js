@@ -1,3 +1,4 @@
+import { ErrorDominio } from '../utils/errorDominio.js';
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
 
@@ -7,8 +8,8 @@ const validarAnimalActivo = async (animalId) => {
     where: { id: Number(animalId) },
     include: { canil: true }
   });
-  if (!animal) throw new Error('Animal no encontrado');
-  if (!animal.activo) throw new Error(`El animal "${animal.nombre}" no cuenta con ficha activa en el refugio`);
+  if (!animal) throw new ErrorDominio(404, 'Animal no encontrado');
+  if (!animal.activo) throw new ErrorDominio(400, `El animal "${animal.nombre}" no cuenta con ficha activa en el refugio`);
   return animal;
 };
 

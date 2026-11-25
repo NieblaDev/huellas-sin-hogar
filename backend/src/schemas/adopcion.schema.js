@@ -1,3 +1,4 @@
+import { idParamSchema } from './request.schema.js';
 import { z } from 'zod';
 import { esRutValido, normalizarIdentificacion } from '../utils/postulanteIdentificacion.js';
 
@@ -33,7 +34,7 @@ export const crearSolicitudSchema = z.object({
   motivacion: z.string().trim().min(10, 'Describe la motivación y el hogar con al menos 10 caracteres.').max(4000, 'La motivación admite hasta 4000 caracteres.')
 }).strict();
 
-export const solicitudIdSchema = z.object({ id: z.coerce.number().int().positive().max(2147483647) }).strict();
+export const solicitudIdSchema = idParamSchema.strict();
 
 export const listarSolicitudesSchema = z.object({
   estado: z.enum(ESTADOS_SOLICITUD, { errorMap: () => ({ message: 'Elige un estado de la lista.' }) }).optional(),
@@ -50,5 +51,7 @@ export const listarSolicitudesSchema = z.object({
   }
 });
 
-export const editarSolicitudSchema = crearSolicitudSchema.extend({ actualizadoEn: z.string().datetime() });
+export const editarSolicitudSchema = crearSolicitudSchema.partial().extend({ actualizadoEn: z.string().datetime() })
+  .refine(({ postulante, animalId, motivacion }) => postulante !== undefined || animalId !== undefined || motivacion !== undefined,
+    { message: 'Indica al menos un dato para editar la solicitud.' });
 export const eliminarSolicitudSchema = z.object({ actualizadoEn: z.string().datetime() }).strict();

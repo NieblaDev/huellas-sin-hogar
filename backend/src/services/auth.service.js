@@ -1,7 +1,13 @@
+import { ErrorDominio } from '../utils/errorDominio.js';
 import prisma from "../config/prisma.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { etiquetaRolUsuario } from "../constants/usuarios.js";
+
+export const buscarUsuarioSesion = id => prisma.usuario.findUnique({
+  where: { id },
+  select: { id: true, email: true, nombre: true, rol: true, sexo: true, activo: true }
+});
 
 export const serializarSesion = ({ id, email, nombre, rol, sexo }) => ({
   id,
@@ -14,10 +20,10 @@ export const serializarSesion = ({ id, email, nombre, rol, sexo }) => ({
 
 export const loginUser = async ({ email, password }) => {
   const user = await prisma.usuario.findUnique({ where: { email } });
-  if (!user || !user.activo) throw new Error("Credenciales inválidas");
+  if (!user || !user.activo) throw new ErrorDominio(401, "Credenciales inválidas");
 
   const valid = await bcrypt.compare(password, user.password);
-  if (!valid) throw new Error("Credenciales inválidas");
+  if (!valid) throw new ErrorDominio(401, "Credenciales inválidas");
 
   const token = jwt.sign(
     { id: user.id, email: user.email, rol: user.rol, nombre: user.nombre },

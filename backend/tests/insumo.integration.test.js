@@ -1,6 +1,7 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import express from 'express';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
@@ -13,6 +14,9 @@ if (!testUrl) {
   });
 } else {
   const parsedUrl = new URL(testUrl);
+  if (!['localhost', '127.0.0.1', '[::1]'].includes(parsedUrl.hostname) || !parsedUrl.pathname.includes('test')) {
+    throw new Error('TEST_DATABASE_URL debe apuntar a localhost y el nombre de la base debe incluir test.');
+  }
   const testSchema = `rf7_insumo_${randomUUID().replace(/-/g, '')}`;
   const admin = new PrismaClient({ datasources: { db: { url: testUrl } } });
   parsedUrl.searchParams.set('schema', testSchema);
@@ -20,7 +24,7 @@ if (!testUrl) {
   process.env.JWT_SECRET = 'rf7-local-test-secret';
 
   const { default: prisma } = await import('../src/config/prisma.js');
-  const { default: insumoRoutes } = await import('../src/routes/insumo.routes.js');
+  const { default: app } = await import('../src/app.js');
 
   let server, base, dirUser, vetUser, avanUser, novUser;
   const token = (u) => jwt.sign({ id: u.id, email: u.email, rol: u.rol, nombre: u.nombre }, process.env.JWT_SECRET, { expiresIn: '15m' });
@@ -39,16 +43,11 @@ if (!testUrl) {
 
   before(async () => {
     await admin.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${testSchema}"`);
-    // Ejecutar migraciones o crear tablas si aplica
-    server = express();
-    server.use(express.json());
-    server.use('/insumos', insumoRoutes);
-    await new Promise((resolve) => {
-      const s = server.listen(0, () => {
-        base = `http://localhost:${s.address().port}`;
-        resolve();
-      });
-    });
+    execFileSync(process.execPath, [fileURLToPath(new URL('../prisma/migrate.js', import.meta.url))], { env: { ...process.env, CHECKPOINT_DISABLE: '1' }, stdio: 'pipe' });
+
+    server = app.listen(0, '127.0.0.1');
+    await new Promise((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
+    base = 'http://127.0.0.1:' + server.address().port + '/api';
 
     dirUser = await prisma.usuario.create({
       data: { email: `dir_${Date.now()}@test.cl`, password: 'hash', nombre: 'Directora Test', rol: 'DIRECCION' }
@@ -65,6 +64,7 @@ if (!testUrl) {
   });
 
   after(async () => {
+    if (server) await new Promise(resolve => server.close(resolve));
     await prisma.$disconnect();
     await admin.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${testSchema}" CASCADE`);
     await admin.$disconnect();
@@ -79,7 +79,7 @@ if (!testUrl) {
         nombre: 'Cefalexina 500mg',
         categoria: 'Medicamento',
         stock: 30,
-        stockMinimo: 10,
+        stockMinimo: 40,
         unidad: 'Comprimidos',
         esFarmaco: true
       }
@@ -105,11 +105,17 @@ if (!testUrl) {
     const resListarAvan = await request('/insumos', { usuario: avanUser });
     assert.equal(resListarAvan.status, 200);
     assert.ok(!resListarAvan.data.some(i => i.id === farmacoId));
+    const alertasAvan = await request('/insumos/alertas', { usuario: avanUser });
+    assert.equal(alertasAvan.status, 200);
+    assert.ok(!alertasAvan.data.alertasStock.some(i => i.id === farmacoId));
 
     // 4. Veterinaria lista insumos: el fármaco sí aparece
     const resListarVet = await request('/insumos', { usuario: vetUser });
     assert.equal(resListarVet.status, 200);
     assert.ok(resListarVet.data.some(i => i.id === farmacoId));
+    const alertasVet = await request('/insumos/alertas', { usuario: vetUser });
+    assert.equal(alertasVet.status, 200);
+    assert.ok(alertasVet.data.alertasStock.some(i => i.id === farmacoId));
   });
 
   test('prohibición de saldos negativos: no se permite salida superior al stock disponible', async () => {

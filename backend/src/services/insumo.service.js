@@ -2,15 +2,10 @@ import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
 
 /**
- * Roles autorizados para gestionar inventario general:
- * Dirección, personal de adopciones, personal veterinario y voluntariado avanzado.
- */
-export const ROLES_INVENTARIO = ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES', 'VOLUNTARIO_AVANZADO'];
-
-/**
  * Roles autorizados exclusivamente para consulta y edición de FÁRMACOS / MEDICAMENTOS
  */
 export const ROLES_FARMACOS = ['DIRECCION', 'PERSONAL_VETERINARIO'];
+const CATEGORIAS_FARMACOS = ['medicamento', 'fármaco', 'farmaco'];
 
 export const esAutorizadoFarmacos = (rol) => ROLES_FARMACOS.includes(rol);
 
@@ -21,7 +16,13 @@ export const esInsumoFarmaco = (insumo) => {
   if (!insumo) return false;
   if (insumo.esFarmaco) return true;
   const cat = (insumo.categoria || '').toLowerCase();
-  return cat.includes('medicamento') || cat.includes('fármaco') || cat.includes('farmaco');
+  return CATEGORIAS_FARMACOS.some(categoria => cat.includes(categoria));
+};
+
+const filtroInsumosActivos = user => esAutorizadoFarmacos(user?.rol) ? { activo: true } : {
+  activo: true,
+  esFarmaco: false,
+  NOT: CATEGORIAS_FARMACOS.map(categoria => ({ categoria: { contains: categoria, mode: 'insensitive' } }))
 };
 
 /**
@@ -29,17 +30,7 @@ export const esInsumoFarmaco = (insumo) => {
  * Si el usuario NO tiene rol autorizado para fármacos, los fármacos se excluyen de la consulta.
  */
 export const getInsumos = async (user, filtros = {}) => {
-  const where = { activo: true };
-
-  // Restricción de fármacos: si no es personal médico/autorizado, ocultar fármacos
-  if (!esAutorizadoFarmacos(user?.rol)) {
-    where.AND = [
-      { esFarmaco: false },
-      { categoria: { not: { contains: 'medicamento', mode: 'insensitive' } } },
-      { categoria: { not: { contains: 'fármaco', mode: 'insensitive' } } },
-      { categoria: { not: { contains: 'farmaco', mode: 'insensitive' } } }
-    ];
-  }
+  const where = filtroInsumosActivos(user);
 
   if (filtros.search) {
     where.nombre = { contains: filtros.search, mode: 'insensitive' };
@@ -404,18 +395,8 @@ export const getMovimientosInsumo = async (insumoId, user) => {
  * - Vencimientos próximos (dentro de 30 días) o vencidos
  */
 export const getAlertasInventario = async (user) => {
-  const where = { activo: true };
-
-  // Restricción de fármacos para usuarios no médicos
-  if (!esAutorizadoFarmacos(user?.rol)) {
-    where.AND = [
-      { esFarmaco: false },
-      { categoria: { not: { contains: 'medicamento', mode: 'insensitive' } } }
-    ];
-  }
-
   const todos = await prisma.insumo.findMany({
-    where,
+    where: filtroInsumosActivos(user),
     orderBy: { nombre: 'asc' }
   });
 

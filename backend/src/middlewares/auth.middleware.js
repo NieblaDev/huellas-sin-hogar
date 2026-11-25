@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import prisma from '../config/prisma.js';
+import { buscarUsuarioSesion } from '../services/auth.service.js';
 
 export const authenticateToken = async (req, res, next) => {
   const authorization = req.headers.authorization || '';
@@ -20,10 +20,7 @@ export const authenticateToken = async (req, res, next) => {
   try {
     // No confiar en el rol ni en el estado guardados en el token:
     // un perfil desactivado pierde acceso de inmediato y los cambios de rol aplican al instante.
-    const usuario = await prisma.usuario.findUnique({
-      where: { id: payload.id },
-      select: { id: true, email: true, nombre: true, rol: true, sexo: true, activo: true }
-    });
+    const usuario = await buscarUsuarioSesion(payload.id);
 
     if (!usuario?.activo) {
       return res.status(403).json({ error: 'Perfil inactivo o inexistente' });
@@ -31,8 +28,8 @@ export const authenticateToken = async (req, res, next) => {
 
     req.user = usuario;
     next();
-  } catch {
-    res.status(500).json({ error: 'No se pudo verificar la sesión' });
+  } catch (error) {
+    next(error);
   }
 };
 

@@ -1,3 +1,5 @@
+import { sinParametrosSchema, idParamSchema } from '../schemas/request.schema.js';
+import { listarTrasladosSchema } from '../schemas/canil.schema.js';
 import { Router } from 'express';
 import {
   getCaniles,
@@ -24,7 +26,7 @@ import {
 const router = Router();
 
 // Requisito 1: Cualquier miembro del staff autenticado puede ver caniles y asignar/reubicar
-router.get('/', authenticateToken, getCaniles);
+router.get('/', authenticateToken, validate(sinParametrosSchema, 'query'), getCaniles);
 
 // Crear un nuevo canil (disponible para staff autenticado)
 router.post('/', authenticateToken, validate(crearCanilSchema, 'body'), createCanil);
@@ -45,9 +47,9 @@ router.post('/asignar', authenticateToken, validate(asignarCanilSchema, 'body'),
 
 // Solicitud de traslado externo (Hogar Temporal o Protectora Aliada)
 router.post('/traslados', authenticateToken, validate(trasladoExternoSchema, 'body'), solicitarTrasladoExterno);
-router.get('/traslados', authenticateToken, getTraslados);
+router.get('/traslados', authenticateToken, validate(listarTrasladosSchema, 'query'), getTraslados);
 
 // Aprobación de traslado: RESTRICCIÓN ESTRICTA SOLO DIRECCION
-router.put('/traslados/:id/aprobacion', authenticateToken, requireRole('DIRECCION'), validate(gestionAprobacionSchema, 'body'), gestionarAprobacion);
+router.put('/traslados/:id/aprobacion', authenticateToken, requireRole('DIRECCION'), validate(idParamSchema, 'params'), validate(gestionAprobacionSchema, 'body'), gestionarAprobacion);
 
 export default router;

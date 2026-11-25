@@ -1,3 +1,4 @@
+import { ErrorDominio } from '../utils/errorDominio.js';
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
 import { notificarPersonalRefugio } from './notification.service.js';
@@ -90,7 +91,7 @@ export const getAnimalById = async (id, user) => {
     }
   });
 
-  if (!animal) throw new Error('Animal no encontrado');
+  if (!animal) throw new ErrorDominio(404, 'Animal no encontrado');
 
   const ficha = enriquecerFichaAnimal(animal);
   const esDireccion = user?.rol === 'DIRECCION';
@@ -121,11 +122,11 @@ export const createAnimal = async (data, user, ip) => {
   // Validación en servicio: especie ('Perro'|'Gato') y sexo ('Macho'|'Hembra') obligatorios
   const especieNorm = (animalData.especie || '').trim().toLowerCase();
   if (!['perro', 'gato'].includes(especieNorm)) {
-    throw new Error('Debes especificar la especie (canina o felina) y el sexo del animal para completar el ingreso.');
+    throw new ErrorDominio(400, 'Debes especificar la especie (canina o felina) y el sexo del animal para completar el ingreso.');
   }
   const sexoNorm = (animalData.sexo || '').trim().toLowerCase();
   if (!['macho', 'hembra'].includes(sexoNorm)) {
-    throw new Error('Debes especificar la especie (canina o felina) y el sexo del animal para completar el ingreso.');
+    throw new ErrorDominio(400, 'Debes especificar la especie (canina o felina) y el sexo del animal para completar el ingreso.');
   }
 
   const especieFinal = especieNorm === 'perro' ? 'Perro' : 'Gato';
@@ -139,8 +140,8 @@ export const createAnimal = async (data, user, ip) => {
       where: { id: Number(canilId) },
       include: { animalAlojado: true }
     });
-    if (!canilParaAsignar) throw new Error('El canil especificado no existe');
-    if (canilParaAsignar.animalAlojado) throw new Error(`El canil ${canilParaAsignar.nombre} ya está ocupado`);
+    if (!canilParaAsignar) throw new ErrorDominio(404, 'El canil especificado no existe');
+    if (canilParaAsignar.animalAlojado) throw new ErrorDominio(409, `El canil ${canilParaAsignar.nombre} ya está ocupado`);
   }
 
   const antecedenteClinico =
@@ -236,11 +237,12 @@ export const createAnimal = async (data, user, ip) => {
 };
 
 export const updateAnimal = async (id, data, user, ip) => {
+  if (data.eliminarFoto) data = { ...data, fotoUrl: null };
   const actual = await prisma.animal.findUnique({
     where: { id: Number(id) },
     include: { canil: true }
   });
-  if (!actual) throw new Error('Animal no encontrado');
+  if (!actual) throw new ErrorDominio(404, 'Animal no encontrado');
 
   const matchActual = (actual.nota || '').match(REGEX_TIPO_INGRESO);
   const causalActual = matchActual ? matchActual[1] : 'Rescate';
@@ -259,14 +261,14 @@ export const updateAnimal = async (id, data, user, ip) => {
   if (data.especie !== undefined && String(data.especie).trim() !== '') {
     const esp = String(data.especie).trim().toLowerCase();
     if (!['perro', 'gato'].includes(esp)) {
-      throw new Error('Debes especificar la especie (canina o felina) y el sexo del animal.');
+      throw new ErrorDominio(400, 'Debes especificar la especie (canina o felina) y el sexo del animal.');
     }
     updatePayload.especie = esp === 'perro' ? 'Perro' : 'Gato';
   }
   if (data.sexo !== undefined && String(data.sexo).trim() !== '') {
     const sx = String(data.sexo).trim().toLowerCase();
     if (!['macho', 'hembra'].includes(sx)) {
-      throw new Error('Debes especificar la especie (canina o felina) y el sexo del animal.');
+      throw new ErrorDominio(400, 'Debes especificar la especie (canina o felina) y el sexo del animal.');
     }
     updatePayload.sexo = sx === 'macho' ? 'Macho' : 'Hembra';
   }
@@ -331,9 +333,9 @@ export const updateAnimal = async (id, data, user, ip) => {
           where: { id: nuevoCanilId },
           include: { animalAlojado: true }
         });
-        if (!canilDestino) throw new Error('El canil seleccionado no existe.');
+        if (!canilDestino) throw new ErrorDominio(404, 'El canil seleccionado no existe.');
         if (canilDestino.animalAlojado && canilDestino.animalAlojado.id !== actual.id) {
-          throw new Error(`El canil ${canilDestino.nombre} ya se encuentra ocupado.`);
+          throw new ErrorDominio(409, `El canil ${canilDestino.nombre} ya se encuentra ocupado.`);
         }
       }
       updatePayload.canilId = nuevoCanilId;
@@ -401,7 +403,7 @@ export const deleteAnimal = async (id, user, ip) => {
     where: { id: Number(id) },
     include: { canil: true }
   });
-  if (!animal) throw new Error('Animal no encontrado');
+  if (!animal) throw new ErrorDominio(404, 'Animal no encontrado');
 
   // Baja lógica: no se borra físicamente
   const dadoDeBaja = await prisma.animal.update({

@@ -1,3 +1,4 @@
+import { sinParametrosSchema, animalIdParamSchema } from '../schemas/request.schema.js';
 import { Router } from 'express';
 import { authenticateToken, requireRole } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
@@ -11,8 +12,8 @@ const router = Router();
 router.use(authenticateToken);
 
 // Panel de tareas del turno y consulta de historial (accesible para todo el staff y voluntarios)
-router.get('/tareas', cuidadosCtrl.getTareasTurno);
-router.get('/animal/:animalId', cuidadosCtrl.getHistorialAnimal);
+router.get('/tareas', validate(sinParametrosSchema, 'query'), cuidadosCtrl.getTareasTurno);
+router.get('/animal/:animalId', validate(animalIdParamSchema, 'params'), cuidadosCtrl.getHistorialAnimal);
 
 // Registro de indicaciones de cuidado: SOLO personal con permisos médicos autorizados
 router.post(

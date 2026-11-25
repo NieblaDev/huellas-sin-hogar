@@ -1,92 +1,61 @@
+import { asyncHandler } from '../middlewares/error.middleware.js';
 import * as canilService from '../services/canil.service.js';
 
-export const getCaniles = async (req, res) => {
-  try {
-    const data = await canilService.getAllCaniles();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message || 'Error al obtener caniles' });
-  }
-};
+export const getCaniles = asyncHandler(async (req, res) => {
+  const data = await canilService.getAllCaniles();
+  res.json(data);
+});
 
-export const asignarCanil = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const resultado = await canilService.asignarCanil(req.body, req.user, ip);
-    res.json(resultado);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
+export const asignarCanil = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const resultado = await canilService.asignarCanil(req.body, req.user, ip);
+  res.json(resultado);
+});
 
-export const solicitarTrasladoExterno = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const traslado = await canilService.solicitarTrasladoExterno(req.body, req.user, ip);
-    res.status(201).json({
-      message: 'Solicitud de traslado registrada con éxito. Requiere aprobación de Dirección.',
-      traslado
-    });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
+export const solicitarTrasladoExterno = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const traslado = await canilService.solicitarTrasladoExterno(req.body, req.user, ip);
+  res.status(201).json({
+    message: 'Solicitud de traslado registrada con éxito. Requiere aprobación de Dirección.',
+    traslado
+  });
+});
 
-export const gestionarAprobacion = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const { id } = req.params;
-    const traslado = await canilService.gestionarAprobacionTraslado(id, req.body, req.user, ip);
-    res.json({
-      message: `Traslado ${traslado.estado.toLowerCase()} exitosamente`,
-      traslado
-    });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
+export const gestionarAprobacion = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const { id } = req.params;
+  const traslado = await canilService.gestionarAprobacionTraslado(id, req.body, req.user, ip);
+  res.json({
+    message: `Traslado ${traslado.estado.toLowerCase()} exitosamente`,
+    traslado
+  });
+});
 
-export const createCanil = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const canil = await canilService.createCanil(req.body, req.user, ip);
-    res.status(201).json({ message: 'Canil creado con éxito', canil });
-  } catch (error) {
-    res.status(400).json({ error: error.message || 'Error al crear canil' });
-  }
-};
+export const createCanil = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const canil = await canilService.createCanil(req.body, req.user, ip);
+  res.status(201).json({ message: 'Canil creado con éxito', canil });
+});
 
-export const actualizarSectorCanil = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const { id } = req.params;
-    const resultado = await canilService.actualizarSectorCanil(
-      { canilId: id, sector: req.body.sector },
-      req.user,
-      ip
-    );
-    res.json(resultado);
-  } catch (error) {
-    res.status(400).json({ error: error.message || 'Error al actualizar el sector del canil' });
-  }
-};
+export const actualizarSectorCanil = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const { id } = req.params;
+  const resultado = await canilService.actualizarSectorCanil(
+    { canilId: id, sector: req.body.sector },
+    req.user,
+    ip
+  );
+  res.json(resultado);
+});
 
-export const deleteCanil = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const { id } = req.params;
-    const resultado = await canilService.deleteCanil({ canilId: id }, req.user, ip);
-    res.json(resultado);
-  } catch (error) {
-    res.status(400).json({ error: error.message || 'Error al eliminar canil' });
-  }
-};
+export const deleteCanil = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const { id } = req.params;
+  const resultado = await canilService.deleteCanil({ canilId: id }, req.user, ip);
+  res.json(resultado);
+});
 
-export const getTraslados = async (req, res) => {
-  try {
-    const traslados = await canilService.getTraslados(req.query);
-    res.json(traslados);
-  } catch (error) {
-    res.status(500).json({ error: error.message || 'Error al obtener traslados' });
-  }
-};
+export const getTraslados = asyncHandler(async (req, res) => {
+  const traslados = await canilService.getTraslados(req.query);
+  res.json(traslados);
+});

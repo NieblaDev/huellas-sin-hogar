@@ -1,3 +1,4 @@
+import { idParamSchema } from './request.schema.js';
 import { z } from 'zod';
 
 export const registrarDevolucionSchema = z.object({
@@ -10,9 +11,7 @@ export const registrarDevolucionSchema = z.object({
   actualizadoEn: z.string().datetime({ message: 'No pudimos confirmar que estés viendo los datos más recientes. Cierra esta ventana y ábrela de nuevo.' }).optional()
 }).strict();
 
-export const devolucionIdSchema = z.object({
-  id: z.coerce.number().int().positive().max(2147483647)
-}).strict();
+export const devolucionIdSchema = idParamSchema.strict();
 
 export const listarDevolucionesSchema = z.object({
   postulanteId: z.coerce.number().int().positive().max(2147483647).optional(),

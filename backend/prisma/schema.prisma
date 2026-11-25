@@ -234,6 +234,13 @@ model Canil {
   @@map("caniles")
 }
 
+enum EstadoCorreoTraslado {
+  PENDIENTE
+  ENVIANDO
+  ENVIADO
+  FALLIDO
+}
+
 model Traslado {
   id                   Int            @id @default(autoincrement())
   animalId             Int
@@ -251,9 +258,14 @@ model Traslado {
   destinoNombre        String?        @db.VarChar(120)
   destinoContacto      String?        @db.VarChar(120)
   destinoDireccion     String?        @db.VarChar(200)
+  destinoEmail         String?        @db.VarChar(254)
+  correoEstado         EstadoCorreoTraslado?
+  correoIntentos       Int            @default(0)
+  correoDisponibleEn   DateTime?
+  correoEnviadoEn      DateTime?
 
   responsableId        Int
-  responsable          Usuario        @relation("TrasladoSolicitante", fields: [responsableId], references: [id])
+  responsable          Usuario        @relation("TrasladoSolicitante", fields: [responsableId], references: [id], onDelete: Restrict)
   
   aprobadoPorId        Int?
   aprobadoPor          Usuario?       @relation("TrasladoAprobador", fields: [aprobadoPorId], references: [id], onDelete: SetNull)
@@ -262,6 +274,7 @@ model Traslado {
 
   fechaRegistro        DateTime       @default(now())
 
+  @@index([correoEstado, correoDisponibleEn])
   @@map("traslados")
 }
 
@@ -457,7 +470,7 @@ model IndicacionCuidado {
   publicadaTurno Boolean          @default(true)
 
   creadoPorId    Int
-  creadoPor      Usuario          @relation(fields: [creadoPorId], references: [id])
+  creadoPor      Usuario          @relation(fields: [creadoPorId], references: [id], onDelete: Restrict)
   activo         Boolean          @default(true)
   creadoEn       DateTime         @default(now())
 
@@ -471,7 +484,7 @@ model BitacoraCuidado {
   indicacionId   Int
   indicacion     IndicacionCuidado @relation(fields: [indicacionId], references: [id], onDelete: Cascade)
   voluntarioId   Int
-  voluntario     Usuario           @relation(fields: [voluntarioId], references: [id])
+  voluntario     Usuario           @relation(fields: [voluntarioId], references: [id], onDelete: Restrict)
   turnoId        Int?
   fechaHora      DateTime          @default(now())
   observaciones  String?           @db.Text
@@ -501,7 +514,7 @@ model AtencionClinica {
   animalId      Int
   animal        Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
   veterinariaId Int
-  veterinaria   Usuario  @relation(fields: [veterinariaId], references: [id])
+  veterinaria   Usuario  @relation(fields: [veterinariaId], references: [id], onDelete: Restrict)
   motivo        String   @db.VarChar(150)
   diagnostico   String   @db.Text
   temperatura   Float?

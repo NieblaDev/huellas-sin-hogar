@@ -1,3 +1,4 @@
+import { ErrorDominio } from '../utils/errorDominio.js';
 import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
@@ -5,7 +6,7 @@ import prisma from '../config/prisma.js';
 import { etiquetaRolUsuario } from '../constants/usuarios.js';
 import { registrarAuditoria } from './audit.service.js';
 import { notificarPersonalRefugio } from './notification.service.js';
-import { uploadsPath } from '../middlewares/upload.middleware.js';
+import { uploadsPath } from './foto.service.js';
 
 const REGEX_TIPO_INGRESO = /^\[Ingreso por (Rescate|Abandono|Decomiso)\]\s*/i;
 
@@ -40,8 +41,9 @@ const extraerImagenPDFXObject = (fotoUrl) => {
       }
     } else {
       let filename = '';
-      if (fotoUrl.includes('/uploads/')) {
-        filename = decodeURIComponent(fotoUrl.split('/uploads/').pop().split('?')[0]);
+      const fotoLocal = fotoUrl.match(/\/(?:uploads|api\/(?:animales|animals)\/fotos)\/([^/?#]+)(?:[?#]|$)/);
+      if (fotoLocal) {
+        filename = decodeURIComponent(fotoLocal[1]);
       } else if (!fotoUrl.startsWith('http://') && !fotoUrl.startsWith('https://')) {
         filename = decodeURIComponent(fotoUrl.split('?')[0]);
       }
@@ -277,7 +279,7 @@ const wrapText = (text = '', maxChars = 82) => {
  * Construye un documento binario válido en formato PDF 1.4 incluyendo la fotografía del animal
  * con dimensiones proporcionales (o un recuadro placeholder seguro si no tiene foto registrada).
  */
-const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGeneracion }) => {
+const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGeneracion, externo = false }) => {
   const ops = [];
   const imagenPDF = extraerImagenPDFXObject(animal.fotoUrl);
 
@@ -290,12 +292,12 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
   ops.push('BT /F2 17 Tf 40 812 Td (HUELLAS SIN HOGAR - EXPEDIENTE Y FICHA DEL ANIMAL) Tj ET');
   ops.push(
     `BT /F1 9.5 Tf 40 794 Td (${escapePdfText(
-      'Documento Oficial de Registro Clinico y Trazabilidad'
+      externo ? 'Ficha para coordinacion con protectora aliada' : 'Documento Oficial de Registro Clinico y Trazabilidad'
     )}) Tj ET`
   );
   ops.push(
     `BT /F1 8.5 Tf 40 778 Td (${escapePdfText(
-      `Emitido el: ${fechaGeneracion} | Solicitado por: ${usuario?.nombre || 'Personal'} (Rol: ${etiquetaRolUsuario(usuario?.rol, usuario?.sexo) || 'N/A'})`
+      externo ? `Emitido el: ${fechaGeneracion}` : `Emitido el: ${fechaGeneracion} | Solicitado por: ${usuario?.nombre || 'Personal'} (Rol: ${etiquetaRolUsuario(usuario?.rol, usuario?.sexo) || 'N/A'})`
     )}) Tj ET`
   );
 
@@ -398,7 +400,7 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
   drawLeftCompactRow(
     'Peso:',
     animal.peso && animal.peso > 0 ? `${animal.peso} kg` : 'No registrado',
-    'Microchip:',
+    externo ? null : 'Microchip:',
     animal.chip || 'Sin chip'
   );
   drawLeftCompactRow(
@@ -407,12 +409,14 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
     'Ingreso:',
     animal.creadoEn ? new Date(animal.creadoEn).toLocaleDateString('es-CL') : 'N/A'
   );
-  drawLeftCompactRow(
-    'Ubicacion:',
-    animal.canil ? `${animal.canil.nombre} (${animal.canil.codigo})` : 'Sin canil asignado',
-    'Adopcion:',
-    animal.estadoAdopcion === 'ADOPTADO' ? 'Adoptado' : 'En refugio'
-  );
+  if (!externo) {
+    drawLeftCompactRow(
+      'Ubicacion:',
+      animal.canil ? `${animal.canil.nombre} (${animal.canil.codigo})` : 'Sin canil asignado',
+      'Adopcion:',
+      animal.estadoAdopcion === 'ADOPTADO' ? 'Adoptado' : 'En refugio'
+    );
+  }
 
   y = Math.min(y, photoBoxY - 12);
 
@@ -424,55 +428,57 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
     'Esterilizacion:',
     animal.esterilizacion || 'Desconocido'
   );
-  drawParagraph('Comportamiento y Temperamento:', animal.comportamiento || 'Por evaluar');
-  drawParagraph('Historial Medico / Notas Clinicas:', notaClinica || 'Sin antecedentes clinicos registrados.');
+  if (!externo) {
+    drawParagraph('Comportamiento y Temperamento:', animal.comportamiento || 'Por evaluar');
+    drawParagraph('Historial Medico / Notas Clinicas:', notaClinica || 'Sin antecedentes clinicos registrados.');
 
-  y -= 4;
+    y -= 4;
 
-  // SECCIÓN 3: HISTORIAL DE MOVIMIENTOS Y TRASLADOS
-  drawSectionHeader('3. TRAZABILIDAD DE UBICACION Y TRASLADOS');
-  const traslados = animal.traslados || [];
-  if (traslados.length === 0) {
-    ops.push('0.45 0.49 0.54 rg');
-    ops.push(`BT /F1 9 Tf 48 ${y} Td (Sin movimientos de canil ni traslados externos registrados.) Tj ET`);
-    y -= 18;
-  } else {
-    for (const tr of traslados.slice(0, 4)) {
-      if (y < 110) break;
-      const fechaTr = tr.fechaRegistro ? new Date(tr.fechaRegistro).toLocaleDateString('es-CL') : '';
-      const resumenTr = `[${fechaTr}] ${tr.tipo} (${tr.estado}) - Motivo: ${tr.motivo}`;
-      for (const l of wrapText(resumenTr, 84)) {
-        ops.push('0.12 0.14 0.19 rg');
-        ops.push(`BT /F1 8.8 Tf 48 ${y} Td (${escapePdfText(l)}) Tj ET`);
-        y -= 12;
+    // SECCIÓN 3: HISTORIAL DE MOVIMIENTOS Y TRASLADOS
+    drawSectionHeader('3. TRAZABILIDAD DE UBICACION Y TRASLADOS');
+    const traslados = animal.traslados || [];
+    if (traslados.length === 0) {
+      ops.push('0.45 0.49 0.54 rg');
+      ops.push(`BT /F1 9 Tf 48 ${y} Td (Sin movimientos de canil ni traslados externos registrados.) Tj ET`);
+      y -= 18;
+    } else {
+      for (const tr of traslados.slice(0, 4)) {
+        if (y < 110) break;
+        const fechaTr = tr.fechaRegistro ? new Date(tr.fechaRegistro).toLocaleDateString('es-CL') : '';
+        const resumenTr = `[${fechaTr}] ${tr.tipo} (${tr.estado}) - Motivo: ${tr.motivo}`;
+        for (const l of wrapText(resumenTr, 84)) {
+          ops.push('0.12 0.14 0.19 rg');
+          ops.push(`BT /F1 8.8 Tf 48 ${y} Td (${escapePdfText(l)}) Tj ET`);
+          y -= 12;
+        }
       }
+      y -= 6;
     }
-    y -= 6;
-  }
 
-  // SECCIÓN 4: TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (PROTECCIÓN DE DATOS PERSONALES)
-  drawSectionHeader('4. TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES');
-  ops.push('0.75 0.25 0.20 rg');
-  ops.push(
-    `BT /F2 8.5 Tf 48 ${y} Td (Por seguridad y proteccion de datos personales, la informacion de contacto de los postulantes no se incluye.) Tj ET`
-  );
-  y -= 14;
+    // SECCIÓN 4: TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES (PROTECCIÓN DE DATOS PERSONALES)
+    drawSectionHeader('4. TRAZABILIDAD DE ADOPCIONES Y DEVOLUCIONES');
+    ops.push('0.75 0.25 0.20 rg');
+    ops.push(
+      `BT /F2 8.5 Tf 48 ${y} Td (Por seguridad y proteccion de datos personales, la informacion de contacto de los postulantes no se incluye.) Tj ET`
+    );
+    y -= 14;
 
-  const adopciones = animal.adopciones || [];
-  if (adopciones.length === 0) {
-    ops.push('0.45 0.49 0.54 rg');
-    ops.push(`BT /F1 9 Tf 48 ${y} Td (Sin procesos de adopcion o devolucion registrados para este animal.) Tj ET`);
-    y -= 16;
-  } else {
-    for (const ad of adopciones.slice(0, 4)) {
-      if (y < 65) break;
-      const fechaAd = ad.fecha ? new Date(ad.fecha).toLocaleDateString('es-CL') : 'N/A';
-      const lineaAnonima = `Solicitud de adopcion | Postulante: [Informacion de contacto protegida] | Etapa: ${ad.etapa} | Fecha: ${fechaAd} | Devolucion: ${
-        ad.devolucion ? 'SI' : 'NO'
-      }`;
-      ops.push('0.12 0.14 0.19 rg');
-      ops.push(`BT /F1 8.8 Tf 48 ${y} Td (${escapePdfText(lineaAnonima)}) Tj ET`);
-      y -= 13;
+    const adopciones = animal.adopciones || [];
+    if (adopciones.length === 0) {
+      ops.push('0.45 0.49 0.54 rg');
+      ops.push(`BT /F1 9 Tf 48 ${y} Td (Sin procesos de adopcion o devolucion registrados para este animal.) Tj ET`);
+      y -= 16;
+    } else {
+      for (const ad of adopciones.slice(0, 4)) {
+        if (y < 65) break;
+        const fechaAd = ad.fecha ? new Date(ad.fecha).toLocaleDateString('es-CL') : 'N/A';
+        const lineaAnonima = `Solicitud de adopcion | Postulante: [Informacion de contacto protegida] | Etapa: ${ad.etapa} | Fecha: ${fechaAd} | Devolucion: ${
+          ad.devolucion ? 'SI' : 'NO'
+        }`;
+        ops.push('0.12 0.14 0.19 rg');
+        ops.push(`BT /F1 8.8 Tf 48 ${y} Td (${escapePdfText(lineaAnonima)}) Tj ET`);
+        y -= 13;
+      }
     }
   }
 
@@ -481,7 +487,7 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
   ops.push('0.45 0.49 0.54 rg');
   ops.push(
     `BT /F1 8 Tf 40 30 Td (${escapePdfText(
-      `Huellas Sin Hogar - Exportacion registrada en Bitacora de Auditoria | Usuario: ${usuario?.email || 'sistema'}`
+      externo ? 'Huellas Sin Hogar - Ficha para solicitud de traslado externo' : `Huellas Sin Hogar - Exportacion registrada en Bitacora de Auditoria | Usuario: ${usuario?.email || 'sistema'}`
     )}) Tj ET`
   );
 
@@ -539,6 +545,13 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
 
   return Buffer.concat(chunks);
 };
+
+export const generarFichaExternaPDF = animal => construirBufferPDF({
+  animal,
+  tipoIngreso: (animal.nota || '').match(REGEX_TIPO_INGRESO)?.[1],
+  fechaGeneracion: new Date().toLocaleDateString('es-CL'),
+  externo: true
+});
 
 /**
  * Construye un PDF de Reporte Consolidado de Gestión Operativa
@@ -755,7 +768,7 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
   });
 
   if (!animal) {
-    throw new Error('Animal no encontrado');
+    throw new ErrorDominio(404, 'Animal no encontrado');
   }
 
   const formato = String(query.formato || 'PDF').toUpperCase() === 'CSV' ? 'CSV' : 'PDF';
@@ -858,7 +871,7 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
  */
 export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
   if (user?.rol !== 'DIRECCION') {
-    throw new Error('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.');
+    throw new ErrorDominio(403, 'Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.');
   }
 
   await asegurarAdopcionesIniciales();

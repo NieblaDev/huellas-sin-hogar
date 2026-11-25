@@ -1,3 +1,4 @@
+import { idNumerico } from './request.schema.js';
 import { z } from 'zod';
 
 export const crearTurnoSchema = z.object({
@@ -12,17 +13,7 @@ export const crearTurnoSchema = z.object({
   observaciones: z.string().optional().nullable()
 });
 
-export const actualizarTurnoSchema = z.object({
-  diaSemana: z.string().min(3).optional(),
-  franja: z.string().min(2).optional(),
-  area: z.string().min(2).optional(),
-  fecha: z.string().datetime().optional().nullable(),
-  esCritica: z.boolean().optional(),
-  cupoMaximo: z.number().int().min(1).optional(),
-  horaInicio: z.string().optional().nullable(),
-  horaFin: z.string().optional().nullable(),
-  observaciones: z.string().optional().nullable()
-});
+export const actualizarTurnoSchema = crearTurnoSchema.partial();
 
 export const inscribirTurnoSchema = z.object({
   usuarioId: z.number().int().positive().optional().nullable()
@@ -47,3 +38,17 @@ export const registrarBitacoraSchema = z.object({
   incidentes: z.string().optional().nullable(),
   observaciones: z.string().optional().nullable()
 });
+
+export const semanaTurnosSchema = z.object({ semana: z.string().date().optional() });
+
+export const limpiarSemanaSchema = z.object({ semana: z.string().date() });
+
+export const semanaMatrizSchema = z.object({ semana: z.union([z.string().date(), z.literal('sin-fecha')]).optional() });
+
+export const listarTurnosSchema = semanaMatrizSchema.extend({
+  diaSemana: z.string().optional(),
+  franja: z.string().optional(),
+  area: z.string().optional()
+});
+
+export const desinscribirTurnoSchema = z.object({ usuarioId: idNumerico.optional() });

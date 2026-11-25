@@ -1,6 +1,5 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import express from 'express';
 import jwt from 'jsonwebtoken';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +19,7 @@ process.env.DATABASE_URL = parsedUrl.toString();
 process.env.JWT_SECRET = 'rf2-local-test-secret';
 
 const { default: prisma } = await import('../src/config/prisma.js');
-const { default: routes } = await import('../src/routes/adopcion.routes.js');
+const { default: app } = await import('../src/app.js');
 
 const run = `RF2${Date.now().toString(36).toUpperCase()}`;
 const usuarios = [];
@@ -76,19 +75,13 @@ const prepararAdopcionConcretada = async () => {
 
 before(async () => {
   await admin.$executeRawUnsafe(`CREATE SCHEMA "${testSchema}"`);
-  execFileSync(process.execPath, [
-    fileURLToPath(new URL('../node_modules/prisma/build/index.js', import.meta.url)),
-    'migrate', 'deploy', '--schema', fileURLToPath(new URL('../prisma/schema.prisma', import.meta.url))
-  ], { env: { ...process.env, CHECKPOINT_DISABLE: '1' }, stdio: 'pipe' });
+  execFileSync(process.execPath, [fileURLToPath(new URL('../prisma/migrate.js', import.meta.url))], { env: { ...process.env, CHECKPOINT_DISABLE: '1' }, stdio: 'pipe' });
 
   responsable = await prisma.usuario.create({
     data: { email: `${run}-admin@example.test`, nombre: `Admin ${run}`, password: 'hash', rol: 'DIRECCION', activo: true }
   });
   usuarios.push(responsable);
 
-  const app = express();
-  app.use(express.json());
-  app.use('/api/adopciones', routes);
   server = app.listen(0, '127.0.0.1');
   await new Promise((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
   base = `http://127.0.0.1:${server.address().port}/api/adopciones`;

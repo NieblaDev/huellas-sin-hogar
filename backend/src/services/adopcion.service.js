@@ -100,7 +100,6 @@ export const crearSolicitud = async (data, responsable, ip) => {
         const antecedentes = await obtenerAntecedentes(data.postulante);
         throw new AdopcionError(409, 'Alguien más estaba registrando al mismo tiempo. Revisa el listado de solicitudes y, si no aparece, inténtalo de nuevo.', antecedentes.alertas);
       }
-      if (error.code === 'P2003') throw new AdopcionError(409, 'El animal elegido ya no está disponible. Actualiza la lista e inténtalo de nuevo.');
       throw error;
     }
   }

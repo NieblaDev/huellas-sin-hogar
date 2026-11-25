@@ -107,7 +107,7 @@ El acceso a las rutas del backend y los componentes del frontend está regulado 
 | **`VOLUNTARIO_AVANZADO`** | Registro de rondas de cuidado, movimientos de caniles, soporte en inventario y turnos de mayor responsabilidad. |
 | **`VOLUNTARIO_NOVATO`** | Visualización de turnos, registro de asistencia, consulta de catálogo y realización de rondas básicas asignadas. |
 
-El campo **Sexo** define cómo se muestra el nombre del rol. Dirección puede actualizarlo en **Usuarios y Perfiles**. En una base existente, ejecuta `npx prisma migrate deploy` desde `backend/` para aplicar la migración, que asigna trato neutro a los perfiles existentes y reclasifica las antiguas cuentas de coordinación como `VOLUNTARIO_NOVATO`.
+El campo **Sexo** define cómo se muestra el nombre del rol. Dirección puede actualizarlo en **Usuarios y Perfiles**. En una base existente, ejecuta `npm run prisma:deploy` desde `backend/` para aplicar la migración, que asigna trato neutro a los perfiles existentes y reclasifica las antiguas cuentas de coordinación como `VOLUNTARIO_NOVATO`.
 
 ---
 
@@ -129,15 +129,19 @@ El script de inicialización (`seed.js`) crea las siguientes cuentas de prueba l
 ```text
 huellas-sin-hogar/
 ├── backend/
-│   ├── index.js                     # Punto de entrada Express y middlewares globales
 │   ├── package.json                 # Dependencias y scripts del backend
+│   ├── .env.example                 # Configuración local de la API
+│   ├── ecosystem.config.cjs         # PM2, HTTP interno en el puerto 80
 │   ├── prisma/
 │   │   ├── schema.prisma            # Esquema relacional de la base de datos PostgreSQL
+│   │   ├── migrations/              # Historial de migraciones de PostgreSQL
 │   │   └── seed.js                  # Carga de datos iniciales (usuarios, caniles, animales, turnos)
 │   ├── src/
+│   │   ├── app.js                   # Configuración de Express y montaje de la API
+│   │   ├── server.js                # Conexión a PostgreSQL y arranque HTTP
 │   │   ├── config/                  # Cliente Prisma y configuraciones del entorno
 │   │   ├── controllers/             # Manejadores de peticiones HTTP
-│   │   ├── middlewares/             # Autenticación JWT, verificación de roles y validación Zod
+│   │   ├── middlewares/             # Autenticación, validación Zod y errores HTTP
 │   │   ├── routes/                  # Definición de endpoints REST organizados por módulo
 │   │   ├── schemas/                 # Esquemas Zod para sanitización y validación de entrada
 │   │   ├── services/                # Capa de lógica de negocio y persistencia
@@ -147,24 +151,20 @@ huellas-sin-hogar/
 └── frontend/
     ├── index.html                   # HTML base de la SPA
     ├── package.json                 # Dependencias y scripts de Vite / React
+    ├── .env.example                 # URL base de la API
+    ├── ecosystem.config.cjs         # PM2, Vite Preview en el puerto interno 443
     ├── vite.config.js               # Configuración de empaquetado Vite
     ├── public/                      # Recursos estáticos y logotipos
     └── src/
         ├── main.jsx                 # Bootstrap de la aplicación React
-        ├── App.jsx                  # Contenedor raíz, barra lateral y enrutamiento por pestañas
-        ├── api/                     # Cliente de API, interceptores y cabeceras JWT
-        ├── components/              # Módulos de la plataforma y modales de operación
-        │   ├── ui/                  # Componentes reutilizables del sistema de diseño (PageHeader, etc.)
-        │   ├── adopciones/          # Vistas especializadas del módulo de adopciones y seguimientos
-        │   ├── DashboardModulo.jsx  # Panel de indicadores y KPIs
-        │   ├── AnimalCatalogo.jsx   # Catálogo y registro de animales
-        │   ├── CanilesModulo.jsx    # Mapa de caniles y traslados
-        │   ├── CuidadosModulo.jsx   # Rondas y tareas diarias
-        │   ├── SaludModulo.jsx      # Fichas sanitarias y vacunación
-        │   ├── InventarioModulo.jsx # Existencias y movimientos de insumos
-        │   ├── VoluntariosModulo.jsx# Matriz de turnos y permutas
-        │   ├── AuditoriaModulo.jsx  # Bitácora inmutable de auditoría
-        │   └── Login.jsx            # Formulario de acceso con selector rápido de roles
+        ├── App.jsx                  # Tema, navegación y rutas del portal
+        ├── pages/                   # Pantallas asociadas a rutas URL
+        ├── components/              # Componentes de dominio y controles reutilizables
+        │   └── ui/                  # Wrappers de Material UI
+        ├── context/                 # Sesión y avisos compartidos
+        ├── hooks/                   # Integración de React Hook Form y Zod
+        ├── schemas/                 # Esquemas de formularios y pruebas Vitest
+        ├── services/                # Cliente HTTP y operaciones por entidad
         ├── styles/                  # Estilos del portal y tokens de diseño
         └── utils/                   # Manejo de sesiones en LocalStorage
 ```
@@ -174,8 +174,8 @@ huellas-sin-hogar/
 ## 🚀 Puesta en Marcha y Configuración
 
 ### Prerrequisitos
-- **Node.js** v18.0.0 o superior.
-- **npm** o **pnpm**.
+- **Node.js** 24 LTS.
+- **npm**.
 - Servidor **PostgreSQL** activo y accesible.
 
 ---
@@ -185,22 +185,16 @@ huellas-sin-hogar/
 1. Entrar a la carpeta del backend e instalar dependencias:
    ```bash
    cd backend
-   npm install
+   npm ci
    ```
 
-2. Configurar las variables de entorno creando un archivo `.env` en la raíz de `backend/`:
-   ```env
-   PORT=3000
-   JWT_SECRET="huellas_secret_key_segura_2026"
-   DATABASE_URL="postgresql://USUARIO:PASSWORD@localhost:5432/huellas_sin_hogar?schema=public"
-   ```
+2. Copiar `backend/.env.example` a `backend/.env` y completar `DATABASE_URL` y `JWT_SECRET`. Si cambias el puerto local, ajusta `PORT` y `VITE_API_URL` en el frontend.
 
 3. Generar el cliente de Prisma y ejecutar las migraciones:
    ```bash
    npx prisma generate
-   npx prisma migrate dev --name init
+   npm run prisma:deploy
    ```
-   *(Para una base nueva, también puedes usar `npx prisma db push` para sincronizar directamente el esquema).*
 
 4. Poblar la base de datos con los datos iniciales de prueba:
    ```bash
@@ -211,7 +205,7 @@ huellas-sin-hogar/
    ```bash
    npm run dev
    ```
-   *El backend quedará escuchando en `http://localhost:3000`.*
+   El backend escucha en el puerto configurado en `backend/.env`.
 
 ---
 
@@ -220,8 +214,10 @@ huellas-sin-hogar/
 1. En una nueva terminal, ingresar al directorio de frontend e instalar dependencias:
    ```bash
    cd frontend
-   npm install
+   npm ci
    ```
+
+   Copiar `frontend/.env.example` a `frontend/.env` y confirmar que `VITE_API_URL` incluya el puerto del backend y el prefijo `/api`.
 
 2. Iniciar el servidor de desarrollo Vite:
    ```bash
@@ -230,6 +226,17 @@ huellas-sin-hogar/
    *El frontend quedará disponible en `http://localhost:5173`.*
 
 3. Abre tu navegador en `http://localhost:5173` e inicia sesión con cualquiera de las cuentas de prueba.
+
+### Pruebas
+
+- En `frontend/`, ejecuta `npm run test:run` para comprobar los esquemas y los controles de interfaz.
+- En `backend/`, ejecuta `npm run test:unit` para probar esquemas y middlewares. Para la suite completa, configura `TEST_DATABASE_URL` con una base PostgreSQL local cuyo nombre incluya `test`, agrega `psql` al `PATH` y ejecuta `npm test`.
+
+### Correo a protectoras aliadas
+
+Ejecuta `npm run prisma:deploy` y `npm run prisma:generate` en `backend/`. Configura `SMTP_HOST`, `SMTP_PORT` y `SMTP_FROM` en `backend/.env`, junto con `SMTP_USER` y `SMTP_PASS` si el servidor requiere autenticación. Reinicia el backend para que procese los correos pendientes. Usa el puerto 465 para TLS directo o 587 para STARTTLS.
+
+Al solicitar un traslado a una protectora aliada, ingresa su correo en el formulario. El sistema registra el traslado pendiente de aprobación y programa el envío de la ficha externa en PDF. El detalle del traslado muestra el estado del correo. Si el servidor de correo falla, el backend hace hasta tres intentos. Las solicitudes registradas antes del cambio conservan sus datos y se pueden consultar desde el historial.
 
 ---
 
@@ -249,16 +256,7 @@ Este proyecto está desarrollado para fines académicos y comunitarios bajo la l
 
 ---
 
-## Despliegue en produccion (servidor de la Facultad)
+## Ejecución con PM2
 
-La guia completa de despliegue con Docker Compose, Nginx, HTTPS, respaldos y solucion de problemas esta en:
-
-- [docs/despliegue-facultad.md](docs/despliegue-facultad.md)
-
-Resumen rapido:
-
-```bash
-cd deploy
-cp .env.example .env      # editar claves y JWT_SECRET
-docker compose up -d --build
-```
+- En `backend/`, configura `.env`, ejecuta `npm run prisma:deploy` y arranca con `npm run start:prod`. La API escucha en el puerto `80`.
+- En `frontend/`, configura `VITE_API_URL` con la URL de la API accesible desde el navegador, ejecuta `npm run build` y arranca con `npm run start:prod`. Vite Preview sirve la SPA por HTTP en el puerto interno `443`.

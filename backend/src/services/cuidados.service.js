@@ -1,3 +1,4 @@
+import { ErrorDominio } from '../utils/errorDominio.js';
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
 
@@ -8,9 +9,9 @@ const validarAnimalActivo = async (animalId) => {
     where: { id: Number(animalId) },
     include: { canil: true }
   });
-  if (!animal) throw new Error('Animal no encontrado');
+  if (!animal) throw new ErrorDominio(404, 'Animal no encontrado');
   if (!animal.activo) {
-    throw new Error(`El animal "${animal.nombre}" no cuenta con una ficha activa en el refugio`);
+    throw new ErrorDominio(400, `El animal "${animal.nombre}" no cuenta con una ficha activa en el refugio`);
   }
   return animal;
 };
@@ -19,7 +20,7 @@ const validarAnimalActivo = async (animalId) => {
 // Solo si existe ficha activa del animal y el usuario posee permisos médicos autorizados
 export const crearIndicacion = async (data, user, ip) => {
   if (!ROLES_MEDICOS_AUTORIZADOS.includes(user?.rol)) {
-    throw new Error('Acceso denegado: solo el personal con permisos médicos autorizados puede registrar indicaciones de cuidado');
+    throw new ErrorDominio(403, 'Acceso denegado: solo el personal con permisos médicos autorizados puede registrar indicaciones de cuidado');
   }
 
   const animal = await validarAnimalActivo(data.animalId);
@@ -158,13 +159,13 @@ export const marcarIndicacionCompletada = async (data, user, ip) => {
   });
 
   if (!indicacion || !indicacion.activo) {
-    throw new Error('La indicación de cuidado no existe o ya no está activa');
+    throw new ErrorDominio(404, 'La indicación de cuidado no existe o ya no está activa');
   }
   if (!indicacion.animal.activo) {
-    throw new Error('El animal no tiene una ficha activa en el refugio');
+    throw new ErrorDominio(400, 'El animal no tiene una ficha activa en el refugio');
   }
   if (!indicacion.publicadaTurno) {
-    throw new Error('Esta indicación no está publicada en el panel de tareas del turno');
+    throw new ErrorDominio(400, 'Esta indicación no está publicada en el panel de tareas del turno');
   }
 
   const registroBitacora = await prisma.bitacoraCuidado.create({

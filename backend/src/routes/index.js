@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import fotoRoutes from './foto.routes.js';
 import authRoutes from './auth.routes.js';
 import animalRoutes from './animal.routes.js';
 import canilRoutes from './canil.routes.js';
@@ -15,6 +16,8 @@ import usuarioRoutes from './usuario.routes.js';
 const router = Router();
 
 router.use('/auth', authRoutes);
+router.use('/animals/fotos', fotoRoutes);
+router.use('/animales/fotos', fotoRoutes);
 router.use('/animals', animalRoutes);
 router.use('/animales', animalRoutes);
 router.use('/caniles', canilRoutes);

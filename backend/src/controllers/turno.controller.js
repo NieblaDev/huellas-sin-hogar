@@ -1,166 +1,100 @@
+import { asyncHandler } from '../middlewares/error.middleware.js';
 import * as turnoService from '../services/turno.service.js';
 
-export const getTurnos = async (req, res) => {
-  try {
-    const data = await turnoService.getTurnos(req.query);
-    res.json(data);
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ error: error.message });
-  }
-};
+export const getTurnos = asyncHandler(async (req, res) => {
+  const data = await turnoService.getTurnos(req.query);
+  res.json(data);
+});
 
-export const getMatrizTurnos = async (req, res) => {
-  try {
-    const matriz = await turnoService.getMatrizTurnos(req.query.semana);
-    res.json(matriz);
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ error: error.message });
-  }
-};
+export const getMatrizTurnos = asyncHandler(async (req, res) => {
+  const matriz = await turnoService.getMatrizTurnos(req.query.semana);
+  res.json(matriz);
+});
 
-export const createTurno = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const nuevo = await turnoService.createTurno(req.body, req.user, ip);
-    res.status(201).json(nuevo);
-  } catch (error) {
-    res.status(error.statusCode || 400).json({ error: error.message });
-  }
-};
+export const createTurno = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const nuevo = await turnoService.createTurno(req.body, req.user, ip);
+  res.status(201).json(nuevo);
+});
 
-export const updateTurno = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const { id } = req.params;
-    const actualizado = await turnoService.updateTurno(id, req.body, req.user, ip);
-    res.json(actualizado);
-  } catch (error) {
-    res.status(error.statusCode || 400).json({ error: error.message });
-  }
-};
+export const updateTurno = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const { id } = req.params;
+  const actualizado = await turnoService.updateTurno(id, req.body, req.user, ip);
+  res.json(actualizado);
+});
 
-export const deleteTurno = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const { id } = req.params;
-    const resultado = await turnoService.deleteTurno(id, req.user, ip);
-    res.json(resultado);
-  } catch (error) {
-    res.status(error.statusCode || 400).json({ error: error.message });
-  }
-};
+export const deleteTurno = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const { id } = req.params;
+  const resultado = await turnoService.deleteTurno(id, req.user, ip);
+  res.json(resultado);
+});
 
-export const confirmarPlanificacion = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const resultado = await turnoService.confirmarPlanificacionSemanal(req.user, ip, req.body?.semana);
-    res.json(resultado);
-  } catch (error) {
-    res.status(error.statusCode || 400).json({ error: error.message });
-  }
-};
+export const confirmarPlanificacion = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const resultado = await turnoService.confirmarPlanificacionSemanal(req.user, ip, req.body?.semana);
+  res.json(resultado);
+});
 
-export const limpiarMatrizSemanal = async (req, res) => {
-  try {
-    const resultado = await turnoService.limpiarMatrizSemanal(req.body?.semana, req.user, req.ip);
-    res.json(resultado);
-  } catch (error) {
-    const conflicto = error.code === 'P2034';
-    res.status(conflicto ? 409 : error.statusCode || 500).json({
-      error: conflicto ? 'La matriz cambió mientras se limpiaba. Actualiza la semana e inténtalo nuevamente.' : error.message
-    });
-  }
-};
+export const limpiarMatrizSemanal = asyncHandler(async (req, res) => {
+  const resultado = await turnoService.limpiarMatrizSemanal(req.body?.semana, req.user, req.ip);
+  res.json(resultado);
+});
 
-export const inscribirVoluntario = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const { id } = req.params;
-    const inscripcion = await turnoService.inscribirVoluntario(id, req.user, req.body, ip);
-    res.status(201).json(inscripcion);
-  } catch (error) {
-    res.status(error.statusCode || 400).json({ error: error.message });
-  }
-};
+export const inscribirVoluntario = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const { id } = req.params;
+  const inscripcion = await turnoService.inscribirVoluntario(id, req.user, req.body, ip);
+  res.status(201).json(inscripcion);
+});
 
-export const desinscribirVoluntario = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const { id } = req.params;
-    const { usuarioId } = req.query;
-    const resultado = await turnoService.desinscribirVoluntario(id, req.user, usuarioId, ip);
-    res.json(resultado);
-  } catch (error) {
-    res.status(error.statusCode || 400).json({ error: error.message });
-  }
-};
+export const desinscribirVoluntario = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const { id } = req.params;
+  const { usuarioId } = req.query;
+  const resultado = await turnoService.desinscribirVoluntario(id, req.user, usuarioId, ip);
+  res.json(resultado);
+});
 
-export const solicitarPermuta = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const permuta = await turnoService.solicitarPermuta(req.body, req.user, ip);
-    res.status(201).json(permuta);
-  } catch (error) {
-    res.status(error.statusCode || 400).json({ error: error.message });
-  }
-};
+export const solicitarPermuta = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const permuta = await turnoService.solicitarPermuta(req.body, req.user, ip);
+  res.status(201).json(permuta);
+});
 
-export const getPermutas = async (req, res) => {
-  try {
-    const permutas = await turnoService.getPermutas(req.user);
-    res.json(permutas);
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ error: error.message });
-  }
-};
+export const getPermutas = asyncHandler(async (req, res) => {
+  const permutas = await turnoService.getPermutas(req.user);
+  res.json(permutas);
+});
 
-export const responderPermuta = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const { id } = req.params;
-    const { accion, observacion } = req.body;
-    const resultado = await turnoService.responderPermuta(id, accion, observacion, req.user, ip);
-    res.json(resultado);
-  } catch (error) {
-    res.status(error.statusCode || 400).json({ error: error.message });
-  }
-};
+export const responderPermuta = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const { id } = req.params;
+  const { accion, observacion } = req.body;
+  const resultado = await turnoService.responderPermuta(id, accion, observacion, req.user, ip);
+  res.json(resultado);
+});
 
-export const registrarBitacora = async (req, res) => {
-  try {
-    const ip = req.ip || req.connection?.remoteAddress;
-    const { id } = req.params;
-    const bitacora = await turnoService.registrarBitacora(id, req.body, req.user, ip);
-    res.status(201).json(bitacora);
-  } catch (error) {
-    res.status(error.statusCode || 400).json({ error: error.message });
-  }
-};
+export const registrarBitacora = asyncHandler(async (req, res) => {
+  const ip = req.ip;
+  const { id } = req.params;
+  const bitacora = await turnoService.registrarBitacora(id, req.body, req.user, ip);
+  res.status(201).json(bitacora);
+});
 
-export const getBitacorasTurno = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const bitacoras = await turnoService.getBitacorasTurno(id);
-    res.json(bitacoras);
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ error: error.message });
-  }
-};
+export const getBitacorasTurno = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const bitacoras = await turnoService.getBitacorasTurno(id);
+  res.json(bitacoras);
+});
 
-export const getAlertasDescubiertos = async (req, res) => {
-  try {
-    const alertas = await turnoService.getTurnosDescubiertos();
-    res.json(alertas);
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ error: error.message });
-  }
-};
+export const getAlertasDescubiertos = asyncHandler(async (req, res) => {
+  const alertas = await turnoService.getTurnosDescubiertos();
+  res.json(alertas);
+});
 
-export const getDirectorioVoluntarios = async (req, res) => {
-  try {
-    const directorio = await turnoService.getDirectorioVoluntarios();
-    res.json(directorio);
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ error: error.message });
-  }
-};
+export const getDirectorioVoluntarios = asyncHandler(async (req, res) => {
+  const directorio = await turnoService.getDirectorioVoluntarios();
+  res.json(directorio);
+});

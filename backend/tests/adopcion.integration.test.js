@@ -1,6 +1,5 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import express from 'express';
 import jwt from 'jsonwebtoken';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +19,7 @@ parsedUrl.searchParams.set('schema', testSchema);
 process.env.DATABASE_URL = parsedUrl.toString();
 process.env.JWT_SECRET = 'rf1-local-test-secret';
 const { default: prisma } = await import('../src/config/prisma.js');
-const { default: routes } = await import('../src/routes/adopcion.routes.js');
+const { default: app } = await import('../src/app.js');
 const run = `RF1${Date.now().toString(36).toUpperCase()}`;
 const usuarios = [];
 const animales = [];
@@ -49,17 +48,12 @@ const crearAnimal = async () => {
 before(async () => {
   await admin.$executeRawUnsafe(`CREATE SCHEMA "${testSchema}"`);
   schemaCreado = true;
-  execFileSync(process.execPath, [
-    fileURLToPath(new URL('../node_modules/prisma/build/index.js', import.meta.url)),
-    'migrate', 'deploy', '--schema', fileURLToPath(new URL('../prisma/schema.prisma', import.meta.url))
-  ], { env: { ...process.env, CHECKPOINT_DISABLE: '1' }, stdio: 'pipe' });
+  execFileSync(process.execPath, [fileURLToPath(new URL('../prisma/migrate.js', import.meta.url))], { env: { ...process.env, CHECKPOINT_DISABLE: '1' }, stdio: 'pipe' });
   for (const [rol, activo] of [['DIRECCION', true], ['PERSONAL_ADOPCIONES', true], ['PERSONAL_VETERINARIO', true], ['DIRECCION', false], ['VOLUNTARIO_AVANZADO', true]]) {
     usuarios.push(await prisma.usuario.create({ data: { email: `${run}-${usuarios.length}@example.test`, nombre: `Staff ${run}`, password: 'unused-test-password', rol, activo } }));
   }
   [responsable, encargada, veterinaria, inactivo, voluntario] = usuarios;
   await crearAnimal();
-  const app = express();
-  app.use(express.json()); app.use('/api/adopciones', routes);
   server = app.listen(0, '127.0.0.1');
   await new Promise((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
   base = `http://127.0.0.1:${server.address().port}/api/adopciones`;
@@ -222,7 +216,11 @@ test('consulta paginada y filtros devuelven resultados consistentes', async () =
 });
 
 test('las relaciones impiden borrar un animal con solicitudes e historial', async () => {
-  await assert.rejects(prisma.animal.delete({ where: { id: animales[0].id } }), error => error.code === 'P2003');
+  const where = { id: animales[0].id };
+  await assert.rejects(prisma.animal.delete({ where }), error => error.code === 'P2003'
+    || (error.name === 'PrismaClientUnknownRequestError' && /code: "23001"/.test(error.message)
+      && error.message.includes('solicitudes_adopcion_animalId_fkey')));
+  assert.ok(await prisma.animal.findUnique({ where }));
 });
 
 test('reconoce postulantes y devoluciones del modelo anterior sin duplicarlos', async () => {

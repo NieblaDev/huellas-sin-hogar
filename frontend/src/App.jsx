@@ -1,17 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import Login from './components/Login';
-import AnimalCatalogo from './components/AnimalCatalogo';
+import Button from './components/ui/Button.jsx';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
+import LoginPage from './pages/LoginPage.jsx';
 import AnimalFormModal from './components/AnimalFormModal';
-import CanilesModulo from './components/CanilesModulo';
-import DashboardModulo from './components/DashboardModulo';
-import AuditoriaModulo from './components/AuditoriaModulo';
-import CuidadosModulo from './components/CuidadosModulo';
-import SaludModulo from './components/SaludModulo';
-import AdopcionesModulo from './components/AdopcionesModulo';
-import InventarioModulo from './components/InventarioModulo';
-import VoluntariosModulo from './components/VoluntariosModulo';
-import PerfilesUsuariosModulo from './components/PerfilesUsuariosModulo';
-import ReportesConsolidadosModulo from './components/ReportesConsolidadosModulo';
 import Logo from './components/Logo';
 import {
   BarChart3,
@@ -28,13 +18,43 @@ import {
   Syringe,
   Users
 } from 'lucide-react';
-import { clearStoredSession, readStoredSession } from './utils/session';
 import './styles/portal-controls.css';
-import { API_URL, getAuthHeaders } from './api/config';
+import { listarCaniles } from './services/canil.service.js';
+import { guardarAnimal } from './services/animal.service.js';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import AuthProvider, { useAuth } from './context/AuthContext.jsx';
+import PortalFeedback from './context/PortalFeedback.jsx';
+import PortalTheme from './components/ui/PortalTheme.jsx';
+
+const AnimalesPage = lazy(() => import('./pages/AnimalesPage.jsx'));
+const CanilesPage = lazy(() => import('./pages/CanilesPage.jsx'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage.jsx'));
+const AuditoriaPage = lazy(() => import('./pages/AuditoriaPage.jsx'));
+const CuidadosPage = lazy(() => import('./pages/CuidadosPage.jsx'));
+const SaludPage = lazy(() => import('./pages/SaludPage.jsx'));
+const AdopcionesPage = lazy(() => import('./pages/AdopcionesPage.jsx'));
+const InventarioPage = lazy(() => import('./pages/InventarioPage.jsx'));
+const VoluntariosPage = lazy(() => import('./pages/VoluntariosPage.jsx'));
+const PerfilesUsuariosPage = lazy(() => import('./pages/PerfilesUsuariosPage.jsx'));
+const ReportesConsolidadosPage = lazy(() => import('./pages/ReportesConsolidadosPage.jsx'));
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'caniles' | 'animales' | 'auditoria'
+  return (
+    <PortalTheme>
+      <BrowserRouter>
+        <AuthProvider>
+          <PortalFeedback><Portal /></PortalFeedback>
+        </AuthProvider>
+      </BrowserRouter>
+    </PortalTheme>
+  );
+}
+
+function Portal() {
+  const { user, setUser, restaurando, cerrarSesion } = useAuth();
+  const navigate = useNavigate();
+  const activeTab = useLocation().pathname.split('/')[1] || 'dashboard';
+  const setActiveTab = tab => navigate('/' + tab);
   const [modalOpen, setModalOpen] = useState(false);
   const [animalEditar, setAnimalEditar] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -58,28 +78,6 @@ export default function App() {
   };
 
   useEffect(() => {
-    const session = readStoredSession(localStorage);
-    if (!session) return;
-    const controller = new AbortController();
-    // Verificar también la firma antes de restaurar una sesión de otro arranque.
-    fetch(`${API_URL}/auth/sesion`, {
-      headers: { Authorization: `Bearer ${session.token}` },
-      signal: controller.signal,
-      cache: 'no-store'
-    }).then(async response => {
-      const data = response.ok ? await response.json() : null;
-      if (controller.signal.aborted || localStorage.getItem('token') !== session.token) return;
-      if (data?.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-      } else if (response.status === 401 || response.status === 403) {
-        clearStoredSession(localStorage);
-      }
-    }).catch(() => { /* Si no hay conexión, mantener visible el formulario de acceso. */ });
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
     if (user) {
       fetchCaniles();
     }
@@ -87,7 +85,7 @@ export default function App() {
 
   const fetchCaniles = async () => {
     try {
-      const res = await fetch(`${API_URL}/caniles`, { headers: getAuthHeaders() });
+      const res = await listarCaniles();
       if (res.ok) {
         const data = await res.json();
         setCanilesList(data.caniles || []);
@@ -98,20 +96,21 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
-    setUser(null);
-    setActiveTab('dashboard');
+    cerrarSesion();
+    navigate('/dashboard', { replace: true });
   };
 
   const esDireccion = user?.rol === 'DIRECCION';
   const puedeGestionarAdopciones = ['DIRECCION', 'PERSONAL_ADOPCIONES'].includes(user?.rol);
   const puedeGestionarInventario = ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
 
+  if (restaurando) return <main aria-busy="true" role="status">Restaurando sesión…</main>;
+
   return (
     <div className={user ? 'portal-staff portal-staff-authenticated' : 'portal-staff'} style={{ minHeight: '100vh', display: 'flex' }}>
       {!user ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Login onLoginSuccess={setUser} />
+          <LoginPage onLoginSuccess={setUser} />
         </div>
       ) : (
         <>
@@ -119,7 +118,7 @@ export default function App() {
           <aside className="portal-sidebar" style={{
             width: sidebarRetraida ? '72px' : '252px',
             height: '100vh',
-            borderRight: '1px solid #e9eaed',
+            borderRight: 'var(--portal-border-emphasis) solid var(--portal-border)',
             display: 'flex',
             flexDirection: 'column',
             position: 'fixed',
@@ -135,7 +134,7 @@ export default function App() {
                   width: '38px',
                   height: '38px',
                   borderRadius: '11px',
-                  background: '#e8f0e8',
+                  background: 'var(--portal-primary-soft)',
                   color: '#3f6c52',
                   display: 'flex',
                   alignItems: 'center',
@@ -149,14 +148,14 @@ export default function App() {
                     <h1 style={{ fontSize: '0.98rem', fontWeight: '800', color: '#1f2430', lineHeight: 1.2, margin: 0 }}>
                       Huellas Sin Hogar
                     </h1>
-                    <span style={{ fontSize: '0.68rem', color: '#a3aab5', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: '600' }}>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--portal-text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: '600' }}>
                       Portal del Staff
                     </span>
                   </div>
                 )}
               </div>
 
-              <button
+              <Button
                 type="button"
                 onClick={toggleSidebar}
                 className="portal-sidebar-toggle"
@@ -166,22 +165,22 @@ export default function App() {
                 aria-label={sidebarRetraida ? "Expandir barra lateral" : "Retraer barra lateral"}
               >
                 {sidebarRetraida ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-              </button>
+              </Button>
             </div>
 
             <nav id="portal-sidebar-nav" aria-label="Navegación principal" style={{ flex: 1, padding: sidebarRetraida ? '12px 8px' : '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
               {/* Inicio / Panel de Indicadores */}
-              <button
+              <Button
                 onClick={() => setActiveTab('dashboard')}
                 title="Inicio"
                 className={`portal-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
                 style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
                 <BarChart3 size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Inicio</span>}
-              </button>
+              </Button>
 
               {/* Animales Ingresados */}
-              <button
+              <Button
                 onClick={() => setActiveTab('animales')}
                 title="Animales Ingresados"
                 aria-current={activeTab === 'animales' ? 'page' : undefined}
@@ -189,21 +188,21 @@ export default function App() {
                 style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
                 <Dog size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Animales Ingresados</span>}
-              </button>
+              </Button>
 
               {/* Caniles y Traslados */}
-              <button
+              <Button
                 onClick={() => setActiveTab('caniles')}
                 title="Caniles y Traslados"
                 className={`portal-nav-btn ${activeTab === 'caniles' ? 'active' : ''}`}
                 style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
                 <DoorOpen size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Caniles y Traslados</span>}
-              </button>
+              </Button>
 
               {/* Gestion de Adopciones */}
               {puedeGestionarAdopciones && (
-                <button
+                <Button
                   onClick={() => setActiveTab('adopciones')}
                   title="Adopciones"
                   aria-current={activeTab === 'adopciones' ? 'page' : undefined}
@@ -211,12 +210,12 @@ export default function App() {
                   style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
                 >
                   <House size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Adopciones</span>}
-                </button>
+                </Button>
               )}
 
               {/* Sección: Bienestar */}
               <div style={{
-                borderTop: '1px solid var(--portal-border)',
+                borderTop: 'var(--portal-border-emphasis) solid var(--portal-border)',
                 marginTop: '10px',
                 paddingTop: '12px',
                 paddingBottom: '2px',
@@ -233,28 +232,28 @@ export default function App() {
               </div>
 
               {/* Necesidades Diarias y Notas de Cuidado */}
-              <button
+              <Button
                 onClick={() => setActiveTab('cuidados')}
                 title="Rondas y Cuidados"
                 className={`portal-nav-btn ${activeTab === 'cuidados' ? 'active' : ''}`}
                 style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
                 <ClipboardList size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Rondas y Cuidados</span>}
-              </button>
+              </Button>
 
               {/* Salud y Vacunación */}
-              <button
+              <Button
                 onClick={() => setActiveTab('salud')}
                 title="Salud y Vacunación"
                 className={`portal-nav-btn ${activeTab === 'salud' ? 'active' : ''}`}
                 style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
                 <Syringe size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Salud y Vacunación</span>}
-              </button>
+              </Button>
 
               {/* Sección: Administración */}
               <div style={{
-                borderTop: '1px solid var(--portal-border)',
+                borderTop: 'var(--portal-border-emphasis) solid var(--portal-border)',
                 marginTop: '10px',
                 paddingTop: '12px',
                 paddingBottom: '2px',
@@ -272,7 +271,7 @@ export default function App() {
 
               {/* Inventario de Insumos */}
               {puedeGestionarInventario && (
-                <button
+                <Button
                   onClick={() => setActiveTab('inventario')}
                   title="Inventario"
                   aria-current={activeTab === 'inventario' ? 'page' : undefined}
@@ -280,11 +279,11 @@ export default function App() {
                   style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
                 >
                   <Package size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Inventario</span>}
-                </button>
+                </Button>
               )}
 
               {/* Voluntarios y Turnos */}
-              <button
+              <Button
                 onClick={() => setActiveTab('voluntarios')}
                 title="Voluntarios y Turnos"
                 aria-current={activeTab === 'voluntarios' ? 'page' : undefined}
@@ -292,11 +291,11 @@ export default function App() {
                 style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
               >
                 <Handshake size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Voluntarios y Turnos</span>}
-              </button>
+              </Button>
 
               {/* Usuarios y Perfiles — Exclusivo Dirección */}
               {esDireccion && (
-                <button
+                <Button
                   onClick={() => setActiveTab('perfiles')}
                   title="Usuarios y Perfiles"
                   aria-current={activeTab === 'perfiles' ? 'page' : undefined}
@@ -304,12 +303,12 @@ export default function App() {
                   style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
                 >
                   <Users size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Usuarios y Perfiles</span>}
-                </button>
+                </Button>
               )}
 
               {/* Reportes Consolidados — Exclusivo Dirección */}
               {esDireccion && (
-                <button
+                <Button
                   onClick={() => setActiveTab('reportes')}
                   title="Reportes Consolidados"
                   aria-current={activeTab === 'reportes' ? 'page' : undefined}
@@ -317,44 +316,44 @@ export default function App() {
                   style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
                 >
                   <FileBarChart2 size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Reportes Consolidados</span>}
-                </button>
+                </Button>
               )}
 
               {/* Auditoría y Trazabilidad */}
               {esDireccion && (
-                <button
+                <Button
                   onClick={() => setActiveTab('auditoria')}
                   title="Auditoría"
                   className={`portal-nav-btn ${activeTab === 'auditoria' ? 'active' : ''}`}
                   style={{ justifyContent: sidebarRetraida ? 'center' : 'flex-start', padding: sidebarRetraida ? '10px 0' : '10px 14px' }}
                 >
                   <ShieldCheck size={18} aria-hidden="true" /> {!sidebarRetraida && <span>Auditoría</span>}
-                </button>
+                </Button>
               )}
             </nav>
 
             {/* Usuario autenticado y Salir */}
-            <div style={{ padding: sidebarRetraida ? '12px 8px' : '16px 20px', borderTop: '1px solid #f0f1f3', background: 'rgba(31, 36, 48, 0.02)', marginTop: 'auto' }}>
+            <div style={{ padding: sidebarRetraida ? '12px 8px' : '16px 20px', borderTop: 'var(--portal-border-emphasis) solid #f0f1f3', background: 'rgba(31, 36, 48, 0.02)', marginTop: 'auto' }}>
               {!sidebarRetraida ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                   <div style={{ overflow: 'hidden' }}>
                     <div style={{ fontWeight: '800', fontSize: '0.84rem', color: '#1f2430', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {user.nombre}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: '#7c8592', fontWeight: '600' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--portal-text-muted)', fontWeight: '600' }}>
                       {user.rolEtiqueta}
                     </div>
                   </div>
-                  <button
+                  <Button
                     onClick={handleLogout}
                     title="Cerrar sesión"
                     style={{
-                      background: '#fbeae8', border: '1px solid #f3c9c4', color: '#d1453b',
+                      background: '#fbeae8', border: 'var(--portal-border-emphasis) solid #f3c9c4', color: '#d1453b',
                       padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.75rem', flexShrink: 0
                     }}
                   >
                     Salir
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
@@ -364,7 +363,7 @@ export default function App() {
                       width: '32px',
                       height: '32px',
                       borderRadius: '50%',
-                      background: '#e8f0e8',
+                      background: 'var(--portal-primary-soft)',
                       color: '#3f6c52',
                       fontWeight: '800',
                       fontSize: '0.75rem',
@@ -376,16 +375,16 @@ export default function App() {
                   >
                     {(user.nombre || 'U')[0].toUpperCase()}
                   </div>
-                  <button
+                  <Button
                     onClick={handleLogout}
                     title="Cerrar sesión"
                     style={{
-                      background: '#fbeae8', border: '1px solid #f3c9c4', color: '#d1453b',
+                      background: '#fbeae8', border: 'var(--portal-border-emphasis) solid #f3c9c4', color: '#d1453b',
                       padding: '4px', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '0.7rem', width: '100%', textAlign: 'center'
                     }}
                   >
                     Salir
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -401,65 +400,51 @@ export default function App() {
           }}>
             {/* key={activeTab} remonta el panel y reproduce la transición al cambiar de sección */}
             <div key={activeTab} className="portal-tab-panel">
-              {activeTab === 'dashboard' && (
-                <DashboardModulo user={user} onNavigate={setActiveTab} />
-              )}
+              <Suspense fallback={<p role="status">Cargando sección…</p>}>
+                <Routes>
+                  <Route path="/dashboard" element={<DashboardPage user={user} onNavigate={setActiveTab} />} />
 
-              {activeTab === 'caniles' && (
-                <CanilesModulo user={user} />
-              )}
+                  <Route path="/caniles" element={<CanilesPage user={user} />} />
 
-              {activeTab === 'animales' && (
-                <AnimalCatalogo
-                  onOpenModal={(animal = null) => {
-                    setAnimalEditar(animal && animal.id ? animal : null);
-                    setModalOpen(true);
-                  }}
-                  onEditAnimal={(animal) => {
-                    setAnimalEditar(animal);
-                    setModalOpen(true);
-                  }}
-                  reloadKey={reloadKey}
-                />
-              )}
+                  <Route path="/animales" element={
+                  <AnimalesPage
+                    onOpenModal={(animal = null) => {
+                      setAnimalEditar(animal && animal.id ? animal : null);
+                      setModalOpen(true);
+                    }}
+                    onEditAnimal={(animal) => {
+                      setAnimalEditar(animal);
+                      setModalOpen(true);
+                    }}
+                    reloadKey={reloadKey}
+                  />
+                  } />
 
-              {activeTab === 'cuidados' && (
-                <CuidadosModulo user={user} />
-              )}
+                  <Route path="/cuidados" element={<CuidadosPage user={user} />} />
 
-              {activeTab === 'salud' && (
-                <SaludModulo user={user} />
-              )}
+                  <Route path="/salud" element={<SaludPage user={user} />} />
 
-              {activeTab === 'adopciones' && puedeGestionarAdopciones && (
-                <AdopcionesModulo user={user} />
-              )}
+                  {puedeGestionarAdopciones && <Route path="/adopciones" element={<AdopcionesPage user={user} />} />}
 
-              {activeTab === 'inventario' && puedeGestionarInventario && (
-                <InventarioModulo user={user} />
-              )}
+                  {puedeGestionarInventario && <Route path="/inventario" element={<InventarioPage user={user} />} />}
 
-              {activeTab === 'voluntarios' && (
-                <VoluntariosModulo user={user} />
-              )}
+                  <Route path="/voluntarios" element={<VoluntariosPage user={user} />} />
 
-              {activeTab === 'perfiles' && esDireccion && (
-                <PerfilesUsuariosModulo user={user} onActualizarUsuario={setUser} />
-              )}
+                  {esDireccion && <Route path="/perfiles" element={<PerfilesUsuariosPage user={user} onActualizarUsuario={setUser} />} />}
 
-              {activeTab === 'reportes' && esDireccion && (
-                <ReportesConsolidadosModulo user={user} />
-              )}
+                  {esDireccion && <Route path="/reportes" element={<ReportesConsolidadosPage user={user} />} />}
 
-              {activeTab === 'auditoria' && esDireccion && (
-                <AuditoriaModulo user={user} />
-              )}
+                  {esDireccion && <Route path="/auditoria" element={<AuditoriaPage user={user} />} />}
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                </Routes>
+              </Suspense>
             </div>
           </main>
 
           <AnimalFormModal
             isOpen={modalOpen}
             animalEditar={animalEditar}
+            onGuardar={guardarAnimal}
             onClose={() => {
               setModalOpen(false);
               setAnimalEditar(null);

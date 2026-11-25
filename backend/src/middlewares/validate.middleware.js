@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 const NOMBRES_CAMPOS = {
+  id: 'Identificador',
+  archivo: 'Archivo',
   nombre: 'Nombre',
   especie: 'Especie',
   sexo: 'Sexo',
@@ -64,6 +66,7 @@ const NOMBRES_CAMPOS = {
   incidentes: 'Incidentes reportados',
   destinoNombre: 'Nombre del destino',
   destinoContacto: 'Contacto del destino',
+  destinoEmail: 'Correo de la protectora',
   destinoDireccion: 'Dirección del destino',
   accion: 'Acción',
   cantidad: 'Cantidad',
@@ -79,6 +82,9 @@ const NOMBRES_CAMPOS = {
   criticidad: 'Nivel de criticidad',
   motivo: 'Motivo',
   pagina: 'Página',
+  page: 'Página',
+  limit: 'Límite',
+  semana: 'Semana',
   raza: 'Raza',
   tamano: 'Tamaño',
   color: 'Color del pelaje',
@@ -161,7 +167,7 @@ export const validate = (schema, target = 'body') => (req, res, next) => {
       detalles: result.error.issues.map(issue => {
         const clave = issue.path.at(-1);
         const campo = Object.hasOwn(NOMBRES_CAMPOS, clave) ? NOMBRES_CAMPOS[clave] : null;
-        return { campo, mensaje: traducirMensajeValidacion(issue, campo) };
+        return { campo, ruta: issue.path.join('.'), mensaje: traducirMensajeValidacion(issue, campo) };
       })
     });
   }

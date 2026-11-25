@@ -1,3 +1,4 @@
+import { ErrorDominio } from '../utils/errorDominio.js';
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
 import { etiquetaRolUsuario } from '../constants/usuarios.js';
@@ -67,7 +68,7 @@ export const getAllCaniles = async () => {
 export const asignarCanil = async ({ canilId, animalId, motivo, estado = 'OCUPADO' }, user, ip) => {
   // El motivo es obligatorio solo cuando el estado es CUARENTENA
   if (estado === 'CUARENTENA' && (!motivo || motivo.trim().length < 3)) {
-    throw new Error('El motivo del movimiento es obligatorio para caniles en CUARENTENA');
+    throw new ErrorDominio(400, 'El motivo del movimiento es obligatorio para caniles en CUARENTENA');
   }
 
   const targetCanil = await prisma.canil.findUnique({
@@ -75,7 +76,7 @@ export const asignarCanil = async ({ canilId, animalId, motivo, estado = 'OCUPAD
     include: { animalAlojado: true }
   });
 
-  if (!targetCanil) throw new Error('El canil seleccionado no existe');
+  if (!targetCanil) throw new ErrorDominio(404, 'El canil seleccionado no existe');
 
   // Si se está asignando un animal, verificar capacidad
   if (animalId) {
@@ -84,12 +85,12 @@ export const asignarCanil = async ({ canilId, animalId, motivo, estado = 'OCUPAD
       include: { canil: true }
     });
 
-    if (!animal) throw new Error('El animal no existe');
-    if (animal.estadoAdopcion === 'ADOPTADO') throw new Error('El animal ya fue adoptado y no puede asignarse a un canil.');
+    if (!animal) throw new ErrorDominio(404, 'El animal no existe');
+    if (animal.estadoAdopcion === 'ADOPTADO') throw new ErrorDominio(409, 'El animal ya fue adoptado y no puede asignarse a un canil.');
 
     // Validar si el canil destino ya está ocupado por otro animal
     if (targetCanil.animalAlojado && targetCanil.animalAlojado.id !== animal.id) {
-      throw new Error(`El canil ${targetCanil.nombre} ya se encuentra ocupado por ${targetCanil.animalAlojado.nombre}`);
+      throw new ErrorDominio(409, `El canil ${targetCanil.nombre} ya se encuentra ocupado por ${targetCanil.animalAlojado.nombre}`);
     }
 
     const canilAnteriorId = animal.canilId;
@@ -200,20 +201,21 @@ export const solicitarTrasladoExterno = async ({
   motivo,
   destinoNombre,
   destinoContacto,
+  destinoEmail,
   destinoDireccion
 }, user, ip) => {
   if (!motivo || motivo.trim().length < 3) {
-    throw new Error('El motivo del traslado es obligatorio');
+    throw new ErrorDominio(400, 'El motivo del traslado es obligatorio');
   }
   if (!destinoNombre || destinoNombre.trim().length < 2) {
-    throw new Error('El nombre de la protectora u hogar temporal de destino es obligatorio');
+    throw new ErrorDominio(400, 'El nombre de la protectora u hogar temporal de destino es obligatorio');
   }
 
   const animal = await prisma.animal.findUnique({
     where: { id: Number(animalId) },
     include: { canil: true }
   });
-  if (!animal) throw new Error('Animal no encontrado');
+  if (!animal) throw new ErrorDominio(404, 'Animal no encontrado');
 
   const traslado = await prisma.traslado.create({
     data: {
@@ -222,6 +224,11 @@ export const solicitarTrasladoExterno = async ({
       motivo,
       destinoNombre,
       destinoContacto,
+      ...(tipo === 'PROTECTORA_ALIADA' && {
+        destinoEmail,
+        correoEstado: 'PENDIENTE',
+        correoDisponibleEn: new Date()
+      }),
       destinoDireccion,
       canilOrigenId: animal.canilId,
       responsableId: user.id,
@@ -261,9 +268,9 @@ export const gestionarAprobacionTraslado = async (trasladoId, { aprobar, comenta
     include: { animal: true, canilOrigen: true }
   });
 
-  if (!traslado) throw new Error('Traslado no encontrado');
+  if (!traslado) throw new ErrorDominio(404, 'Traslado no encontrado');
   if (traslado.estado !== 'PENDIENTE_APROBACION') {
-    throw new Error(`El traslado ya se encuentra en estado ${traslado.estado}`);
+    throw new ErrorDominio(409, `El traslado ya se encuentra en estado ${traslado.estado}`);
   }
 
   const nuevoEstado = aprobar ? 'APROBADO' : 'RECHAZADO';
@@ -314,7 +321,7 @@ export const createCanil = async ({ codigo, nombre, sector, tipo, capacidad, est
   // Verificar que el código no exista ya
   const existing = await prisma.canil.findUnique({ where: { codigo } });
   if (existing) {
-    throw new Error(`Ya existe un canil con el código ${codigo}`);
+    throw new ErrorDominio(400, `Ya existe un canil con el código ${codigo}`);
   }
 
   const canil = await prisma.canil.create({
@@ -343,7 +350,7 @@ export const actualizarSectorCanil = async ({ canilId, sector }, user, ip) => {
   });
 
   if (!targetCanil) {
-    throw new Error('El canil seleccionado no existe');
+    throw new ErrorDominio(404, 'El canil seleccionado no existe');
   }
 
   const sectorLimpio = sector.trim();
@@ -380,11 +387,11 @@ export const deleteCanil = async ({ canilId }, user, ip) => {
   });
 
   if (!targetCanil) {
-    throw new Error('El canil seleccionado no existe');
+    throw new ErrorDominio(404, 'El canil seleccionado no existe');
   }
 
   if (targetCanil.animalAlojado) {
-    throw new Error(`No se puede eliminar el canil ${targetCanil.nombre} porque tiene un animal asignado. Libérelo primero.`);
+    throw new ErrorDominio(409, `No se puede eliminar el canil ${targetCanil.nombre} porque tiene un animal asignado. Libérelo primero.`);
   }
 
   const valorAnterior = { ...targetCanil };

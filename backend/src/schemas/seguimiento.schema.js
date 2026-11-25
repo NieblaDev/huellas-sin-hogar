@@ -1,3 +1,4 @@
+import { idParamSchema } from './request.schema.js';
 import { z } from 'zod';
 
 export const ESTADOS_SEGUIMIENTO = ['PENDIENTE', 'REPROGRAMADO', 'COMPLETADO', 'SIN_CONTACTO'];
@@ -81,9 +82,7 @@ export const configurarLimiteIntentosSchema = z.object({
 }).strict();
 
 // Identificador de seguimiento
-export const seguimientoIdSchema = z.object({
-  id: z.coerce.number().int().positive().max(2147483647)
-}).strict();
+export const seguimientoIdSchema = idParamSchema.strict();
 
 // Filtros y paginación para lista de seguimientos
 export const listarSeguimientosSchema = z.object({

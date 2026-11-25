@@ -98,7 +98,7 @@ export const actualizarEtapa = async (id, data, responsable, ip) => {
       return { solicitud, adopcion };
     }, { isolationLevel: 'Serializable' });
   } catch (error) {
-    if (['P2034', 'P2002', 'P2003'].includes(error.code) || (error.code === 'P2010' && ['40001', '40P01'].includes(error.meta?.code))) throw new AdopcionError(409, 'Alguien más hizo un cambio al mismo tiempo. Cierra la solicitud, ábrela de nuevo e inténtalo otra vez.');
+    if (['P2034', 'P2002'].includes(error.code) || (error.code === 'P2010' && ['40001', '40P01'].includes(error.meta?.code))) throw new AdopcionError(409, 'Alguien más hizo un cambio al mismo tiempo. Cierra la solicitud, ábrela de nuevo e inténtalo otra vez.');
     throw error;
   }
 };

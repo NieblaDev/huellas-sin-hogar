@@ -1,12 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { uploadsPath } from '../services/foto.service.js';
+import { randomUUID } from 'node:crypto';
 import multer from 'multer';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Carpeta `uploads/` en la raíz del backend (backend/uploads)
-export const uploadsPath = path.resolve(__dirname, '../../uploads');
 
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
@@ -18,15 +14,14 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsPath),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
+    const ext = file.mimetype === 'image/png' ? '.png' : '.jpg';
     const base = path
-      .basename(file.originalname, ext)
+      .basename(file.originalname, path.extname(file.originalname))
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-zA-Z0-9_-]+/g, '_')
       .slice(0, 60) || 'foto';
-    const safeName = `${base}${ext}`;
-    cb(null, `${Date.now()}_${safeName}`);
+    cb(null, Date.now() + '_' + randomUUID() + '_' + base + ext);
   }
 });
 
@@ -34,7 +29,6 @@ const fileFilter = (req, file, cb) => {
   if (MIME_PERMITIDOS.includes(file.mimetype)) return cb(null, true);
   cb(new Error('Formato de imagen no permitido. Usa archivos JPG o PNG.'));
 };
-
 export const upload = multer({
   storage,
   fileFilter,
@@ -57,8 +51,3 @@ export const uploadSingle = (campo = 'foto') => (req, res, next) => {
     return res.status(400).json({ error: err.message || 'No se pudo procesar la imagen.' });
   });
 };
-
-/**
- * Construye la URL pública de un archivo subido.
- */
-export const buildPublicUrl = (req, filename) => `${req.protocol}://${req.get('host')}/uploads/${filename}`;

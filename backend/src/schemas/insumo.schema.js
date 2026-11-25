@@ -12,17 +12,7 @@ export const crearInsumoSchema = z.object({
   ubicacion: z.string().optional().nullable()
 });
 
-export const actualizarInsumoSchema = z.object({
-  nombre: z.string().min(2, 'El nombre del insumo debe tener al menos 2 caracteres').optional(),
-  categoria: z.string().min(2, 'La categoría es obligatoria').optional(),
-  stock: z.number().int('El stock debe ser un número entero').min(0, 'El stock no puede ser negativo').optional(),
-  stockMinimo: z.number().int('El stock mínimo debe ser un número entero').min(0, 'El stock mínimo no puede ser negativo').optional(),
-  unidad: z.string().min(1).optional(),
-  esFarmaco: z.boolean().optional(),
-  fechaVencimiento: z.string().datetime().optional().nullable(),
-  lote: z.string().optional().nullable(),
-  ubicacion: z.string().optional().nullable()
-});
+export const actualizarInsumoSchema = crearInsumoSchema.partial();
 
 export const registrarMovimientoSchema = z.object({
   tipo: z.enum(['ENTRADA', 'SALIDA'], {
@@ -51,3 +41,5 @@ export const registrarMovimientoSchema = z.object({
   message: 'El motivo seleccionado no corresponde a este tipo de movimiento.',
   path: ['subtipo']
 });
+
+export const listarInsumosSchema = z.object({ search: z.string().optional(), categoria: z.string().optional() });

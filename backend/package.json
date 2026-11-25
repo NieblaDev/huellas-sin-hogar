@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch index.js",
-    "start": "node index.js",
-    "prisma:migrate": "prisma migrate dev",
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "prisma:migrate": "npm run prisma:deploy",
+    "prisma:deploy": "node prisma/migrate.js",
     "prisma:generate": "prisma generate",
-    "prisma:seed": "node prisma/seed.js"
+    "prisma:seed": "node prisma/seed.js",
+    "start:prod": "pm2-runtime ecosystem.config.cjs",
+    "test:unit": "node --test tests/*.schema.test.js tests/app.test.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.js"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",
@@ -17,9 +21,14 @@
     "express": "^4.21.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.2",
+    "nodemailer": "^8.0.11",
+    "pm2": "^6.0.14",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "prisma": "^5.19.1"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

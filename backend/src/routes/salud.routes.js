@@ -1,3 +1,4 @@
+import { sinParametrosSchema, animalIdParamSchema } from '../schemas/request.schema.js';
 import { Router } from 'express';
 import { authenticateToken, requireRole } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
@@ -14,8 +15,8 @@ const router = Router();
 router.use(authenticateToken);
 
 // Consulta de alertas e historial accesible para el staff
-router.get('/alertas', saludCtrl.getAlertasSanitarias);
-router.get('/historial/:animalId', saludCtrl.getHistorialAnimal);
+router.get('/alertas', validate(sinParametrosSchema, 'query'), saludCtrl.getAlertasSanitarias);
+router.get('/historial/:animalId', validate(animalIdParamSchema, 'params'), saludCtrl.getHistorialAnimal);
 
 // Operaciones de registro médico: Exclusivas para PERSONAL_VETERINARIO y DIRECCION
 router.post(

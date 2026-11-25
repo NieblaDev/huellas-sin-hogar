@@ -1,10 +1,6 @@
-import test from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-
-// El frontend usa ES modules en Vite aunque package.json no declara type:module.
-const source = readFileSync(new URL('../src/utils/session.js', import.meta.url), 'utf8');
-const { readStoredSession } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+import { readStoredSession } from '../src/utils/session.js';
 const now = Date.now();
 const user = { id: 1, nombre: 'Staff de prueba', rol: 'DIRECCION' };
 const token = payload => `header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;

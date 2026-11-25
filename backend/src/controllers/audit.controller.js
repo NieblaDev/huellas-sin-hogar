@@ -1,10 +1,7 @@
+import { asyncHandler } from '../middlewares/error.middleware.js';
 import * as auditService from '../services/audit.service.js';
 
-export const getAuditorias = async (req, res) => {
-  try {
-    const data = await auditService.getAuditorias(req.query);
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message || 'Error al consultar la bitácora de auditoría' });
-  }
-};
+export const getAuditorias = asyncHandler(async (req, res) => {
+  const data = await auditService.getAuditorias(req.query);
+  res.json(data);
+});

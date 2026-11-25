@@ -1,3 +1,4 @@
+import { sinParametrosSchema } from '../schemas/request.schema.js';
 import { actualizarEtapaSchema } from '../schemas/adopcionEtapa.schema.js';
 import { registrarEtapa } from '../controllers/adopcionEtapa.controller.js';
 import { Router } from 'express';
@@ -28,7 +29,7 @@ router.use(authenticateToken, requireAdopcionStaff);
 
 // Solicitudes y antecedentes (RF1)
 router.get('/antecedentes', validate(antecedentesQuerySchema, 'query'), controller.obtenerAntecedentes);
-router.get('/animales-disponibles', controller.listarAnimalesDisponibles);
+router.get('/animales-disponibles', validate(sinParametrosSchema, 'query'), controller.listarAnimalesDisponibles);
 router.get('/solicitudes', validate(listarSolicitudesSchema, 'query'), controller.listarSolicitudes);
 router.post('/solicitudes', validate(crearSolicitudSchema), controller.crearSolicitud);
 router.get('/solicitudes/:id', validate(solicitudIdSchema, 'params'), controller.obtenerSolicitud);
@@ -40,7 +41,7 @@ router.post('/solicitudes/:id/etapas', validate(solicitudIdSchema, 'params'), va
 
 // Seguimientos post-adopción (RF2)
 router.get('/seguimientos', validate(listarSeguimientosSchema, 'query'), seguimientoController.listarSeguimientos);
-router.get('/seguimientos/configuracion', seguimientoController.obtenerConfiguracion);
+router.get('/seguimientos/configuracion', validate(sinParametrosSchema, 'query'), seguimientoController.obtenerConfiguracion);
 router.put('/seguimientos/configuracion', validate(configurarLimiteIntentosSchema), seguimientoController.actualizarConfiguracion);
 router.get('/seguimientos/:id', validate(seguimientoIdSchema, 'params'), seguimientoController.obtenerSeguimiento);
 router.post('/seguimientos', validate(programarSeguimientoSchema), seguimientoController.programarSeguimiento);

@@ -1,8 +1,12 @@
+import Button from './ui/Button.jsx';
+import Input from './ui/Input.jsx';
+import Modal from './ui/Modal.jsx';
+import useFormulario from '../hooks/useFormulario.js';
+import { fichaAnimalSchema } from '../schemas/animal.schema.js';
 import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from 'react';
 import { Camera, PawPrint, Pencil, TriangleAlert } from 'lucide-react';
-import { API_URL } from '../api/config';
-import AnimalPhotoCrop from './ui/AnimalPhotoCrop';
+import AnimalPhotoCrop from './AnimalPhotoCrop';
 
 const INITIAL_FORM = {
   nombre: '',
@@ -24,15 +28,17 @@ const INITIAL_FORM = {
 const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/jpg'];
 const MAX_IMAGEN_MB = 10;
 
-export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = [], animalEditar = null }) {
-  const [formData, setFormData] = useState(INITIAL_FORM);
+export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess, caniles = [], animalEditar = null }) {
+  const animalForm = useFormulario(fichaAnimalSchema, INITIAL_FORM);
+  const formData = animalForm.valores;
+  const setFormData = actualizar => animalForm.reset(actualizar);
   const [fotoArchivo, setFotoArchivo] = useState(null);
   const [archivoParaRecortar, setArchivoParaRecortar] = useState(null);
   const [fotoPreview, setFotoPreview] = useState('');
   const [fotoActualUrl, setFotoActualUrl] = useState('');
   const [eliminarFotoActual, setEliminarFotoActual] = useState(false);
   const [error, setError] = useState(null);
-  const [guardando, setGuardando] = useState(false);
+  const guardando = animalForm.isSubmitting;
 
   const esEdicion = Boolean(animalEditar && animalEditar.id);
 
@@ -127,8 +133,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
     setArchivoParaRecortar(null);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (formData) => {
     if (archivoParaRecortar || guardando) return;
     setError(null);
 
@@ -144,7 +149,6 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
       return;
     }
 
-    setGuardando(true);
     try {
       const body = new FormData();
       body.append('nombre', formData.nombre.trim());
@@ -187,13 +191,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
 
       // Nota: no se fija 'Content-Type' manualmente; el navegador agrega
       // 'multipart/form-data' junto con el "boundary" que Multer necesita.
-      const token = localStorage.getItem('token');
-      const endpoint = esEdicion ? `${API_URL}/animals/${animalEditar.id}` : `${API_URL}/animals`;
-      const res = await fetch(endpoint, {
-        method: esEdicion ? 'PUT' : 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body
-      });
+      const res = await onGuardar(animalEditar?.id, body);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const alternativo = esEdicion ? 'No se pudo actualizar la ficha.' : 'No se pudo registrar el animal.';
@@ -213,8 +211,6 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
       onClose();
     } catch (err) {
       setError(formatearErrorApi(err));
-    } finally {
-      setGuardando(false);
     }
   };
 
@@ -222,21 +218,9 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
   const canilActualId = animalEditar?.canilId || animalEditar?.canil?.id || null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(20,24,32,0.55)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1200,
-        padding: '16px'
-      }}
-    >
-      <div
-        style={{
-          background: '#fff',
+    <Modal onClose={onClose} nombre="Ficha del animal" bloqueado={guardando || Boolean(archivoParaRecortar)}
+      papel={{ style: {
+          background: 'var(--portal-surface)',
           borderRadius: '16px',
           padding: '26px',
           width: '100%',
@@ -244,8 +228,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
           maxHeight: '92vh',
           overflowY: 'auto',
           boxShadow: '0 16px 40px rgba(20,24,32,0.2)'
-        }}
-      >
+        } }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
           <div>
             <h3 style={{ margin: 0, color: '#1f2430', fontSize: '1.2rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '7px' }}>
@@ -253,19 +236,19 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 ? <><Pencil size={18} aria-hidden="true" /> Editar ficha del animal</>
                 : <><PawPrint size={18} aria-hidden="true" /> Registro de Ingreso y Creación de Ficha del Animal</>}
             </h3>
-            <span style={{ fontSize: '0.78rem', color: '#7c8592' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)' }}>
               {esEdicion
                 ? 'Actualiza los antecedentes clínicos, administrativos o la fotografía de la ficha.'
                 : 'Los antecedentes desconocidos son opcionales y no bloquean el registro.'}
             </span>
           </div>
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            style={{ background: 'transparent', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#7c8592' }}
+            style={{ background: 'transparent', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: 'var(--portal-text-muted)' }}
           >
             ✕
-          </button>
+          </Button>
         </div>
 
         {error && (
@@ -274,7 +257,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
               color: '#d1453b',
               fontSize: '0.82rem',
               background: '#fbeae8',
-              border: '1px solid #f3c9c4',
+              border: 'var(--portal-border-emphasis) solid #f3c9c4',
               padding: '10px 12px',
               borderRadius: '8px',
               marginBottom: '14px',
@@ -285,18 +268,18 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form noValidate onSubmit={animalForm.handleSubmit(handleSubmit)}>
           {/* Fotografía con vista previa (actual o nueva seleccionada) */}
           <div
             style={{
               marginBottom: '12px',
               padding: '10px 12px',
-              border: '1.5px dashed #d6d9e0',
+              border: 'var(--portal-border-emphasis) dashed #d6d9e0',
               borderRadius: '10px',
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
-              background: '#fafbfc'
+              background: 'var(--portal-surface-muted)'
             }}
           >
             <div
@@ -304,7 +287,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 width: '72px',
                 height: '72px',
                 borderRadius: '10px',
-                background: '#e8f0e8',
+                background: 'var(--portal-primary-soft)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -326,7 +309,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#1f2430', marginBottom: '4px' }}>
                 {esEdicion ? 'Fotografía de la Ficha del Animal' : 'Fotografía del animal (opcional)'}
               </label>
-              <input
+              <Input
                 type="file"
                 name="foto"
                 accept="image/jpeg,image/png,image/jpg"
@@ -334,7 +317,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 disabled={guardando || Boolean(archivoParaRecortar)}
                 style={{ fontSize: '0.78rem', width: '100%' }}
               />
-              <span style={{ display: 'block', fontSize: '0.7rem', color: '#a3aab5', marginTop: '3px' }}>
+              <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--portal-text-muted)', marginTop: '3px' }}>
                 {fotoArchivo
                   ? 'Recorte listo para guardar como JPG de 800 × 800 píxeles.'
                   : fotoActualUrl
@@ -343,7 +326,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
               </span>
             </div>
             {imagenMostrada && (
-              <button
+              <Button
                 type="button"
                 onClick={quitarFoto}
                 style={{
@@ -358,7 +341,7 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 }}
               >
                 {fotoPreview ? 'Deshacer' : 'Quitar'}
-              </button>
+              </Button>
             )}
           </div>
 
@@ -373,31 +356,31 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
           {/* Nombre y Causal de Ingreso */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '10px', marginBottom: '10px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#1f2430', marginBottom: '4px' }}>
+              <label htmlFor={animalForm.idCampo('nombre')} style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#1f2430', marginBottom: '4px' }}>
                 Nombre / Identificador *
               </label>
-              <input
+              <Input {...animalForm.campo("nombre")}
                 type="text"
                 required
                 placeholder="Ej: Toby, rescatado en el sector norte"
                 value={formData.nombre}
-                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                style={{ width: '100%', padding: '8px 10px', boxSizing: 'border-box', borderRadius: '7px', border: '1.5px solid #e9eaed' }}
+                onChange={(e) => animalForm.cambiar('nombre', e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', boxSizing: 'border-box', borderRadius: '7px', border: 'var(--portal-border-emphasis) solid var(--portal-border)' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#1f2430', marginBottom: '4px' }}>
+              <label htmlFor={animalForm.idCampo('tipoIngreso')} style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#1f2430', marginBottom: '4px' }}>
                 Causal de Ingreso *
               </label>
-              <select
+              <Input as="select" {...animalForm.campo("tipoIngreso")}
                 value={formData.tipoIngreso}
-                onChange={(e) => setFormData({ ...formData, tipoIngreso: e.target.value })}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #e9eaed', background: '#fff' }}
+                onChange={(e) => animalForm.cambiar('tipoIngreso', e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', background: 'var(--portal-surface)' }}
               >
                 <option value="Rescate">Rescate</option>
                 <option value="Abandono">Abandono</option>
                 <option value="Decomiso">Decomiso</option>
-              </select>
+              </Input>
             </div>
           </div>
 
@@ -409,113 +392,113 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
               gap: '10px',
               marginBottom: '12px',
               padding: '10px',
-              background: '#eef3ec',
+              background: 'var(--portal-primary-soft)',
               borderRadius: '9px',
-              border: '1px solid #c9dfcd'
+              border: 'var(--portal-border-emphasis) solid #c9dfcd'
             }}
           >
             <div>
-              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: '#2f5540', marginBottom: '4px' }}>
+              <label htmlFor={animalForm.idCampo('especie')} style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: '#2f5540', marginBottom: '4px' }}>
                 Especie (Canina / Felina) *
               </label>
-              <select
+              <Input as="select" {...animalForm.campo("especie")}
                 value={formData.especie}
-                onChange={(e) => setFormData({ ...formData, especie: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px solid #c9dfcd', background: '#fff', fontWeight: '700' }}
+                onChange={(e) => animalForm.cambiar('especie', e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid #c9dfcd', background: 'var(--portal-surface)', fontWeight: '700' }}
               >
                 <option value="Perro">Perro (Canina)</option>
                 <option value="Gato">Gato (Felina)</option>
                 <option value="">— Selecciona la especie —</option>
-              </select>
+              </Input>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: '#2f5540', marginBottom: '4px' }}>
+              <label htmlFor={animalForm.idCampo('sexo')} style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: '#2f5540', marginBottom: '4px' }}>
                 Sexo *
               </label>
-              <select
+              <Input as="select" {...animalForm.campo("sexo")}
                 value={formData.sexo}
-                onChange={(e) => setFormData({ ...formData, sexo: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px solid #c9dfcd', background: '#fff', fontWeight: '700' }}
+                onChange={(e) => animalForm.cambiar('sexo', e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid #c9dfcd', background: 'var(--portal-surface)', fontWeight: '700' }}
               >
                 <option value="Macho">Macho</option>
                 <option value="Hembra">Hembra</option>
                 <option value="">— Selecciona el sexo —</option>
-              </select>
+              </Input>
             </div>
           </div>
 
           {/* Antecedentes Opcionales / Anulables */}
-          <div style={{ fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', color: '#7c8592', marginBottom: '6px' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', color: 'var(--portal-text-muted)', marginBottom: '6px' }}>
             Antecedentes Físicos y Clínicos (Opcionales si se desconocen)
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
+              <label htmlFor={animalForm.idCampo('edad')} style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '3px' }}>
                 Edad aprox. (Opcional)
               </label>
-              <input
+              <Input {...animalForm.campo("edad")}
                 type="text"
                 placeholder="Desconocida"
                 value={formData.edad}
-                onChange={(e) => setFormData({ ...formData, edad: e.target.value })}
-                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: '1.5px solid #e9eaed' }}
+                onChange={(e) => animalForm.cambiar('edad', e.target.value)}
+                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
+              <label htmlFor={animalForm.idCampo('raza')} style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '3px' }}>
                 Raza (Opcional)
               </label>
-              <input
+              <Input {...animalForm.campo("raza")}
                 type="text"
                 placeholder="Ej: Mestizo / Desconocida"
                 value={formData.raza}
-                onChange={(e) => setFormData({ ...formData, raza: e.target.value })}
-                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: '1.5px solid #e9eaed' }}
+                onChange={(e) => animalForm.cambiar('raza', e.target.value)}
+                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
+              <label htmlFor={animalForm.idCampo('peso')} style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '3px' }}>
                 Peso kg (Opcional)
               </label>
-              <input
+              <Input {...animalForm.campo("peso")}
                 type="number"
                 step="0.1"
                 min="0"
                 placeholder="No disponible"
                 value={formData.peso}
-                onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
-                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: '1.5px solid #e9eaed' }}
+                onChange={(e) => animalForm.cambiar('peso', e.target.value)}
+                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)' }}
               />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
+              <label htmlFor={animalForm.idCampo('chip')} style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '3px' }}>
                 Microchip (Opcional)
               </label>
-              <input
+              <Input {...animalForm.campo("chip")}
                 type="text"
                 placeholder="Ej: ES-4471120 o vacío"
                 value={formData.chip}
-                onChange={(e) => setFormData({ ...formData, chip: e.target.value })}
-                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: '1.5px solid #e9eaed' }}
+                onChange={(e) => animalForm.cambiar('chip', e.target.value)}
+                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
+              <label htmlFor={animalForm.idCampo('esterilizacion')} style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '3px' }}>
                 Esterilización (Opcional)
               </label>
-              <select
+              <Input as="select" {...animalForm.campo("esterilizacion")}
                 value={formData.esterilizacion}
-                onChange={(e) => setFormData({ ...formData, esterilizacion: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px solid #e9eaed', background: '#fff' }}
+                onChange={(e) => animalForm.cambiar('esterilizacion', e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', background: 'var(--portal-surface)' }}
               >
                 <option value="Desconocido">Desconocido / Sin antecedentes</option>
                 <option value="NO">No esterilizado/a</option>
                 <option value="SÍ (Operado/a)">Sí (Esterilizado/a)</option>
-              </select>
+              </Input>
             </div>
           </div>
 
@@ -528,42 +511,42 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
             }}
           >
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
+              <label htmlFor={animalForm.idCampo('estadoSalud')} style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '3px' }}>
                 Estado de Salud
               </label>
-              <select
+              <Input as="select" {...animalForm.campo("estadoSalud")}
                 value={formData.estadoSalud}
-                onChange={(e) => setFormData({ ...formData, estadoSalud: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px solid #e9eaed', background: '#fff' }}
+                onChange={(e) => animalForm.cambiar('estadoSalud', e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', background: 'var(--portal-surface)' }}
               >
                 <option value="NORMAL">Normal</option>
                 <option value="CONDICION_ESPECIAL">Condición Especial</option>
                 <option value="CRITICO">Crítico</option>
-              </select>
+              </Input>
             </div>
             {esEdicion && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
+                <label htmlFor={animalForm.idCampo('estadoAdopcion')} style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '3px' }}>
                   Estado de Adopción
                 </label>
-                <select
+                <Input as="select" {...animalForm.campo("estadoAdopcion")}
                   value={formData.estadoAdopcion}
-                  onChange={(e) => setFormData({ ...formData, estadoAdopcion: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px solid #e9eaed', background: '#fff' }}
+                  onChange={(e) => animalForm.cambiar('estadoAdopcion', e.target.value)}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', background: 'var(--portal-surface)' }}
                 >
                   <option value="EN_REFUGIO">En Refugio</option>
                   <option value="ADOPTADO">Adoptado</option>
-                </select>
+                </Input>
               </div>
             )}
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
+              <label htmlFor={animalForm.idCampo('canilId')} style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '3px' }}>
                 Canil Asignado (Opcional)
               </label>
-              <select
+              <Input as="select" {...animalForm.campo("canilId")}
                 value={formData.canilId}
-                onChange={(e) => setFormData({ ...formData, canilId: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1.5px solid #e9eaed', background: '#fff' }}
+                onChange={(e) => animalForm.cambiar('canilId', e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', background: 'var(--portal-surface)' }}
               >
                 <option value="">— Sin asignar —</option>
                 {caniles
@@ -573,52 +556,52 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                       {c.nombre} ({c.sector}){canilActualId && Number(c.id) === Number(canilActualId) ? ' — Actual' : ''}
                     </option>
                   ))}
-              </select>
+              </Input>
             </div>
           </div>
 
           <div style={{ marginBottom: '10px' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
+            <label htmlFor={animalForm.idCampo('comportamiento')} style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '3px' }}>
               Comportamiento Observado (Opcional)
             </label>
-            <input
+            <Input {...animalForm.campo("comportamiento")}
               type="text"
               placeholder="Ej: Dócil, asustadizo, por evaluar..."
               value={formData.comportamiento}
-              onChange={(e) => setFormData({ ...formData, comportamiento: e.target.value })}
-              style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: '1.5px solid #e9eaed' }}
+              onChange={(e) => animalForm.cambiar('comportamiento', e.target.value)}
+              style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)' }}
             />
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#7c8592', marginBottom: '3px' }}>
+            <label htmlFor={animalForm.idCampo('nota')} style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '3px' }}>
               Historial Médico / Antecedentes Clínicos (Opcional)
             </label>
-            <textarea
+            <Input as="textarea" {...animalForm.campo("nota")}
               rows={3}
               placeholder="Deja en blanco si no se cuenta con historial médico o antecedentes previos..."
               value={formData.nota}
-              onChange={(e) => setFormData({ ...formData, nota: e.target.value })}
-              style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: '1.5px solid #e9eaed' }}
+              onChange={(e) => animalForm.cambiar('nota', e.target.value)}
+              style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)' }}
             />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-            <button
+            <Button
               type="button"
               onClick={onClose}
               style={{
                 padding: '9px 14px',
-                background: '#f8f9fa',
-                border: '1px solid #e9eaed',
+                background: 'var(--portal-surface-muted)',
+                border: 'var(--portal-border-emphasis) solid var(--portal-border)',
                 borderRadius: '7px',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button cargando={animalForm.isSubmitting}
               type="submit"
               disabled={guardando || Boolean(archivoParaRecortar)}
               style={{
@@ -638,10 +621,9 @@ export default function AnimalFormModal({ isOpen, onClose, onSuccess, caniles = 
                 : esEdicion
                 ? 'Guardar Cambios de la Ficha'
                 : 'Guardar Ficha del Animal'}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </Modal>
   );
 }

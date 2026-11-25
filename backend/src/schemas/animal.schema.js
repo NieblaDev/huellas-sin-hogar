@@ -1,3 +1,4 @@
+import { idNumerico, fechaConsulta } from './request.schema.js';
 import { z } from 'zod';
 
 export const createAnimalSchema = z.object({
@@ -230,4 +231,28 @@ export const updateAnimalSchema = z.object({
     },
     z.number().int().positive().nullable().optional()
   )
+}).partial();
+
+export const listarAnimalesSchema = z.object({
+  especie: z.string().optional(),
+  estadoSalud: z.string().toUpperCase().pipe(z.enum(['NORMAL', 'CONDICION_ESPECIAL', 'CRITICO'])).optional(),
+  search: z.string().optional(),
+  estado: z.string().optional(),
+  incluirBajas: z.enum(['true', 'false']).optional(),
+  tipoIngreso: z.string().optional(),
+  ordenFecha: z.string().optional(),
+  orden: z.string().optional()
+});
+
+export const alertasAnimalSchema = z.object({ limit: idNumerico.pipe(z.number().max(100)).optional() });
+
+export const formatoFichaSchema = z.object({ formato: z.string().toUpperCase().pipe(z.enum(['CSV', 'PDF'])).optional() });
+
+export const reporteAnimalSchema = formatoFichaSchema.extend({
+  fechaDesde: fechaConsulta.optional(),
+  fechaHasta: fechaConsulta.optional(),
+  tipoInformacion: z.string().optional(),
+  especie: z.string().optional(),
+  estadoSalud: z.string().optional(),
+  tipoIngreso: z.string().optional()
 });
