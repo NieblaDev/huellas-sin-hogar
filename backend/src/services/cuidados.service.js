@@ -1,7 +1,7 @@
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
 
-const ROLES_MEDICOS_AUTORIZADOS = ['VETERINARIA', 'DIRECTORA'];
+const ROLES_MEDICOS_AUTORIZADOS = ['PERSONAL_VETERINARIO', 'DIRECCION'];
 
 const validarAnimalActivo = async (animalId) => {
   const animal = await prisma.animal.findUnique({
@@ -136,7 +136,7 @@ export const obtenerTareasTurno = async () => {
       franjaHoraria: item.franjaHoraria,
       fechaInicio: item.fechaInicio,
       fechaFin: item.fechaFin,
-      emitidaPor: item.creadoPor?.nombre || 'Veterinaria',
+      emitidaPor: item.creadoPor?.nombre || 'Personal veterinario',
       animal: item.animal,
       atendidoHoy: Boolean(ultimoRegistroHoy),
       detalleAtencion: ultimoRegistroHoy

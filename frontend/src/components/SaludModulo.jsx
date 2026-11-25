@@ -39,7 +39,7 @@ export default function SaludModulo({ user }) {
     pesoActual: ''
   });
 
-  const esVeterinariaODirectora = ['VETERINARIA', 'DIRECTORA'].includes(user?.rol);
+  const tienePermisoMedico = ['PERSONAL_VETERINARIO', 'DIRECCION'].includes(user?.rol);
 
   useEffect(() => {
     cargarDatos();
@@ -167,7 +167,7 @@ export default function SaludModulo({ user }) {
         >
           <ClipboardList size={15} aria-hidden="true" /> Ficha e Historial Clínico
         </button>
-        {esVeterinariaODirectora && (
+        {tienePermisoMedico && (
           <>
             <button
               onClick={() => setTabSalud('nueva_vacuna')}

@@ -24,7 +24,7 @@ export const solicitarTrasladoExterno = async (req, res) => {
     const ip = req.ip || req.connection?.remoteAddress;
     const traslado = await canilService.solicitarTrasladoExterno(req.body, req.user, ip);
     res.status(201).json({
-      message: 'Solicitud de traslado registrada con éxito. Requiere aprobación de la Directora.',
+      message: 'Solicitud de traslado registrada con éxito. Requiere aprobación de Dirección.',
       traslado
     });
   } catch (error) {

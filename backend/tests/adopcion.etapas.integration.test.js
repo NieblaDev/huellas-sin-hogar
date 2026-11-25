@@ -53,7 +53,7 @@ before(async () => {
     fileURLToPath(new URL('../node_modules/prisma/build/index.js', import.meta.url)),
     'migrate', 'deploy', '--schema', fileURLToPath(new URL('../prisma/schema.prisma', import.meta.url))
   ], { env: { ...process.env, CHECKPOINT_DISABLE: '1' }, stdio: 'pipe' });
-  for (const [rol, activo] of [['DIRECTORA', true], ['ENCARGADA_ADOPCIONES', true], ['VETERINARIA', true], ['DIRECTORA', false], ['VOLUNTARIO_AVANZADO', true]]) {
+  for (const [rol, activo] of [['DIRECCION', true], ['PERSONAL_ADOPCIONES', true], ['PERSONAL_VETERINARIO', true], ['DIRECCION', false], ['VOLUNTARIO_AVANZADO', true]]) {
     usuarios.push(await prisma.usuario.create({ data: { email: `${run}-${usuarios.length}@example.test`, nombre: `Staff ${run}`, password: 'unused-test-password', rol, activo } }));
   }
   [responsable, encargada, veterinaria, inactivo, voluntario] = usuarios;

@@ -93,10 +93,10 @@ export const getAnimalById = async (id, user) => {
   if (!animal) throw new Error('Animal no encontrado');
 
   const ficha = enriquecerFichaAnimal(animal);
-  const esDirectora = user?.rol === 'DIRECTORA';
+  const esDireccion = user?.rol === 'DIRECCION';
 
-  // Restricción de privacidad para roles distintos a Directora
-  if (!esDirectora) {
+  // Restricción de privacidad para roles distintos de Dirección
+  if (!esDireccion) {
     ficha.adopciones = (ficha.adopciones || []).map((ad) => ({
       id: ad.id,
       animalId: ad.animalId,
@@ -217,7 +217,7 @@ export const createAnimal = async (data, user, ip) => {
     tipo: 'INGRESO_ANIMAL',
     titulo: `Nuevo ingreso por ${causalIngreso}: ${newAnimal.nombre} (${especieFinal})`,
     mensaje: `${user?.nombre || 'Miembro del equipo'} (${user?.rol || 'Staff'}) registró la ficha del animal ${newAnimal.nombre} (${especieFinal}, ${sexoFinal}) ingresado por ${causalIngreso}. Estado inicial: ${newAnimal.estadoSalud}.`,
-    destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
+    destinatarios: ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES'],
     usuario: user,
     metadata: {
       animalId: newAnimal.id,
@@ -381,7 +381,7 @@ export const updateAnimal = async (id, data, user, ip) => {
     tipo: 'ACTUALIZACION_ANIMAL',
     titulo: `Ficha del animal actualizada: ${actualizado.nombre}`,
     mensaje: `${user?.nombre || 'Miembro del equipo'} (${user?.rol || 'Staff'}) actualizó la ficha del animal ${actualizado.nombre}.`,
-    destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
+    destinatarios: ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES'],
     usuario: user,
     metadata: {
       animalId: actualizado.id,

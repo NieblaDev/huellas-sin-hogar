@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import prisma from '../config/prisma.js';
+import { etiquetaRolHistorico } from '../constants/usuarios.js';
 
 export const notificationEmitter = new EventEmitter();
 
@@ -34,7 +35,7 @@ export const notificarPersonalRefugio = async ({
   tipo,
   titulo,
   mensaje,
-  destinatarios = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
+  destinatarios = ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES'],
   usuario = null,
   metadata = {}
 }) => {
@@ -93,8 +94,8 @@ export const obtenerNotificacionesPersonal = async (limit = 15) => {
           id: `aud-${aud.id}`,
           tipo: info.tipoReporte === 'CSV' ? 'EXPORTACION_CSV' : 'EXPORTACION_PDF',
           titulo: `Exportación de ${info.tipoReporte || 'Reporte'} realizada`,
-          mensaje: limpiarReferenciasInternas(`${aud.usuarioNombre || 'Usuario'} (${info.rolUsuario || 'Staff'}) exportó: ${info.recursoExportado || aud.entidad}.`),
-          destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
+          mensaje: limpiarReferenciasInternas(`${aud.usuarioNombre || 'Usuario'} (${etiquetaRolHistorico(info.rolUsuario, info.sexoUsuario) || 'Personal'}) exportó: ${info.recursoExportado || aud.entidad}.`),
+          destinatarios: ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES'],
           emitidoPor: {
             id: aud.usuarioId,
             nombre: aud.usuarioNombre || 'Sistema',
@@ -110,7 +111,7 @@ export const obtenerNotificacionesPersonal = async (limit = 15) => {
         tipo: 'INGRESO_ANIMAL',
         titulo: `Nuevo ingreso registrado: ${info.nombre || 'Animal sin nombre registrado'}`,
         mensaje: `${aud.usuarioNombre || 'Voluntario/Personal'} registró el ingreso de ${info.nombre || 'un animal'} (${info.especie || 'Especie'}, ${info.sexo || 'Sexo'})${info.tipoIngreso ? ` por ${info.tipoIngreso}` : ''}. Ficha del animal disponible.`,
-        destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
+        destinatarios: ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES'],
         emitidoPor: {
           id: aud.usuarioId,
           nombre: aud.usuarioNombre || 'Sistema',

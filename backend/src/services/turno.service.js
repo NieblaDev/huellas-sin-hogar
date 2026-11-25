@@ -1,11 +1,9 @@
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
+import { etiquetaRolUsuario } from '../constants/usuarios.js';
 import { diasTurnos, filtroSemanaTurnos, obtenerSemanaTurnos, sumarDias } from '../utils/semanaTurnos.js';
 
-export const ROLES_COORDINADOR = ['DIRECTORA', 'COORDINADOR'];
-export const esCoordinador = (rol) => ROLES_COORDINADOR.includes(rol);
-
-export const ROLES_PERSONAL_AVANZADO = ['DIRECTORA', 'COORDINADOR', 'VETERINARIA', 'VOLUNTARIO_AVANZADO'];
+export const ROLES_PERSONAL_AVANZADO = ['DIRECCION', 'PERSONAL_VETERINARIO', 'VOLUNTARIO_AVANZADO'];
 export const esPersonalAvanzado = (rol) => ROLES_PERSONAL_AVANZADO.includes(rol);
 
 /**
@@ -98,11 +96,11 @@ export const getMatrizTurnos = async (fecha) => {
 };
 
 /**
- * Crear un nuevo turno (Exclusivo Coordinador)
+ * Crear un nuevo turno (Función exclusiva de Dirección)
  */
 export const createTurno = async (data, user, ip) => {
-  if (!esCoordinador(user.rol)) {
-    const error = new Error('Acceso denegado: Solo el personal con rol de Coordinador puede crear turnos en la matriz.');
+  if (user.rol !== 'DIRECCION') {
+    const error = new Error('Acceso denegado: Solo Dirección puede crear turnos en la matriz.');
     error.statusCode = 403;
     throw error;
   }
@@ -129,11 +127,11 @@ export const createTurno = async (data, user, ip) => {
 };
 
 /**
- * Modificar un turno en la matriz (Exclusivo Coordinador)
+ * Modificar un turno en la matriz (Función exclusiva de Dirección)
  */
 export const updateTurno = async (id, data, user, ip) => {
-  if (!esCoordinador(user.rol)) {
-    const error = new Error('Acceso denegado: Solo el Coordinador puede modificar la configuración de los turnos.');
+  if (user.rol !== 'DIRECCION') {
+    const error = new Error('Acceso denegado: Solo Dirección puede modificar la configuración de los turnos.');
     error.statusCode = 403;
     throw error;
   }
@@ -164,11 +162,11 @@ export const updateTurno = async (id, data, user, ip) => {
 };
 
 /**
- * Eliminar un turno (Exclusivo Coordinador)
+ * Eliminar un turno (Función exclusiva de Dirección)
  */
 export const deleteTurno = async (id, user, ip) => {
-  if (!esCoordinador(user.rol)) {
-    const error = new Error('Acceso denegado: Solo el Coordinador puede eliminar turnos de la matriz.');
+  if (user.rol !== 'DIRECCION') {
+    const error = new Error('Acceso denegado: Solo Dirección puede eliminar turnos de la matriz.');
     error.statusCode = 403;
     throw error;
   }
@@ -196,12 +194,12 @@ export const deleteTurno = async (id, user, ip) => {
 };
 
 /**
- * Confirmar planificación semanal completa (Exclusivo Coordinador)
+ * Confirmar planificación semanal completa (Función exclusiva de Dirección)
  * Deja la planificación semanal confirmada y habilita formalmente las bitácoras.
  */
 export const confirmarPlanificacionSemanal = async (user, ip, semana) => {
-  if (!esCoordinador(user.rol)) {
-    const error = new Error('Acceso denegado: Solo el Coordinador puede confirmar la planificación semanal.');
+  if (user.rol !== 'DIRECCION') {
+    const error = new Error('Acceso denegado: Solo Dirección puede confirmar la planificación semanal.');
     error.statusCode = 403;
     throw error;
   }
@@ -227,8 +225,8 @@ export const confirmarPlanificacionSemanal = async (user, ip, semana) => {
 };
 
 export const limpiarMatrizSemanal = async (semana, user, ip) => {
-  if (!esCoordinador(user.rol)) {
-    throw Object.assign(new Error('Solo coordinación puede limpiar la matriz.'), { statusCode: 403 });
+  if (user.rol !== 'DIRECCION') {
+    throw Object.assign(new Error('Solo Dirección puede limpiar la matriz.'), { statusCode: 403 });
   }
   if (!semana) {
     throw Object.assign(new Error('Selecciona la semana que quieres limpiar.'), { statusCode: 400 });
@@ -266,7 +264,7 @@ export const limpiarMatrizSemanal = async (semana, user, ip) => {
  * 2. Sin sobrecupos (aforo estricto según cupoMaximo).
  * 3. Sin cruces de horarios (mismo día y misma franja).
  * 4. Tareas críticas reservadas exclusivamente a personal avanzado.
- * 5. Voluntario gestiona su inscripción individual; Coordinador puede asignar a cualquiera.
+ * 5. Cada persona gestiona su inscripción. Dirección también puede asignar turnos.
  */
 export const inscribirVoluntario = async (turnoId, user, payload = {}, ip) => {
   const tId = Number(turnoId);
@@ -286,12 +284,13 @@ export const inscribirVoluntario = async (turnoId, user, payload = {}, ip) => {
   // Determinar usuario a inscribir
   let usuarioObjetivoId = user.id;
   let rolObjetivo = user.rol;
+  let sexoObjetivo = user.sexo;
   let nombreObjetivo = user.nombre;
 
   if (payload.usuarioId && payload.usuarioId !== user.id) {
-    // Solo un coordinador puede inscribir a otro voluntario
-    if (!esCoordinador(user.rol)) {
-      const error = new Error('Acceso denegado: Solo el Coordinador puede administrar e inscribir a otros voluntarios en la matriz.');
+    // Solo Dirección puede inscribir a otra persona
+    if (user.rol !== 'DIRECCION') {
+      const error = new Error('Acceso denegado: Solo Dirección puede administrar e inscribir a otros voluntarios en la matriz.');
       error.statusCode = 403;
       throw error;
     }
@@ -303,6 +302,7 @@ export const inscribirVoluntario = async (turnoId, user, payload = {}, ip) => {
     }
     usuarioObjetivoId = targetUser.id;
     rolObjetivo = targetUser.rol;
+    sexoObjetivo = targetUser.sexo;
     nombreObjetivo = targetUser.nombre;
   }
 
@@ -355,7 +355,7 @@ export const inscribirVoluntario = async (turnoId, user, payload = {}, ip) => {
     turno.area.toLowerCase().includes('cuarentena');
 
   if (esAreaCritica && !esPersonalAvanzado(rolObjetivo)) {
-    const error = new Error(`Acceso restringido: El área o tarea "${turno.area}" está catalogada como CRÍTICA y está reservada exclusivamente a Personal Avanzado (Veterinaria, Directora o Voluntario Avanzado). Tu rol actual es ${rolObjetivo}.`);
+    const error = new Error(`La tarea "${turno.area}" es CRÍTICA y está reservada a Dirección, personal veterinario y voluntariado avanzado.`);
     error.statusCode = 403;
     throw error;
   }
@@ -392,7 +392,7 @@ export const inscribirVoluntario = async (turnoId, user, payload = {}, ip) => {
     entidadId: tId,
     accion: 'MODIFICACION',
     valorAnterior: { cubierto: turno.cubierto, inscritos: turno.inscripciones.length },
-    valorNuevo: { inscripcionId: inscripcion.id, voluntario: nombreObjetivo, rol: rolObjetivo },
+    valorNuevo: { inscripcionId: inscripcion.id, voluntario: nombreObjetivo, rol: rolObjetivo, sexo: sexoObjetivo },
     usuario: user,
     ip
   });
@@ -401,14 +401,14 @@ export const inscribirVoluntario = async (turnoId, user, payload = {}, ip) => {
 };
 
 /**
- * Desinscribirse de un turno (o remover a un voluntario si es Coordinador)
+ * Desinscribirse de un turno (o remover a un voluntario desde Dirección)
  */
 export const desinscribirVoluntario = async (turnoId, user, usuarioIdObjetivo = null, ip) => {
   const tId = Number(turnoId);
   const objetivoId = usuarioIdObjetivo ? Number(usuarioIdObjetivo) : user.id;
 
-  if (objetivoId !== user.id && !esCoordinador(user.rol)) {
-    const error = new Error('Acceso denegado: Solo el Coordinador puede desinscribir a otros voluntarios.');
+  if (objetivoId !== user.id && user.rol !== 'DIRECCION') {
+    const error = new Error('Acceso denegado: Solo Dirección puede desinscribir a otros voluntarios.');
     error.statusCode = 403;
     throw error;
   }
@@ -579,8 +579,8 @@ export const solicitarPermuta = async (data, user, ip) => {
  */
 export const getPermutas = async (user) => {
   const where = {};
-  if (!esCoordinador(user.rol)) {
-    // Si no es coordinador, solo ve sus permutas donde es solicitante o destinatario
+  if (user.rol !== 'DIRECCION') {
+    // Fuera de Dirección solo se muestran las permutas propias
     where.OR = [
       { solicitanteId: user.id },
       { destinatarioId: user.id }
@@ -627,12 +627,12 @@ export const responderPermuta = async (permutaId, accion, observacion, user, ip)
     throw error;
   }
 
-  // Solo el destinatario o un coordinador pueden responder
+  // La persona destinataria y Dirección pueden responder
   const esDestinatario = user.id === permuta.destinatarioId;
-  const esCoord = esCoordinador(user.rol);
+  const esDireccion = user.rol === 'DIRECCION';
 
-  if (!esDestinatario && !esCoord) {
-    const error = new Error('Acceso denegado: Solo el voluntario destinatario o el Coordinador pueden responder esta solicitud de permuta.');
+  if (!esDestinatario && !esDireccion) {
+    const error = new Error('Acceso denegado: Solo la persona destinataria o Dirección pueden responder esta solicitud de permuta.');
     error.statusCode = 403;
     throw error;
   }
@@ -835,13 +835,14 @@ export const getDirectorioVoluntarios = async () => {
   const voluntarios = await prisma.usuario.findMany({
     where: {
       activo: true,
-      rol: { in: ['VOLUNTARIO_NOVATO', 'VOLUNTARIO_AVANZADO', 'COORDINADOR', 'VETERINARIA', 'DIRECTORA'] }
+      rol: { in: ['VOLUNTARIO_NOVATO', 'VOLUNTARIO_AVANZADO', 'PERSONAL_VETERINARIO', 'DIRECCION'] }
     },
     select: {
       id: true,
       nombre: true,
       email: true,
       rol: true,
+      sexo: true,
       inscripcionesTurnos: {
         where: { estado: 'CONFIRMADA' },
         include: { turno: true }
@@ -855,6 +856,7 @@ export const getDirectorioVoluntarios = async () => {
     nombre: v.nombre,
     email: v.email,
     rol: v.rol,
+    rolEtiqueta: etiquetaRolUsuario(v.rol, v.sexo),
     esAvanzado: esPersonalAvanzado(v.rol),
     turnosAsignadosCount: v.inscripcionesTurnos.length,
     turnos: v.inscripcionesTurnos.map(i => ({

@@ -1,22 +1,27 @@
+export const SEXOS_USUARIO = ['FEMENINO', 'MASCULINO', 'NEUTRO'];
+
 export const PERFILES_USUARIO = [
   {
-    rol: 'DIRECTORA',
-    etiqueta: 'Directora',
+    rol: 'DIRECCION',
+    etiqueta: 'Dirección',
+    etiquetasPorSexo: { FEMENINO: 'Directora', MASCULINO: 'Director' },
     descripcion: 'Dirección general, supervisión y control completo del refugio.',
     permisos: [
       'Administrar usuarios, perfiles y permisos del equipo.',
       'Acceder a todas las áreas operativas, clínicas y administrativas.',
       'Aprobar traslados externos y consultar la auditoría.',
-      'Exportar fichas de animales y reportes consolidados.'
+      'Exportar fichas de animales y reportes consolidados.',
+      'Administrar la matriz semanal, las inscripciones y las permutas de turnos.'
     ],
     prohibiciones: [
       'No puede eliminar su propio perfil.',
-      'No puede eliminar el último perfil activo de Directora.'
+      'No puede eliminar el último perfil activo de Dirección.'
     ]
   },
   {
-    rol: 'VETERINARIA',
-    etiqueta: 'Veterinaria',
+    rol: 'PERSONAL_VETERINARIO',
+    etiqueta: 'Personal veterinario',
+    etiquetasPorSexo: { FEMENINO: 'Veterinaria', MASCULINO: 'Veterinario' },
     descripcion: 'Salud, tratamientos y bienestar clínico de los animales.',
     permisos: [
       'Consultar y registrar fichas de animales.',
@@ -31,8 +36,9 @@ export const PERFILES_USUARIO = [
     ]
   },
   {
-    rol: 'ENCARGADA_ADOPCIONES',
-    etiqueta: 'Encargada de adopciones',
+    rol: 'PERSONAL_ADOPCIONES',
+    etiqueta: 'Personal de adopciones',
+    etiquetasPorSexo: { FEMENINO: 'Encargada de Adopciones', MASCULINO: 'Encargado de Adopciones' },
     descripcion: 'Solicitudes, seguimientos post-adopción y devoluciones.',
     permisos: [
       'Gestionar solicitudes, etapas y seguimientos de adopción.',
@@ -47,25 +53,9 @@ export const PERFILES_USUARIO = [
     ]
   },
   {
-    rol: 'COORDINADOR',
-    etiqueta: 'Coordinador',
-    descripcion: 'Planificación de turnos y coordinación operativa del equipo.',
-    permisos: [
-      'Crear y modificar la matriz semanal de turnos.',
-      'Inscribir voluntarios y responder permutas.',
-      'Gestionar caniles y traslados internos.',
-      'Completar tareas de cuidado y consultar fichas de animales.'
-    ],
-    prohibiciones: [
-      'No puede crear ni editar fichas de animales.',
-      'No puede registrar datos clínicos, gestionar fármacos ni adopciones.',
-      'No puede administrar perfiles, auditar ni aprobar traslados.',
-      'No puede acceder a inventario ni emitir reportes consolidados.'
-    ]
-  },
-  {
     rol: 'VOLUNTARIO_AVANZADO',
-    etiqueta: 'Voluntario avanzado',
+    etiqueta: 'Voluntariado avanzado',
+    etiquetasPorSexo: { FEMENINO: 'Voluntaria avanzada', MASCULINO: 'Voluntario avanzado' },
     descripcion: 'Apoyo operativo con acceso ampliado y tareas críticas.',
     permisos: [
       'Registrar y editar fichas de animales.',
@@ -82,7 +72,8 @@ export const PERFILES_USUARIO = [
   },
   {
     rol: 'VOLUNTARIO_NOVATO',
-    etiqueta: 'Voluntario',
+    etiqueta: 'Voluntariado inicial',
+    etiquetasPorSexo: { FEMENINO: 'Voluntaria novata', MASCULINO: 'Voluntario novato' },
     descripcion: 'Apoyo general en las tareas diarias del refugio.',
     permisos: [
       'Registrar y editar fichas de animales.',
@@ -102,3 +93,18 @@ export const PERFILES_USUARIO = [
 export const ROLES_USUARIO = PERFILES_USUARIO.map(perfil => perfil.rol);
 
 export const obtenerPerfilUsuario = rol => PERFILES_USUARIO.find(perfil => perfil.rol === rol) || null;
+
+export const etiquetaRolUsuario = (rol, sexo) => {
+  const perfil = obtenerPerfilUsuario(rol);
+  return perfil?.etiquetasPorSexo[sexo] || perfil?.etiqueta;
+};
+
+export const etiquetaRolHistorico = (rol, sexo) => {
+  const equivalencias = {
+    DIRECTORA: 'DIRECCION',
+    VETERINARIA: 'PERSONAL_VETERINARIO',
+    ENCARGADA_ADOPCIONES: 'PERSONAL_ADOPCIONES'
+  };
+  if (rol === 'COORDINADOR') return 'Coordinación (histórico)';
+  return etiquetaRolUsuario(equivalencias[rol] || rol, sexo);
+};

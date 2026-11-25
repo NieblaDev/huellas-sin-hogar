@@ -1,0 +1,29 @@
+BEGIN;
+
+CREATE TYPE "Rol_nuevo" AS ENUM (
+    'DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES',
+    'VOLUNTARIO_AVANZADO', 'VOLUNTARIO_NOVATO'
+);
+
+ALTER TABLE "usuarios" ALTER COLUMN "rol" DROP DEFAULT;
+
+-- Conservar las cuentas sin asignar a la antigua coordinación permisos de Dirección.
+ALTER TABLE "usuarios" ALTER COLUMN "rol" TYPE "Rol_nuevo"
+USING (
+    CASE "rol"::text
+        WHEN 'DIRECTORA' THEN 'DIRECCION'
+        WHEN 'VETERINARIA' THEN 'PERSONAL_VETERINARIO'
+        WHEN 'ENCARGADA_ADOPCIONES' THEN 'PERSONAL_ADOPCIONES'
+        WHEN 'COORDINADOR' THEN 'VOLUNTARIO_NOVATO'
+        ELSE "rol"::text
+    END
+)::"Rol_nuevo";
+
+DROP TYPE "Rol";
+ALTER TYPE "Rol_nuevo" RENAME TO "Rol";
+ALTER TABLE "usuarios" ALTER COLUMN "rol" SET DEFAULT 'VOLUNTARIO_NOVATO';
+
+CREATE TYPE "SexoUsuario" AS ENUM ('FEMENINO', 'MASCULINO', 'NEUTRO');
+ALTER TABLE "usuarios" ADD COLUMN "sexo" "SexoUsuario" NOT NULL DEFAULT 'NEUTRO';
+
+COMMIT;

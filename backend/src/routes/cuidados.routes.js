@@ -17,7 +17,7 @@ router.get('/animal/:animalId', cuidadosCtrl.getHistorialAnimal);
 // Registro de indicaciones de cuidado: SOLO personal con permisos médicos autorizados
 router.post(
   '/indicaciones',
-  requireRole('VETERINARIA', 'DIRECTORA'),
+  requireRole('PERSONAL_VETERINARIO', 'DIRECCION'),
   validate(crearIndicacionSchema),
   cuidadosCtrl.crearIndicacion
 );

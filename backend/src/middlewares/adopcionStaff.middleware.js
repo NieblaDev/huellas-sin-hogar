@@ -1,6 +1,6 @@
 import prisma from '../config/prisma.js';
 
-const ROLES_AUTORIZADOS = new Set(['DIRECTORA', 'ENCARGADA_ADOPCIONES']);
+const ROLES_AUTORIZADOS = new Set(['DIRECCION', 'PERSONAL_ADOPCIONES']);
 
 export const requireAdopcionStaff = async (req, res, next) => {
   if (!Number.isInteger(req.user?.id) || req.user.id <= 0) {

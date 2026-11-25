@@ -17,24 +17,24 @@ router.use(authenticateToken);
 router.get('/alertas', saludCtrl.getAlertasSanitarias);
 router.get('/historial/:animalId', saludCtrl.getHistorialAnimal);
 
-// Operaciones de registro médico: Exclusivas para VETERINARIA y DIRECTORA
+// Operaciones de registro médico: Exclusivas para PERSONAL_VETERINARIO y DIRECCION
 router.post(
   '/vacunas',
-  requireRole('VETERINARIA', 'DIRECTORA'),
+  requireRole('PERSONAL_VETERINARIO', 'DIRECCION'),
   validate(registrarVacunaSchema),
   saludCtrl.registrarVacuna
 );
 
 router.post(
   '/atenciones',
-  requireRole('VETERINARIA', 'DIRECTORA'),
+  requireRole('PERSONAL_VETERINARIO', 'DIRECCION'),
   validate(registrarAtencionSchema),
   saludCtrl.registrarAtencion
 );
 
 router.post(
   '/cuarentenas',
-  requireRole('VETERINARIA', 'DIRECTORA'),
+  requireRole('PERSONAL_VETERINARIO', 'DIRECCION'),
   validate(registrarCuarentenaSchema),
   saludCtrl.registrarCuarentena
 );

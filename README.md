@@ -101,12 +101,13 @@ El acceso a las rutas del backend y los componentes del frontend está regulado 
 
 | Rol | Alcance y Capacidades Principales |
 | :--- | :--- |
-| **`DIRECTORA`** | Control total. Aprobación de traslados externos, reportes consolidados gerenciales y acceso exclusivo a la bitácora de auditoría. |
-| **`VETERINARIA`** | Fichas clínicas, registro de medicamentos/vacunas, manejo de fármacos en inventario y definición de pautas de cuidado. |
-| **`ENCARGADA_ADOPCIONES`** | Evaluación de postulantes, gestión del ciclo de adopciones, visitas, seguimientos y devoluciones. |
-| **`COORDINADOR`** | Planificación y confirmación de la matriz semanal de turnos, gestión de permutas y apoyo operativo. |
+| **`DIRECCION`** | Control total. Gestiona la matriz semanal, asigna turnos a otras personas y resuelve permutas. Aprueba traslados externos, genera reportes consolidados y consulta la auditoría. |
+| **`PERSONAL_VETERINARIO`** | Fichas clínicas, registro de medicamentos/vacunas, manejo de fármacos en inventario y definición de pautas de cuidado. |
+| **`PERSONAL_ADOPCIONES`** | Evaluación de postulantes, gestión del ciclo de adopciones, visitas, seguimientos y devoluciones. |
 | **`VOLUNTARIO_AVANZADO`** | Registro de rondas de cuidado, movimientos de caniles, soporte en inventario y turnos de mayor responsabilidad. |
 | **`VOLUNTARIO_NOVATO`** | Visualización de turnos, registro de asistencia, consulta de catálogo y realización de rondas básicas asignadas. |
+
+El campo **Sexo** define cómo se muestra el nombre del rol. Dirección puede actualizarlo en **Usuarios y Perfiles**. En una base existente, ejecuta `npx prisma migrate deploy` desde `backend/` para aplicar la migración, que asigna trato neutro a los perfiles existentes y reclasifica las antiguas cuentas de coordinación como `VOLUNTARIO_NOVATO`.
 
 ---
 
@@ -118,8 +119,6 @@ El script de inicialización (`seed.js`) crea las siguientes cuentas de prueba l
 | :--- | :--- | :--- |
 | **Directora** | `directora@huellas.cl` | `admin123` |
 | **Veterinaria** | `veterinaria@huellas.cl` | `admin123` |
-| **Encargada de Adopciones** | `adopciones@huellas.cl` | `admin123` |
-| **Coordinador de Voluntarios** | `coordinador@huellas.cl` | `admin123` |
 | **Voluntario Avanzado** | `voluntario.avanzado@huellas.cl` | `admin123` |
 | **Voluntario Novato** | `voluntario@huellas.cl` | `admin123` |
 
@@ -201,7 +200,7 @@ huellas-sin-hogar/
    npx prisma generate
    npx prisma migrate dev --name init
    ```
-   *(O alternativamente: `npx prisma db push` para sincronizar directamente el esquema).*
+   *(Para una base nueva, también puedes usar `npx prisma db push` para sincronizar directamente el esquema).*
 
 4. Poblar la base de datos con los datos iniciales de prueba:
    ```bash
@@ -247,3 +246,19 @@ huellas-sin-hogar/
 ## 📄 Licencia
 
 Este proyecto está desarrollado para fines académicos y comunitarios bajo la licencia **MIT**.
+
+---
+
+## Despliegue en produccion (servidor de la Facultad)
+
+La guia completa de despliegue con Docker Compose, Nginx, HTTPS, respaldos y solucion de problemas esta en:
+
+- [docs/despliegue-facultad.md](docs/despliegue-facultad.md)
+
+Resumen rapido:
+
+```bash
+cd deploy
+cp .env.example .env      # editar claves y JWT_SECRET
+docker compose up -d --build
+```

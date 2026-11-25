@@ -259,7 +259,7 @@ export default function AdopcionesModulo({ user }) {
   const [guardandoSeguimientoAccion, setGuardandoSeguimientoAccion] = useState(false);
   const [errorSeguimientoAccion, setErrorSeguimientoAccion] = useState('');
 
-  const tienePermisoAdopciones = ['DIRECTORA', 'ENCARGADA_ADOPCIONES'].includes(user?.rol);
+  const tienePermisoAdopciones = ['DIRECCION', 'PERSONAL_ADOPCIONES'].includes(user?.rol);
 
   // La búsqueda se actualiza sola mientras se escribe (con una pausa mínima para no saturar al servidor)
   useEffect(() => {

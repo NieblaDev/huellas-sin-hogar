@@ -61,7 +61,8 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
   })();
 
   const rolUsuario = currentUser?.rol || 'VOLUNTARIO_NOVATO';
-  const puedeExportarExpediente = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'].includes(rolUsuario);
+  const esDireccion = rolUsuario === 'DIRECCION';
+  const puedeExportarExpediente = ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES'].includes(rolUsuario);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -208,7 +209,7 @@ export default function AnimalCatalogo({ onOpenModal, onEditAnimal, reloadKey })
 
   const handleExportConsolidado = async (e) => {
     if (e) e.preventDefault();
-    if (!esDirectora) {
+    if (!esDireccion) {
       avisar('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.', 'error');
       return;
     }

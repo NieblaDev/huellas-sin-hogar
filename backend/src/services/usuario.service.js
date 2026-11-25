@@ -1,13 +1,14 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
-import { obtenerPerfilUsuario, PERFILES_USUARIO } from '../constants/usuarios.js';
+import { etiquetaRolUsuario, obtenerPerfilUsuario, PERFILES_USUARIO } from '../constants/usuarios.js';
 
 const SELECT_USUARIO = {
   id: true,
   nombre: true,
   email: true,
   rol: true,
+  sexo: true,
   activo: true,
   createdAt: true
 };
@@ -23,6 +24,7 @@ const serializarUsuario = usuario => {
   return {
     ...resto,
     creadoEn: createdAt,
+    rolEtiqueta: etiquetaRolUsuario(usuario.rol, usuario.sexo),
     perfil: obtenerPerfilUsuario(usuario.rol)
   };
 };
@@ -69,6 +71,7 @@ export const crearUsuario = async (data, usuarioActual, ip) => {
       email: data.email,
       password: passwordHash,
       rol: data.rol,
+      sexo: data.sexo,
       activo: true
     },
     select: SELECT_USUARIO
@@ -83,6 +86,7 @@ export const crearUsuario = async (data, usuarioActual, ip) => {
       nombre: nuevo.nombre,
       email: nuevo.email,
       rol: nuevo.rol,
+      sexo: nuevo.sexo,
       activo: nuevo.activo
     },
     usuario: usuarioActual,
@@ -95,6 +99,30 @@ export const crearUsuario = async (data, usuarioActual, ip) => {
   };
 };
 
+export const actualizarSexoUsuario = async (email, sexo, usuarioActual, ip) => {
+  const usuario = await buscarPorEmail(email);
+  if (!usuario) throw errorConEstado('El perfil indicado no existe.', 404);
+  if (usuario.sexo === sexo) return { usuario: serializarUsuario(usuario) };
+
+  const actualizado = await prisma.usuario.update({
+    where: { id: usuario.id },
+    data: { sexo },
+    select: SELECT_USUARIO
+  });
+
+  await registrarAuditoria({
+    entidad: 'Usuario',
+    entidadId: usuario.id,
+    accion: 'MODIFICACION',
+    valorAnterior: { sexo: usuario.sexo },
+    valorNuevo: { sexo: actualizado.sexo },
+    usuario: usuarioActual,
+    ip
+  });
+
+  return { usuario: serializarUsuario(actualizado) };
+};
+
 export const eliminarUsuario = async (email, usuarioActual, ip) => {
   const usuario = await buscarPorEmail(email);
   if (!usuario) throw errorConEstado('El perfil indicado no existe.', 404);
@@ -104,12 +132,12 @@ export const eliminarUsuario = async (email, usuarioActual, ip) => {
     throw errorConEstado('No puedes eliminar tu propio perfil mientras tienes la sesión activa.', 400);
   }
 
-  if (usuario.rol === 'DIRECTORA') {
-    const directorasActivas = await prisma.usuario.count({
-      where: { rol: 'DIRECTORA', activo: true }
+  if (usuario.rol === 'DIRECCION') {
+    const perfilesDireccionActivos = await prisma.usuario.count({
+      where: { rol: 'DIRECCION', activo: true }
     });
-    if (directorasActivas <= 1) {
-      throw errorConEstado('Debe quedar al menos una Directora activa en el sistema.', 409);
+    if (perfilesDireccionActivos <= 1) {
+      throw errorConEstado('Debe quedar al menos un perfil activo de Dirección.', 409);
     }
   }
 
@@ -127,6 +155,7 @@ export const eliminarUsuario = async (email, usuarioActual, ip) => {
       nombre: usuario.nombre,
       email: usuario.email,
       rol: usuario.rol,
+      sexo: usuario.sexo,
       activo: usuario.activo
     },
     valorNuevo: { activo: false },

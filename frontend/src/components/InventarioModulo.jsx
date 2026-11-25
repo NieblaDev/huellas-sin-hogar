@@ -66,7 +66,7 @@ export default function InventarioModulo({ user }) {
     fechaVencimiento: ''
   });
 
-  const esAutorizadoFarmacos = ['DIRECTORA', 'VETERINARIA'].includes(user?.rol);
+  const esAutorizadoFarmacos = ['DIRECCION', 'PERSONAL_VETERINARIO'].includes(user?.rol);
 
   useEffect(() => {
     cargarDatos();

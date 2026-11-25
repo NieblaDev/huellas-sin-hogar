@@ -21,7 +21,7 @@ if (!testUrl) {
   const { default: prisma } = await import('../src/config/prisma.js');
   const { default: turnoRoutes } = await import('../src/routes/turno.routes.js');
 
-  let server, base, coordUser, avanUser, novUser1, novUser2;
+  let server, base, direccionUser, avanUser, novUser1, novUser2;
   const token = (u) => jwt.sign({ id: u.id, email: u.email, rol: u.rol, nombre: u.nombre }, process.env.JWT_SECRET, { expiresIn: '15m' });
 
   const request = async (path, { usuario, method = 'GET', data } = {}) => {
@@ -48,8 +48,8 @@ if (!testUrl) {
       });
     });
 
-    coordUser = await prisma.usuario.create({
-      data: { email: `coord_${Date.now()}@test.cl`, password: 'hash', nombre: 'Coordinadora Directora', rol: 'DIRECTORA' }
+    direccionUser = await prisma.usuario.create({
+      data: { email: `direccion_${Date.now()}@test.cl`, password: 'hash', nombre: 'Direccion Test', rol: 'DIRECCION' }
     });
     avanUser = await prisma.usuario.create({
       data: { email: `avan_t_${Date.now()}@test.cl`, password: 'hash', nombre: 'Voluntario Avanzado', rol: 'VOLUNTARIO_AVANZADO' }
@@ -69,9 +69,9 @@ if (!testUrl) {
   });
 
   test('restricción de tareas críticas: novato no puede inscribirse en tarea crítica', async () => {
-    // 1. Coordinador crea turno crítico de Atención Veterinaria
+    // 1. Direccion crea turno crítico de Atención Veterinaria
     const resCrear = await request('/turnos', {
-      usuario: coordUser,
+      usuario: direccionUser,
       method: 'POST',
       data: {
         diaSemana: 'Lunes',
@@ -103,7 +103,7 @@ if (!testUrl) {
   test('reglas de aforo y cruce de horario: sin sobrecupo ni cruces', async () => {
     // 1. Turno de paseos con cupo máximo 1
     const resT1 = await request('/turnos', {
-      usuario: coordUser,
+      usuario: direccionUser,
       method: 'POST',
       data: {
         diaSemana: 'Martes',
@@ -126,7 +126,7 @@ if (!testUrl) {
 
     // 2. Turno de limpieza en el MISMO día y MISMA franja (Martes Mañana)
     const resT2 = await request('/turnos', {
-      usuario: coordUser,
+      usuario: direccionUser,
       method: 'POST',
       data: {
         diaSemana: 'Martes',
@@ -147,7 +147,7 @@ if (!testUrl) {
   test('permutas validadas por ambas partes: intercambio atómico tras aprobación del destinatario', async () => {
     // Turno Miércoles Mañana para Novato 1
     const resMiercoles = await request('/turnos', {
-      usuario: coordUser,
+      usuario: direccionUser,
       method: 'POST',
       data: { diaSemana: 'Miércoles', franja: 'Mañana', area: 'Alimentación', cupoMaximo: 2 }
     });
@@ -156,7 +156,7 @@ if (!testUrl) {
 
     // Turno Jueves Mañana para Novato 2
     const resJueves = await request('/turnos', {
-      usuario: coordUser,
+      usuario: direccionUser,
       method: 'POST',
       data: { diaSemana: 'Jueves', franja: 'Mañana', area: 'Paseos', cupoMaximo: 2 }
     });
@@ -187,7 +187,7 @@ if (!testUrl) {
     assert.equal(resAprobar.data.estado, 'APROBADA');
 
     // Verificar que los turnos fueron intercambiados: Novato 2 ahora está en Miércoles y Novato 1 en Jueves
-    const turnosDb = await request('/turnos', { usuario: coordUser });
+    const turnosDb = await request('/turnos', { usuario: direccionUser });
     const turnoM = turnosDb.data.find(t => t.id === tMiercolesId);
     const turnoJ = turnosDb.data.find(t => t.id === tJuevesId);
 
@@ -197,7 +197,7 @@ if (!testUrl) {
 
   test('bitácora de turnos: exige inscripción previa obligatoria', async () => {
     const resTurno = await request('/turnos', {
-      usuario: coordUser,
+      usuario: direccionUser,
       method: 'POST',
       data: { diaSemana: 'Viernes', franja: 'Tarde', area: 'Recepción', cupoMaximo: 2 }
     });

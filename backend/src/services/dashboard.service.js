@@ -9,7 +9,7 @@ import { filtroSemanaTurnos } from '../utils/semanaTurnos.js';
  * - Stock crítico de insumos
  * - Turnos descubiertos
  * - Alertas prioritarias en tiempo real
- * - Restringe información según el rol del usuario (Directora ve todo y auditorías/costos, otros ven operativo)
+ * - Restringe información según el rol del usuario (Dirección ve todo y auditorías/costos, otros ven operativo)
  */
 export const getDashboardMetrics = async (user) => {
   const [
@@ -54,7 +54,7 @@ export const getDashboardMetrics = async (user) => {
       orderBy: { id: 'asc' }
     }),
 
-    // 5. Traslados pendientes de aprobación (prioridad para Directora)
+    // 5. Traslados pendientes de aprobación (prioridad para Dirección)
     prisma.traslado.findMany({
       where: { estado: 'PENDIENTE_APROBACION' },
       include: {
@@ -63,8 +63,8 @@ export const getDashboardMetrics = async (user) => {
       }
     }),
 
-    // 6. Actividad reciente para la Directora
-    user.rol === 'DIRECTORA'
+    // 6. Actividad reciente para Dirección
+    user.rol === 'DIRECCION'
       ? prisma.auditoria.findMany({
           take: 6,
           orderBy: { fechaHora: 'desc' },
@@ -141,14 +141,14 @@ export const getDashboardMetrics = async (user) => {
       tipo: 'APROBACION',
       categoria: 'TRASLADOS',
       titulo: `${trasladosPendientes.length} Traslados externos pendientes de aprobación`,
-      mensaje: `Requieren revisión y firma de la Directora para proceder.`,
+      mensaje: `Requieren revisión y firma de Dirección para proceder.`,
       icono: 'file-text'
     });
   }
 
   // Restricción según Rol:
-  // - Directora: Acceso completo (auditoría, aprobación traslados, alertas directivas)
-  // - Veterinaria/Voluntarios: Métricas operativas, sin historial auditor ni controles directivos
+  // - Dirección: Acceso completo (auditoría, aprobación traslados, alertas directivas)
+  // - Otros perfiles: Métricas operativas, sin historial auditor ni controles directivos
   const respuesta = {
     rolUsuario: user.rol,
     resumen: {
@@ -177,7 +177,7 @@ export const getDashboardMetrics = async (user) => {
     }
   };
 
-  if (user.rol === 'DIRECTORA') {
+  if (user.rol === 'DIRECCION') {
     respuesta.trasladosPendientes = trasladosPendientes;
     respuesta.ultimasAuditorias = ultimasAuditorias;
   }

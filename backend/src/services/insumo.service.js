@@ -3,14 +3,14 @@ import { registrarAuditoria } from './audit.service.js';
 
 /**
  * Roles autorizados para gestionar inventario general:
- * Staff (Directora, Encargada Adopciones), Veterinaria y Voluntarios Avanzados.
+ * Dirección, personal de adopciones, personal veterinario y voluntariado avanzado.
  */
-export const ROLES_INVENTARIO = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES', 'VOLUNTARIO_AVANZADO'];
+export const ROLES_INVENTARIO = ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES', 'VOLUNTARIO_AVANZADO'];
 
 /**
  * Roles autorizados exclusivamente para consulta y edición de FÁRMACOS / MEDICAMENTOS
  */
-export const ROLES_FARMACOS = ['DIRECTORA', 'VETERINARIA'];
+export const ROLES_FARMACOS = ['DIRECCION', 'PERSONAL_VETERINARIO'];
 
 export const esAutorizadoFarmacos = (rol) => ROLES_FARMACOS.includes(rol);
 
@@ -115,7 +115,7 @@ export const getInsumoById = async (id, user) => {
 
   // Restricción de fármacos
   if (esInsumoFarmaco(insumo) && !esAutorizadoFarmacos(user?.rol)) {
-    const error = new Error('Acceso restringido: La consulta de fármacos está reservada exclusivamente a personal médico/autorizado (Veterinaria y Dirección).');
+    const error = new Error('Acceso restringido: La consulta de fármacos está reservada exclusivamente a personal médico/autorizado (personal veterinario y Dirección).');
     error.statusCode = 403;
     throw error;
   }
@@ -136,7 +136,7 @@ export const createInsumo = async (data, user, ip) => {
     ));
 
   if (quiereCrearFarmaco && !esAutorizadoFarmacos(user?.rol)) {
-    const error = new Error('Acceso denegado: El registro de fármacos está restringido exclusivamente a personal médico autorizado (Veterinaria y Dirección).');
+    const error = new Error('Acceso denegado: El registro de fármacos está restringido exclusivamente a personal médico autorizado (personal veterinario y Dirección).');
     error.statusCode = 403;
     throw error;
   }
@@ -191,7 +191,7 @@ export const updateInsumo = async (id, data, user, ip) => {
     ));
 
   if (involucraFarmaco && !esAutorizadoFarmacos(user?.rol)) {
-    const error = new Error('Acceso denegado: La edición de fármacos está restringida exclusivamente a personal médico autorizado (Veterinaria y Dirección).');
+    const error = new Error('Acceso denegado: La edición de fármacos está restringida exclusivamente a personal médico autorizado (personal veterinario y Dirección).');
     error.statusCode = 403;
     throw error;
   }
@@ -283,7 +283,7 @@ export const registrarMovimiento = async (insumoId, data, user, ip) => {
 
   // Restricción de fármacos
   if (esInsumoFarmaco(insumo) && !esAutorizadoFarmacos(user?.rol)) {
-    const error = new Error('Acceso denegado: El registro de entradas/salidas de fármacos está restringido exclusivamente a personal médico autorizado (Veterinaria y Dirección).');
+    const error = new Error('Acceso denegado: El registro de entradas/salidas de fármacos está restringido exclusivamente a personal médico autorizado (personal veterinario y Dirección).');
     error.statusCode = 403;
     throw error;
   }

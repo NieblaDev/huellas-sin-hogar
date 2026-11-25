@@ -1,6 +1,16 @@
 import prisma from "../config/prisma.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { etiquetaRolUsuario } from "../constants/usuarios.js";
+
+export const serializarSesion = ({ id, email, nombre, rol, sexo }) => ({
+  id,
+  email,
+  nombre,
+  rol,
+  sexo,
+  rolEtiqueta: etiquetaRolUsuario(rol, sexo)
+});
 
 export const loginUser = async ({ email, password }) => {
   const user = await prisma.usuario.findUnique({ where: { email } });
@@ -17,11 +27,6 @@ export const loginUser = async ({ email, password }) => {
 
   return {
     token,
-    user: {
-      id: user.id,
-      email: user.email,
-      nombre: user.nombre,
-      rol: user.rol,
-    },
+    user: serializarSesion(user),
   };
 };

@@ -1,0 +1,54 @@
+name: huellas-sin-hogar
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-huellas_sin_hogar}
+      POSTGRES_USER: ${POSTGRES_USER:-huellas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en el .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-huellas} -d ${POSTGRES_DB:-huellas_sin_hogar}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No se expone al exterior: solo accesible desde la red interna de Docker.
+    expose:
+      - "5432"
+
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-huellas}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-huellas_sin_hogar}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el .env}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      RUN_SEED: ${RUN_SEED:-false}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "3000"
+
+  web:
+    build:
+      context: ../frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  uploads:

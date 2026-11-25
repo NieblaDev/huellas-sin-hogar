@@ -1170,7 +1170,15 @@ button.portal-turno-vacio:focus-visible {
   white-space: nowrap;
 }
 
-.perfil-delete-btn {
+.perfil-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.perfil-action-btn {
   min-height: 34px;
   padding: 7px 11px;
   font-size: 0.76rem;

@@ -39,7 +39,7 @@ router.get('/matriz', getMatrizTurnos);
 router.get('/alertas-descubiertos', getAlertasDescubiertos);
 router.get('/directorio', getDirectorioVoluntarios);
 
-// Gestión y planificación por parte del Coordinador
+// Gestión y planificación a cargo de Dirección
 router.post('/', validate(crearTurnoSchema), createTurno);
 router.put('/:id', validate(actualizarTurnoSchema), updateTurno);
 router.delete('/:id', deleteTurno);

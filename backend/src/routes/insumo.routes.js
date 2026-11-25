@@ -16,7 +16,7 @@ import { ROLES_INVENTARIO } from '../services/insumo.service.js';
 
 const router = Router();
 
-// Todas las rutas requieren token y rol autorizado para inventario (Staff, Veterinaria y Voluntarios Avanzados)
+// Todas las rutas requieren token y rol autorizado para inventario (Dirección, personal de adopciones, personal veterinario y voluntariado avanzado)
 router.use(authenticateToken);
 router.use(requireRole(...ROLES_INVENTARIO));
 

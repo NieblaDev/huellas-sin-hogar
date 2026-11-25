@@ -29,14 +29,14 @@ export default function ReportesConsolidadosModulo({ user }) {
   const [exito, setExito] = useState('');
   const [error, setError] = useState('');
 
-  const esDirectora = user?.rol === 'DIRECTORA';
+  const esDireccion = user?.rol === 'DIRECCION';
 
   const handleExportConsolidado = async (e) => {
     if (e) e.preventDefault();
     setError('');
     setExito('');
 
-    if (!esDirectora) {
+    if (!esDireccion) {
       setError('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.');
       return;
     }
@@ -99,7 +99,7 @@ export default function ReportesConsolidadosModulo({ user }) {
     }
   };
 
-  if (!esDirectora) {
+  if (!esDireccion) {
     return (
       <div className="portal-page-container">
         <div className="portal-header">

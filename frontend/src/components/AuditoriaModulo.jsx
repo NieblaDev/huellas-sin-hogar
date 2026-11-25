@@ -116,7 +116,7 @@ const ETIQUETAS_CAMPOS = {
 };
 
 // Formateador amigable para valores booleanos, nulos, fechas o enums
-const formatearValorLegible = (clave, valor) => {
+const formatearValorLegible = (valor) => {
   if (valor === null || valor === undefined || valor === '') {
     return <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No especificado</span>;
   }
@@ -166,12 +166,9 @@ const formatearValorLegible = (clave, valor) => {
     BUENO: 'Bueno',
     REGULAR: 'Regular',
     CRITICO: 'Crítico',
-    DIRECTORA: 'Directora',
-    VETERINARIA: 'Veterinaria',
-    ENCARGADA_ADOPCIONES: 'Encargada de adopciones',
-    COORDINADOR: 'Coordinador',
-    VOLUNTARIO_AVANZADO: 'Voluntario avanzado',
-    VOLUNTARIO_NOVATO: 'Voluntario novato'
+    FEMENINO: 'Femenino',
+    MASCULINO: 'Masculino',
+    NEUTRO: 'Neutro'
   };
 
   return traducciones[str] || str.replace(/_/g, ' ');
@@ -219,7 +216,7 @@ export default function AuditoriaModulo({ user }) {
       });
 
       if (res.status === 403) {
-        throw new Error('Acceso restringido: Módulo exclusivo para la Directora del refugio');
+        throw new Error('Acceso restringido: Módulo exclusivo para Dirección');
       }
 
       if (!res.ok) throw new Error('Error al consultar bitácora de auditoría');
@@ -647,10 +644,10 @@ export default function AuditoriaModulo({ user }) {
                               )}
                             </td>
                             <td style={{ padding: '10px 14px', color: '#475569', background: valAnt !== null && valAnt !== undefined ? '#fef2f2' : 'transparent' }}>
-                              {formatearValorLegible(campo, valAnt)}
+                              {formatearValorLegible(campo === 'rol' ? detalleRegistro.rolEtiquetaAnterior || valAnt : valAnt)}
                             </td>
                             <td style={{ padding: '10px 14px', color: '#1e293b', fontWeight: huboCambio ? '600' : 'normal', background: valNue !== null && valNue !== undefined ? '#f0fdf4' : 'transparent' }}>
-                              {formatearValorLegible(campo, valNue)}
+                              {formatearValorLegible(campo === 'rol' ? detalleRegistro.rolEtiquetaNuevo || valNue : valNue)}
                             </td>
                           </tr>
                         );

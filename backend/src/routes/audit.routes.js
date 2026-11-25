@@ -4,9 +4,9 @@ import { authenticateToken, requireRole } from '../middlewares/auth.middleware.j
 
 const router = Router();
 
-// Requisito 3: La Directora consulta la bitácora histórica.
-// RESTRICCIÓN ESTRICTA: Solo lectura (GET), acceso exclusivo para DIRECTORA.
+// Requisito 3: Dirección consulta la bitácora histórica.
+// RESTRICCIÓN ESTRICTA: Solo lectura (GET), acceso exclusivo para DIRECCION.
 // No se implementan métodos POST, PUT ni DELETE para garantizar inmutabilidad.
-router.get('/', authenticateToken, requireRole('DIRECTORA'), getAuditorias);
+router.get('/', authenticateToken, requireRole('DIRECCION'), getAuditorias);
 
 export default router;

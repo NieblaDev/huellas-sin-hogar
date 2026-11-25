@@ -51,10 +51,10 @@ if (!testUrl) {
     });
 
     dirUser = await prisma.usuario.create({
-      data: { email: `dir_${Date.now()}@test.cl`, password: 'hash', nombre: 'Directora Test', rol: 'DIRECTORA' }
+      data: { email: `dir_${Date.now()}@test.cl`, password: 'hash', nombre: 'Directora Test', rol: 'DIRECCION' }
     });
     vetUser = await prisma.usuario.create({
-      data: { email: `vet_${Date.now()}@test.cl`, password: 'hash', nombre: 'Veterinaria Test', rol: 'VETERINARIA' }
+      data: { email: `vet_${Date.now()}@test.cl`, password: 'hash', nombre: 'Veterinaria Test', rol: 'PERSONAL_VETERINARIO' }
     });
     avanUser = await prisma.usuario.create({
       data: { email: `avan_${Date.now()}@test.cl`, password: 'hash', nombre: 'Avanzado Test', rol: 'VOLUNTARIO_AVANZADO' }

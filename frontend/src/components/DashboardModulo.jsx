@@ -90,7 +90,7 @@ export default function DashboardModulo({ user, onNavigate }) {
     trasladosPendientes,
     ultimasAuditorias,
   } = data;
-  const esDirectora = rolUsuario === "DIRECTORA";
+  const esDireccion = rolUsuario === "DIRECCION";
   const semanaSinTurnos = resumen.turnosSemanaCount === 0;
   const mensajeCobertura = semanaSinTurnos
     ? "No hay turnos programados para esta semana."
@@ -1077,8 +1077,8 @@ export default function DashboardModulo({ user, onNavigate }) {
         </div>
       </div>
 
-      {/* SECCIÓN EXCLUSIVA DIRECTORA: TRASLADOS PENDIENTES & AUDITORÍA RECIENTE */}
-      {esDirectora && (
+      {/* SECCIÓN EXCLUSIVA DIRECCION: TRASLADOS PENDIENTES & AUDITORÍA RECIENTE */}
+      {esDireccion && (
         <div
           style={{
             background: "#fff",

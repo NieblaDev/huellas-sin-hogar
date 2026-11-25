@@ -12,7 +12,7 @@ export default function Login({ onLoginSuccess }) {
 
   const rolesDev = [
     {
-      titulo: 'Directora',
+      titulo: 'Dirección',
       Icono: Crown,
       email: 'directora@huellas.cl',
       password: 'admin123',
@@ -20,7 +20,7 @@ export default function Login({ onLoginSuccess }) {
       bg: '#e8f0e8'
     },
     {
-      titulo: 'Veterinaria',
+      titulo: 'Personal veterinario',
       Icono: Stethoscope,
       email: 'veterinaria@huellas.cl',
       password: 'admin123',
@@ -28,7 +28,7 @@ export default function Login({ onLoginSuccess }) {
       bg: '#eef3ec'
     },
     {
-      titulo: 'Voluntario Avanzado',
+      titulo: 'Voluntariado avanzado',
       Icono: Star,
       email: 'voluntario.avanzado@huellas.cl',
       password: 'admin123',
@@ -36,7 +36,7 @@ export default function Login({ onLoginSuccess }) {
       bg: '#faf1de'
     },
     {
-      titulo: 'Voluntario',
+      titulo: 'Voluntariado inicial',
       Icono: Handshake,
       email: 'voluntario@huellas.cl',
       password: 'admin123',

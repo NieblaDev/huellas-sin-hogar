@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { etiquetaRolHistorico } from '../constants/usuarios.js';
 
 /**
  * Servicio centralizado de Auditoría Inmutable
@@ -105,7 +106,12 @@ export const getAuditorias = async ({ usuarioResponsable, entidad, fechaDesde, f
       ? (nombrePorAnimalId.get(r.entidadId) || nombreEnSnapshot)
       : nombreEnSnapshot;
 
-    return { ...r, entidadNombre: entidadNombre || null };
+    return {
+      ...r,
+      entidadNombre: entidadNombre || null,
+      rolEtiquetaAnterior: etiquetaRolHistorico(r.valorAnterior?.rol, r.valorAnterior?.sexo),
+      rolEtiquetaNuevo: etiquetaRolHistorico(r.valorNuevo?.rol, r.valorNuevo?.sexo)
+    };
   });
 
   return {

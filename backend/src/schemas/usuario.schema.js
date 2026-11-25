@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { ROLES_USUARIO } from '../constants/usuarios.js';
+import { ROLES_USUARIO, SEXOS_USUARIO } from '../constants/usuarios.js';
+
+const sexo = z.enum(SEXOS_USUARIO, {
+  errorMap: () => ({ message: 'Selecciona femenino, masculino o neutro' })
+});
 
 const email = z
   .string()
@@ -16,6 +20,7 @@ export const crearUsuarioSchema = z.object({
     .min(2, 'El nombre debe tener al menos 2 caracteres')
     .max(100, 'El nombre no puede superar los 100 caracteres'),
   email,
+  sexo: sexo.default('NEUTRO'),
   password: z
     .string()
     .min(8, 'La contraseña debe tener al menos 8 caracteres')
@@ -26,6 +31,8 @@ export const crearUsuarioSchema = z.object({
     errorMap: () => ({ message: 'Selecciona un perfil de usuario válido' })
   })
 }).strict();
+
+export const actualizarSexoUsuarioSchema = z.object({ sexo }).strict();
 
 export const emailUsuarioParamSchema = z.object({
   email

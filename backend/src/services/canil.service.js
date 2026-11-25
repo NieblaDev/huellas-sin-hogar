@@ -1,5 +1,13 @@
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
+import { etiquetaRolUsuario } from '../constants/usuarios.js';
+
+const SELECT_RESPONSABLE_TRASLADO = { id: true, nombre: true, email: true, rol: true, sexo: true };
+
+const serializarTraslado = ({ responsable, ...traslado }) => {
+  const { sexo, ...usuario } = responsable;
+  return { ...traslado, responsable: { ...usuario, rolEtiqueta: etiquetaRolUsuario(usuario.rol, sexo) } };
+};
 
 /**
  * Obtener todos los caniles con el animal alojado si existe
@@ -183,7 +191,7 @@ export const asignarCanil = async ({ canilId, animalId, motivo, estado = 'OCUPAD
  * Solicitar traslado externo (Protectora Aliada u Hogar Temporal)
  * Requisito 1:
  * - Registra traslado a protectora u hogar temporal
- * - Debe ser aprobado por la Directora
+ * - Debe ser aprobado por Dirección
  * - Motivo y responsable obligatorios
  */
 export const solicitarTrasladoExterno = async ({
@@ -221,7 +229,7 @@ export const solicitarTrasladoExterno = async ({
     },
     include: {
       animal: true,
-      responsable: { select: { id: true, nombre: true, email: true, rol: true } }
+      responsable: { select: SELECT_RESPONSABLE_TRASLADO }
     }
   });
 
@@ -241,11 +249,11 @@ export const solicitarTrasladoExterno = async ({
     ip
   });
 
-  return traslado;
+  return serializarTraslado(traslado);
 };
 
 /**
- * Aprobar o rechazar traslado externo (Solo Directora)
+ * Aprobar o rechazar traslado externo (Solo Dirección)
  */
 export const gestionarAprobacionTraslado = async (trasladoId, { aprobar, comentario }, user, ip) => {
   const traslado = await prisma.traslado.findUnique({
@@ -405,15 +413,16 @@ export const getTraslados = async ({ estado }) => {
   const where = {};
   if (estado) where.estado = estado;
 
-  return await prisma.traslado.findMany({
+  const traslados = await prisma.traslado.findMany({
     where,
     orderBy: { fechaRegistro: 'desc' },
     include: {
       animal: true,
-      responsable: { select: { id: true, nombre: true, email: true, rol: true } },
+      responsable: { select: SELECT_RESPONSABLE_TRASLADO },
       aprobadoPor: { select: { id: true, nombre: true, email: true, rol: true } },
       canilOrigen: true,
       canilDestino: true
     }
   });
+  return traslados.map(serializarTraslado);
 };

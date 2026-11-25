@@ -49,7 +49,7 @@ export default function VoluntariosModulo({ user }) {
   const [modalAsignarCoordOpen, setModalAsignarCoordOpen] = useState(false);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
 
-  // Formulario Crear Turno (Coordinador)
+  // Formulario Crear Turno (Dirección)
   const [formTurno, setFormTurno] = useState({
     diaSemana: 'Lunes',
     franja: 'Mañana',
@@ -74,11 +74,11 @@ export default function VoluntariosModulo({ user }) {
     observaciones: ''
   });
 
-  // Formulario Asignación por Coordinador
+  // Formulario Asignación por Dirección
   const [voluntarioAAsignarId, setVoluntarioAAsignarId] = useState('');
 
-  const esCoordinador = ['DIRECTORA', 'COORDINADOR'].includes(user?.rol);
-  const esAvanzado = ['DIRECTORA', 'COORDINADOR', 'VETERINARIA', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
+  const esDireccion = user?.rol === 'DIRECCION';
+  const esAvanzado = ['DIRECCION', 'PERSONAL_VETERINARIO', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
 
   useEffect(() => {
     cargarDatos(semana);
@@ -178,8 +178,8 @@ export default function VoluntariosModulo({ user }) {
     }
   };
 
-  // 3. Asignación directa por parte del Coordinador
-  const handleAsignarPorCoordinador = async (e) => {
+  // 3. Asignación directa por Dirección
+  const handleAsignarTurno = async (e) => {
     e.preventDefault();
     if (!voluntarioAAsignarId || !turnoSeleccionado) return;
 
@@ -193,7 +193,7 @@ export default function VoluntariosModulo({ user }) {
       if (!res.ok) {
         throw new Error(formatearErrorApi(data, 'Error al asignar voluntario'));
       }
-      avisar('Voluntario asignado al turno por el Coordinador.', 'exito');
+      avisar('Voluntario asignado al turno.', 'exito');
       setModalAsignarCoordOpen(false);
       setVoluntarioAAsignarId('');
       cargarDatos();
@@ -251,8 +251,8 @@ export default function VoluntariosModulo({ user }) {
     }
   };
 
-  // 5. Crear Turno (Coordinador)
-  const puedeCrearTurno = esCoordinador && !cargando && !gestionandoMatriz && Boolean(matriz?.fechas?.length);
+  // 5. Crear Turno (Dirección)
+  const puedeCrearTurno = esDireccion && !cargando && !gestionandoMatriz && Boolean(matriz?.fechas?.length);
 
   const abrirCrearTurno = (diaSemana = DIAS_MATRIZ[0], franja = FRANJAS_MATRIZ[0].nombre) => {
     if (!puedeCrearTurno) return;
@@ -384,7 +384,7 @@ export default function VoluntariosModulo({ user }) {
         </div>
 
         <div className="portal-header-actions">
-          {esCoordinador && (
+          {esDireccion && (
             <>
               <button
                 type="button"
@@ -451,7 +451,7 @@ export default function VoluntariosModulo({ user }) {
                 ? `Semana del ${fechaCorta(matriz.fechas[0])} al ${fechaCorta(matriz.fechas[6])}`
                 : semana === 'sin-fecha' ? 'Turnos anteriores sin fecha asignada' : ''}
             </p>
-            {esCoordinador && matriz?.fechas?.length > 0 && matriz.estadisticas.totalTurnos === 0 && (
+            {esDireccion && matriz?.fechas?.length > 0 && matriz.estadisticas.totalTurnos === 0 && (
               <p style={{ marginBottom: 0 }}>Esta semana está vacía. Usa «Crear turno» para empezar a planificarla.</p>
             )}
           </section>
@@ -600,10 +600,10 @@ export default function VoluntariosModulo({ user }) {
                                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                               {ins.usuarioId === user?.id ? <><User size={12} aria-hidden="true" /> Tú</> : ins.usuario.nombre}
                                             </span>
-                                            {esCoordinador && (
+                                            {esDireccion && (
                                               <button
                                                 onClick={() => handleDesinscribirse(turno.id, ins.usuarioId)}
-                                                title="Remover voluntario (Coordinador)"
+                                                title="Quitar del turno"
                                                 style={{ background: 'transparent', border: 'none', color: '#d1453b', cursor: 'pointer', fontSize: '0.75rem', padding: '0 2px' }}
                                               >
                                                 ✕
@@ -653,8 +653,8 @@ export default function VoluntariosModulo({ user }) {
                                       )}
                                     </div>
 
-                                    {/* Opción de asignación extra para el Coordinador */}
-                                    {esCoordinador && !lleno && (
+                                    {/* Opción de asignación directa para Dirección */}
+                                    {esDireccion && !lleno && (
                                       <button
                                         onClick={() => {
                                           setTurnoSeleccionado(turno);
@@ -692,7 +692,7 @@ export default function VoluntariosModulo({ user }) {
               <Download size={15} aria-hidden="true" />
               {exportandoMatriz ? 'Preparando imagen…' : 'Descargar matriz como PNG'}
             </button>
-            {esCoordinador && matriz?.fechas?.length > 0 && (
+            {esDireccion && matriz?.fechas?.length > 0 && (
               <button
                 type="button"
                 className="portal-btn portal-btn-secondary"
@@ -702,7 +702,7 @@ export default function VoluntariosModulo({ user }) {
                 Limpiar matriz
               </button>
             )}
-            {esCoordinador && matriz?.fechas?.length > 0 && (
+            {esDireccion && matriz?.fechas?.length > 0 && (
               <button
                 type="button"
                 onClick={() => gestionarMatriz(false)}
@@ -785,9 +785,9 @@ export default function VoluntariosModulo({ user }) {
                       </div>
                     </div>
 
-                    {/* Acciones de resolución si soy destinatario o coordinador */}
+                    {/* Acciones de resolución para la persona destinataria y Dirección */}
                     <div>
-                      {pendiente && (soyDestinatario || esCoordinador) ? (
+                      {pendiente && (soyDestinatario || esDireccion) ? (
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
                             onClick={() => handleResponderPermuta(p.id, 'APROBAR')}
@@ -950,7 +950,7 @@ export default function VoluntariosModulo({ user }) {
                       background: v.esAvanzado ? '#e8f0e8' : '#f0f1f3',
                       color: v.esAvanzado ? '#2f5540' : '#57606a'
                     }}>
-                      {v.rol}
+                      {v.rolEtiqueta}
                     </span>
                   </td>
 
@@ -1096,7 +1096,7 @@ export default function VoluntariosModulo({ user }) {
                   <option value="">— Seleccionar voluntario —</option>
                   {directorio.filter(v => v.id !== user?.id).map(v => (
                     <option key={v.id} value={v.id}>
-                      {v.nombre} ({v.rol})
+                      {v.nombre} ({v.rolEtiqueta})
                     </option>
                   ))}
                 </select>
@@ -1136,7 +1136,7 @@ export default function VoluntariosModulo({ user }) {
         </div>
       )}
 
-      {/* MODAL: ASIGNAR VOLUNTARIO DIRECTAMENTE (COORDINADOR) */}
+      {/* MODAL: ASIGNAR VOLUNTARIO DIRECTAMENTE (DIRECCIÓN) */}
       {modalAsignarCoordOpen && turnoSeleccionado && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -1150,7 +1150,7 @@ export default function VoluntariosModulo({ user }) {
               Turno: <strong>{turnoSeleccionado.area}</strong> ({turnoSeleccionado.diaSemana} · {turnoSeleccionado.franja})
             </p>
 
-            <form onSubmit={handleAsignarPorCoordinador}>
+            <form onSubmit={handleAsignarTurno}>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#1f2430', marginBottom: '6px' }}>
                   Seleccionar Voluntario *
@@ -1164,7 +1164,7 @@ export default function VoluntariosModulo({ user }) {
                   <option value="">— Elegir del directorio —</option>
                   {directorio.map(v => (
                     <option key={v.id} value={v.id}>
-                      {v.nombre} ({v.rol})
+                      {v.nombre} ({v.rolEtiqueta})
                     </option>
                   ))}
                 </select>
@@ -1190,7 +1190,7 @@ export default function VoluntariosModulo({ user }) {
         </div>
       )}
 
-      {/* MODAL: CREAR TURNO (COORDINADOR) */}
+      {/* MODAL: CREAR TURNO (DIRECCIÓN) */}
       {modalTurnoOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,

@@ -62,14 +62,19 @@ export default function App() {
     if (!session) return;
     const controller = new AbortController();
     // Verificar también la firma antes de restaurar una sesión de otro arranque.
-    fetch(`${API_URL}/animals`, {
+    fetch(`${API_URL}/auth/sesion`, {
       headers: { Authorization: `Bearer ${session.token}` },
       signal: controller.signal,
       cache: 'no-store'
-    }).then(response => {
+    }).then(async response => {
+      const data = response.ok ? await response.json() : null;
       if (controller.signal.aborted || localStorage.getItem('token') !== session.token) return;
-      if (response.ok) setUser(session.user);
-      else if (response.status === 401 || response.status === 403) clearStoredSession(localStorage);
+      if (data?.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
+      } else if (response.status === 401 || response.status === 403) {
+        clearStoredSession(localStorage);
+      }
     }).catch(() => { /* Si no hay conexión, mantener visible el formulario de acceso. */ });
     return () => controller.abort();
   }, []);
@@ -98,9 +103,9 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
-  const esDirectora = user?.rol === 'DIRECTORA';
-  const puedeGestionarAdopciones = ['DIRECTORA', 'ENCARGADA_ADOPCIONES'].includes(user?.rol);
-  const puedeGestionarInventario = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
+  const esDireccion = user?.rol === 'DIRECCION';
+  const puedeGestionarAdopciones = ['DIRECCION', 'PERSONAL_ADOPCIONES'].includes(user?.rol);
+  const puedeGestionarInventario = ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES', 'VOLUNTARIO_AVANZADO'].includes(user?.rol);
 
   return (
     <div className={user ? 'portal-staff portal-staff-authenticated' : 'portal-staff'} style={{ minHeight: '100vh', display: 'flex' }}>
@@ -290,7 +295,7 @@ export default function App() {
               </button>
 
               {/* Usuarios y Perfiles — Exclusivo Dirección */}
-              {esDirectora && (
+              {esDireccion && (
                 <button
                   onClick={() => setActiveTab('perfiles')}
                   title="Usuarios y Perfiles"
@@ -303,7 +308,7 @@ export default function App() {
               )}
 
               {/* Reportes Consolidados — Exclusivo Dirección */}
-              {esDirectora && (
+              {esDireccion && (
                 <button
                   onClick={() => setActiveTab('reportes')}
                   title="Reportes Consolidados"
@@ -316,7 +321,7 @@ export default function App() {
               )}
 
               {/* Auditoría y Trazabilidad */}
-              {esDirectora && (
+              {esDireccion && (
                 <button
                   onClick={() => setActiveTab('auditoria')}
                   title="Auditoría"
@@ -337,7 +342,7 @@ export default function App() {
                       {user.nombre}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: '#7c8592', fontWeight: '600' }}>
-                      {user.rol}
+                      {user.rolEtiqueta}
                     </div>
                   </div>
                   <button
@@ -354,7 +359,7 @@ export default function App() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <div
-                    title={`${user.nombre} (${user.rol})`}
+                    title={`${user.nombre} (${user.rolEtiqueta})`}
                     style={{
                       width: '32px',
                       height: '32px',
@@ -438,15 +443,15 @@ export default function App() {
                 <VoluntariosModulo user={user} />
               )}
 
-              {activeTab === 'perfiles' && esDirectora && (
-                <PerfilesUsuariosModulo user={user} />
+              {activeTab === 'perfiles' && esDireccion && (
+                <PerfilesUsuariosModulo user={user} onActualizarUsuario={setUser} />
               )}
 
-              {activeTab === 'reportes' && esDirectora && (
+              {activeTab === 'reportes' && esDireccion && (
                 <ReportesConsolidadosModulo user={user} />
               )}
 
-              {activeTab === 'auditoria' && esDirectora && (
+              {activeTab === 'auditoria' && esDireccion && (
                 <AuditoriaModulo user={user} />
               )}
             </div>

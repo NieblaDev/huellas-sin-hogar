@@ -18,21 +18,21 @@ const router = Router();
 
 // Roles de voluntariado y personal del refugio habilitados para registro y consulta
 const ROLES_INGRESO_Y_CONSULTA = [
-  'DIRECTORA',
-  'VETERINARIA',
-  'ENCARGADA_ADOPCIONES',
+  'DIRECCION',
+  'PERSONAL_VETERINARIO',
+  'PERSONAL_ADOPCIONES',
   'VOLUNTARIO_AVANZADO',
   'VOLUNTARIO_NOVATO'
 ];
 
-// Roles de Personal del Refugio y Directora habilitados para exportar Ficha del Animal PDF
-const ROLES_EXPORTAR_PDF = ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'];
+// Roles de personal del refugio y Dirección habilitados para exportar Ficha del Animal PDF
+const ROLES_EXPORTAR_PDF = ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES'];
 
 // Bandeja de notificaciones internas para el personal del refugio
 router.get('/notificaciones', authenticateToken, requireRole(...ROLES_INGRESO_Y_CONSULTA), getNotifications);
 
-// Exportación de reporte consolidado y balance general en CSV/PDF — EXCLUSIVO DIRECTORA
-router.get('/reportes/export-csv', authenticateToken, requireRole('DIRECTORA'), exportConsolidatedCsv);
+// Exportación de reporte consolidado y balance general en CSV/PDF — EXCLUSIVO DIRECCION
+router.get('/reportes/export-csv', authenticateToken, requireRole('DIRECCION'), exportConsolidatedCsv);
 
 // Catálogo general y Registro de ingreso de animales y creación de Ficha del Animal
 router.get('/', authenticateToken, getAnimals);
@@ -45,7 +45,7 @@ router.post(
   createAnimal
 );
 
-// Exportación de Ficha del Animal en PDF/CSV — Personal del Refugio y Directora
+// Exportación de Ficha del Animal en PDF/CSV — personal del refugio y Dirección
 router.get('/:id/export-pdf', authenticateToken, requireRole(...ROLES_EXPORTAR_PDF), exportAnimalPdf);
 
 // Consulta de Ficha del Animal, edición (PUT / PATCH con soporte de foto Multer) y baja lógica

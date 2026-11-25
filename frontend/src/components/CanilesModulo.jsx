@@ -297,7 +297,7 @@ export default function CanilesModulo({ user }) {
       const data = await res.json();
       if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al solicitar traslado'));
 
-      setMensajeExito('Traslado registrado. Notificado a Directora para aprobación.');
+      setMensajeExito('Traslado registrado. Se notificó a Dirección para aprobación.');
       setTimeout(() => setMensajeExito(null), 4000);
       setTrasladoExterno({
         animalId: '',
@@ -430,7 +430,7 @@ export default function CanilesModulo({ user }) {
     }
   };
 
-  const esDirectora = user?.rol === 'DIRECTORA';
+  const esDireccion = user?.rol === 'DIRECCION';
 
   const trasladosPendientes = traslados.filter(t => t.estado === 'PENDIENTE_APROBACION');
   const avisosCaniles = [
@@ -450,11 +450,11 @@ export default function CanilesModulo({ user }) {
           tab: 'mapa'
         }]
       : []),
-    ...(esDirectora && trasladosPendientes.length > 0
+    ...(esDireccion && trasladosPendientes.length > 0
       ? [{
           tipo: 'ALERTA',
           titulo: 'Traslados pendientes de aprobación',
-          mensaje: `${trasladosPendientes.length} solicitud(es) esperan la revisión de la Directora.`,
+          mensaje: `${trasladosPendientes.length} solicitud(es) esperan la revisión de Dirección.`,
           tab: 'traslados'
         }]
       : [])
@@ -500,7 +500,7 @@ export default function CanilesModulo({ user }) {
   const detalleDestino = detalleTraslado
     ? (detalleEsInterno ? (detalleTraslado.canilDestino?.nombre || '—') : (detalleTraslado.destinoNombre || '—'))
     : '';
-  const puedeAprobarTraslado = esDirectora && detalleTraslado?.estado === 'PENDIENTE_APROBACION';
+  const puedeAprobarTraslado = esDireccion && detalleTraslado?.estado === 'PENDIENTE_APROBACION';
   const estadoCanilSeleccionado = selectedCanil
     ? (ESTADOS_CANIL[selectedCanil.estado] || {
         etiqueta: String(selectedCanil.estado || 'Sin estado').replace('_', ' '),
@@ -1064,7 +1064,7 @@ export default function CanilesModulo({ user }) {
                               minHeight: 0
                             }}
                           >
-                            {esDirectora && t.estado === 'PENDIENTE_APROBACION' ? 'Revisar' : 'Ver detalle'} →
+                            {esDireccion && t.estado === 'PENDIENTE_APROBACION' ? 'Revisar' : 'Ver detalle'} →
                           </button>
                         </td>
                       </tr>
@@ -1082,7 +1082,7 @@ export default function CanilesModulo({ user }) {
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e9eaed', padding: '26px', margin: '0 auto' }}>
           <h3 style={{ margin: '0 0 8px', color: '#1f2430' }}>Solicitar Traslado Externo</h3>
           <p style={{ color: '#7c8592', fontSize: '0.84rem', margin: '0 0 18px' }}>
-            Para traslados hacia protectoras aliadas u hogares temporales. Requiere aprobación obligatoria por la Directora.
+            Para traslados hacia protectoras aliadas u hogares temporales. Requiere aprobación obligatoria por Dirección.
           </p>
 
           {errorExterno && (
@@ -1286,7 +1286,7 @@ export default function CanilesModulo({ user }) {
                   {detalleTraslado.responsable?.nombre || '—'}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#7c8592' }}>
-                  {detalleTraslado.responsable?.rol || ''}
+                  {detalleTraslado.responsable?.rolEtiqueta || ''}
                 </div>
               </div>
               <div>
@@ -1341,7 +1341,7 @@ export default function CanilesModulo({ user }) {
 
             <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
               <h4 style={{ margin: '0 0 10px', fontSize: '0.9rem', color: '#1f2430', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <ShieldCheck size={16} aria-hidden="true" /> Aprobación de la Directora
+                <ShieldCheck size={16} aria-hidden="true" /> Aprobación de Dirección
               </h4>
 
               {detalleTraslado.estado === 'PENDIENTE_APROBACION' ? (
@@ -1370,7 +1370,7 @@ export default function CanilesModulo({ user }) {
                   </>
                 ) : (
                   <p style={{ margin: 0, fontSize: '0.84rem', color: '#7c8592' }}>
-                    Esta solicitud está pendiente de revisión por la Directora.
+                    Esta solicitud está pendiente de revisión por Dirección.
                   </p>
                 )
               ) : detalleTraslado.aprobadoPor ? (
@@ -1672,7 +1672,7 @@ export default function CanilesModulo({ user }) {
                   background: '#f8f9fa', padding: '10px 14px', borderRadius: '8px',
                   fontSize: '0.78rem', color: '#7c8592'
                 }}>
-                  Responsable: <strong>{user?.nombre}</strong> ({user?.rol})
+                  Responsable: <strong>{user?.nombre}</strong> ({user?.rolEtiqueta})
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '4px' }}>

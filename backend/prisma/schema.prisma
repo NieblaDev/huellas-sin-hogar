@@ -8,12 +8,17 @@ datasource db {
 }
 
 enum Rol {
-  DIRECTORA
-  VETERINARIA
-  ENCARGADA_ADOPCIONES
-  COORDINADOR
+  DIRECCION
+  PERSONAL_VETERINARIO
+  PERSONAL_ADOPCIONES
   VOLUNTARIO_AVANZADO
   VOLUNTARIO_NOVATO
+}
+
+enum SexoUsuario {
+  FEMENINO
+  MASCULINO
+  NEUTRO
 }
 
 enum TipoMovimientoInventario {
@@ -147,6 +152,7 @@ model Usuario {
   password                       String                   @db.VarChar(255)
   nombre                         String                   @db.VarChar(100)
   rol                            Rol                      @default(VOLUNTARIO_NOVATO)
+  sexo                           SexoUsuario              @default(NEUTRO)
   activo                         Boolean                  @default(true)
   createdAt                      DateTime                 @default(now())
 

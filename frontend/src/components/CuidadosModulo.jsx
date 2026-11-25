@@ -37,7 +37,7 @@ export default function CuidadosModulo({ user }) {
     fechaFin: hoyISO
   });
 
-  const tienePermisoMedico = ['VETERINARIA', 'DIRECTORA'].includes(user?.rol);
+  const tienePermisoMedico = ['PERSONAL_VETERINARIO', 'DIRECCION'].includes(user?.rol);
 
   useEffect(() => {
     cargarInicial();

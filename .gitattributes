@@ -1,0 +1,2 @@
+# Mantener scripts de shell con LF para que funcionen dentro de los contenedores Linux
+*.sh text eol=lf

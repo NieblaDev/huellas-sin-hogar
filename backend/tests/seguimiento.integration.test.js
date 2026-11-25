@@ -82,7 +82,7 @@ before(async () => {
   ], { env: { ...process.env, CHECKPOINT_DISABLE: '1' }, stdio: 'pipe' });
 
   responsable = await prisma.usuario.create({
-    data: { email: `${run}-admin@example.test`, nombre: `Admin ${run}`, password: 'hash', rol: 'DIRECTORA', activo: true }
+    data: { email: `${run}-admin@example.test`, nombre: `Admin ${run}`, password: 'hash', rol: 'DIRECCION', activo: true }
   });
   usuarios.push(responsable);
 

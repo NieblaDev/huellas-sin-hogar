@@ -9,23 +9,25 @@ async function main() {
   // 1. Usuarios con distintos roles para probar permisos
   const directora = await prisma.usuario.upsert({
     where: { email: 'directora@huellas.cl' },
-    update: { nombre: 'Valentina Directora', rol: 'DIRECTORA' },
+    update: { nombre: 'Valentina Directora', rol: 'DIRECCION' },
     create: {
       email: 'directora@huellas.cl',
       password: hashedPassword,
       nombre: 'Valentina Directora',
-      rol: 'DIRECTORA'
+      sexo: 'FEMENINO',
+      rol: 'DIRECCION'
     }
   });
 
   const veterinaria = await prisma.usuario.upsert({
     where: { email: 'veterinaria@huellas.cl' },
-    update: { nombre: 'Dra. Elena Ruiz', rol: 'VETERINARIA' },
+    update: { nombre: 'Dra. Elena Ruiz', rol: 'PERSONAL_VETERINARIO' },
     create: {
       email: 'veterinaria@huellas.cl',
       password: hashedPassword,
       nombre: 'Dra. Elena Ruiz',
-      rol: 'VETERINARIA'
+      sexo: 'FEMENINO',
+      rol: 'PERSONAL_VETERINARIO'
     }
   });
 
@@ -36,6 +38,7 @@ async function main() {
       email: 'voluntario.avanzado@huellas.cl',
       password: hashedPassword,
       nombre: 'Andrés Mendoza (Avanzado)',
+      sexo: 'MASCULINO',
       rol: 'VOLUNTARIO_AVANZADO'
     }
   });
@@ -47,6 +50,7 @@ async function main() {
       email: 'voluntario@huellas.cl',
       password: hashedPassword,
       nombre: 'Lucas Silva (Voluntario)',
+      sexo: 'MASCULINO',
       rol: 'VOLUNTARIO_NOVATO'
     }
   });
@@ -54,12 +58,12 @@ async function main() {
   // Mantener compatibilidad con staff@huellas.cl
   await prisma.usuario.upsert({
     where: { email: 'staff@huellas.cl' },
-    update: { nombre: 'Admin General', rol: 'DIRECTORA' },
+    update: { nombre: 'Admin General', rol: 'DIRECCION' },
     create: {
       email: 'staff@huellas.cl',
       password: hashedPassword,
       nombre: 'Admin General',
-      rol: 'DIRECTORA'
+      rol: 'DIRECCION'
     }
   });
 

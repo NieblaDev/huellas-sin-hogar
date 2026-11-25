@@ -14,19 +14,53 @@ test('incorpora RF1 a una base existente sin perder usuarios ni fichas', async (
   const prismaCli = fileURLToPath(new URL('../node_modules/prisma/build/index.js', import.meta.url));
   const schemaPath = fileURLToPath(new URL('../prisma/schema.prisma', import.meta.url));
   const baselinePath = fileURLToPath(new URL('../prisma/migrations/20261020000000_baseline_pern/migration.sql', import.meta.url));
+  const migracionesPreviasAInventario = [
+    '20261020000100_rf1_solicitudes',
+    '20261022000100_rf1_etapas_entrega',
+    '20261025000100_rf1_resultado_evaluacion',
+    '20261110000100_rf2_seguimientos_devoluciones',
+    '20261110200529_rf2_salud_cuidados'
+  ];
   const env = { ...process.env, DATABASE_URL: url.toString(), CHECKPOINT_DISABLE: '1' };
-  const pgUrl = new URL(url); pgUrl.searchParams.delete('schema');
+  const pgEnv = {
+    ...env,
+    PGHOST: url.hostname.replace(/^\[|\]$/g, ''),
+    PGPORT: url.port || '5432',
+    PGUSER: decodeURIComponent(url.username),
+    PGPASSWORD: decodeURIComponent(url.password),
+    PGDATABASE: decodeURIComponent(url.pathname.slice(1)),
+    PGOPTIONS: `-c search_path=${schema}`
+  };
   await admin.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`);
   try {
-    execFileSync('psql', [pgUrl.toString(), '-v', 'ON_ERROR_STOP=1', '-f', baselinePath], { env: { ...env, PGOPTIONS: `-c search_path=${schema}` }, stdio: 'pipe' });
-    const usuario = await db.usuario.create({ data: { email: 'baseline@example.test', nombre: 'Staff existente', password: 'test', rol: 'DIRECTORA' } });
+    const ejecutarSql = path => execFileSync('psql', ['-w', '-v', 'ON_ERROR_STOP=1', '-f', path], { env: pgEnv, stdio: 'pipe' });
+    const registrarMigracion = id => execFileSync(process.execPath, [prismaCli, 'migrate', 'resolve', '--applied', id, '--schema', schemaPath], { env, stdio: 'pipe' });
+    ejecutarSql(baselinePath);
+    await db.$executeRaw`ALTER TYPE "Rol" ADD VALUE 'COORDINADOR'`;
+    const [usuario] = await db.$queryRaw`INSERT INTO usuarios (email, nombre, password, rol) VALUES ('baseline@example.test', 'Staff existente', 'test', 'DIRECTORA') RETURNING id, email, nombre, password, rol::text, activo, "createdAt"`;
+    await db.$executeRaw`INSERT INTO usuarios (email, nombre, password, rol) VALUES
+      ('clinica@example.test', 'Clínica', 'test', 'VETERINARIA'),
+      ('adopciones@example.test', 'Adopciones', 'test', 'ENCARGADA_ADOPCIONES'),
+      ('turnos@example.test', 'Planificación', 'test', 'COORDINADOR')`;
     const [animal] = await db.$queryRaw`INSERT INTO animales (nombre, especie, sexo, edad, chip, nota, "creadoPorId") VALUES ('Ficha anterior', 'Gato', 'Hembra', '4 años', 'CHIP-ORIGINAL', 'Historial previo', ${usuario.id}) RETURNING *`;
     const [postulante] = await db.$queryRaw`INSERT INTO postulantes (nombre, rut) VALUES ('Postulante previo', '11.111.111-1') RETURNING id`;
     await db.$executeRaw`INSERT INTO adopciones ("animalId", "postulanteId", etapa, devolucion) VALUES (${animal.id}, ${postulante.id}, 'Devuelto', true)`;
-    execFileSync(process.execPath, [prismaCli, 'migrate', 'resolve', '--applied', '20261020000000_baseline_pern', '--schema', schemaPath], { env, stdio: 'pipe' });
+    registrarMigracion('20261020000000_baseline_pern');
+    // Inventario referencia tratamientos, que en la base existente se migraron antes.
+    for (const id of migracionesPreviasAInventario) {
+      ejecutarSql(fileURLToPath(new URL(`../prisma/migrations/${id}/migration.sql`, import.meta.url)));
+      registrarMigracion(id);
+    }
     execFileSync(process.execPath, [prismaCli, 'migrate', 'deploy', '--schema', schemaPath], { env, stdio: 'pipe' });
     assert.deepEqual(await db.animal.findUnique({ where: { id: animal.id } }), { ...animal, estadoAdopcion: 'EN_REFUGIO' });
-    assert.deepEqual(await db.usuario.findUnique({ where: { id: usuario.id } }), usuario);
+    assert.deepEqual(await db.usuario.findUnique({ where: { id: usuario.id } }), { ...usuario, rol: 'DIRECCION', sexo: 'NEUTRO' });
+    assert.deepEqual(await db.usuario.findMany({
+      where: { id: { not: usuario.id } }, orderBy: { email: 'asc' }, select: { rol: true, sexo: true, activo: true }
+    }), [
+      { rol: 'PERSONAL_ADOPCIONES', sexo: 'NEUTRO', activo: true },
+      { rol: 'PERSONAL_VETERINARIO', sexo: 'NEUTRO', activo: true },
+      { rol: 'VOLUNTARIO_NOVATO', sexo: 'NEUTRO', activo: true }
+    ]);
     assert.equal(await db.solicitudAdopcion.count(), 0);
     const previos = await db.postulante.findMany();
     assert.equal(previos[0].rut, '11.111.111-1');

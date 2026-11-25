@@ -47,7 +47,7 @@ router.post('/asignar', authenticateToken, validate(asignarCanilSchema, 'body'),
 router.post('/traslados', authenticateToken, validate(trasladoExternoSchema, 'body'), solicitarTrasladoExterno);
 router.get('/traslados', authenticateToken, getTraslados);
 
-// Aprobación de traslado: RESTRICCIÓN ESTRICTA SOLO DIRECTORA
-router.put('/traslados/:id/aprobacion', authenticateToken, requireRole('DIRECTORA'), validate(gestionAprobacionSchema, 'body'), gestionarAprobacion);
+// Aprobación de traslado: RESTRICCIÓN ESTRICTA SOLO DIRECCION
+router.put('/traslados/:id/aprobacion', authenticateToken, requireRole('DIRECCION'), validate(gestionAprobacionSchema, 'body'), gestionarAprobacion);
 
 export default router;

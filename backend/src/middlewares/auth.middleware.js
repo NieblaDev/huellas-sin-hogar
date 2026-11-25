@@ -22,7 +22,7 @@ export const authenticateToken = async (req, res, next) => {
     // un perfil desactivado pierde acceso de inmediato y los cambios de rol aplican al instante.
     const usuario = await prisma.usuario.findUnique({
       where: { id: payload.id },
-      select: { id: true, email: true, nombre: true, rol: true, activo: true }
+      select: { id: true, email: true, nombre: true, rol: true, sexo: true, activo: true }
     });
 
     if (!usuario?.activo) {

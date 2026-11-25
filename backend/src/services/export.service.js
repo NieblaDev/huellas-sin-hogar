@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
 import prisma from '../config/prisma.js';
+import { etiquetaRolUsuario } from '../constants/usuarios.js';
 import { registrarAuditoria } from './audit.service.js';
 import { notificarPersonalRefugio } from './notification.service.js';
 import { uploadsPath } from '../middlewares/upload.middleware.js';
@@ -294,7 +295,7 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, usuario, fechaGe
   );
   ops.push(
     `BT /F1 8.5 Tf 40 778 Td (${escapePdfText(
-      `Emitido el: ${fechaGeneracion} | Solicitado por: ${usuario?.nombre || 'Staff'} (Rol: ${usuario?.rol || 'N/A'})`
+      `Emitido el: ${fechaGeneracion} | Solicitado por: ${usuario?.nombre || 'Personal'} (Rol: ${etiquetaRolUsuario(usuario?.rol, usuario?.sexo) || 'N/A'})`
     )}) Tj ET`
   );
 
@@ -562,7 +563,7 @@ const construirBufferReporteConsolidadoPDF = ({
   );
   ops.push(
     `BT /F1 8.5 Tf 40 778 Td (${escapePdfText(
-      `Emitido el: ${fechaGeneracion} | Autorizado por: ${usuario?.nombre || 'Directora'} (Rol: ${usuario?.rol})`
+      `Emitido el: ${fechaGeneracion} | Autorizado por: ${usuario?.nombre || 'Dirección'} (Rol: ${etiquetaRolUsuario(usuario?.rol, usuario?.sexo) || 'Dirección'})`
     )}) Tj ET`
   );
 
@@ -643,7 +644,7 @@ const construirBufferReporteConsolidadoPDF = ({
   ops.push('0.45 0.49 0.54 rg');
   ops.push(
     `BT /F1 8 Tf 40 30 Td (${escapePdfText(
-      `Huellas Sin Hogar - Reporte Consolidado Auditado | Generado por: ${usuario?.email || 'directora'}`
+      `Huellas Sin Hogar - Reporte Consolidado Auditado | Generado por: ${usuario?.email || 'Dirección'}`
     )}) Tj ET`
   );
 
@@ -725,7 +726,7 @@ const escapeCsvCell = (val) => {
 
 /**
  * RF9: Exportar Expediente / Ficha del Animal Individual (en PDF o CSV)
- * - Permitido para Personal del Refugio (VETERINARIA, ENCARGADA_ADOPCIONES) y Directora (DIRECTORA)
+ * - Permitido para personal veterinario, personal de adopciones y Dirección.
  * - Restricción de privacidad RF9: Los documentos exportados omiten estrictamente los datos personales de postulantes
  * - Postcondiciones: Registra en bitácora de auditoría, notifica al personal y entrega el archivo para descarga local
  */
@@ -820,6 +821,7 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
       animalId: animal.id,
       animalNombre: animal.nombre,
       rolUsuario: user?.rol,
+      sexoUsuario: user?.sexo,
       privacidadDatosPersonalesOmitidos: true,
       fechaExportacion: new Date().toISOString()
     },
@@ -831,8 +833,8 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
   const notificacion = await notificarPersonalRefugio({
     tipo: `EXPORTACION_${formato}`,
     titulo: `Ficha del animal (${formato}) descargada: ${animal.nombre}`,
-    mensaje: `${user?.nombre || 'Usuario'} (${user?.rol}) descargó la ficha del animal ${animal.nombre} en formato ${formato}. Por protección de datos, la información de contacto de los postulantes no se incluye.`,
-    destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
+    mensaje: `${user?.nombre || 'Usuario'} (${etiquetaRolUsuario(user?.rol, user?.sexo) || 'Personal'}) descargó la ficha del animal ${animal.nombre} en formato ${formato}. Por protección de datos, la información de contacto de los postulantes no se incluye.`,
+    destinatarios: ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES'],
     usuario: user,
     metadata: {
       tipoReporte: formato,
@@ -855,7 +857,7 @@ export const generarFichaAnimalPDF = async (animalId, user, ip, query = {}) => {
  * (Balance de ingresos, adopciones, devoluciones, censo y estado de insumos)
  */
 export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
-  if (user?.rol !== 'DIRECTORA') {
+  if (user?.rol !== 'DIRECCION') {
     throw new Error('Acceso exclusivo: Solo la Dirección del refugio cuenta con permisos para exportar reportes consolidados.');
   }
 
@@ -1016,7 +1018,7 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
 
   // ENCABEZADO Y FILTROS CONFIGURADOS
   addRow(['HUELLAS SIN HOGAR - REPORTE CONSOLIDADO DE GESTIÓN OPERATIVA']);
-  addRow(['Fecha de Exportación', new Date().toISOString(), 'Generado por', user.nombre, 'Rol', user.rol]);
+  addRow(['Fecha de Exportación', new Date().toISOString(), 'Generado por', user.nombre, 'Rol', etiquetaRolUsuario(user.rol, user.sexo)]);
   addRow([
     'Rango de Fechas',
     `${fechaDesde || 'Inicio histórico'} a ${fechaHasta || 'Actualidad'}`,
@@ -1158,6 +1160,7 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
       tipoReporte: formatoSalida,
       recursoExportado,
       rolUsuario: user.rol,
+      sexoUsuario: user.sexo,
       filtrosConfigurados: filtrosAplicados,
       privacidadDatosPostulantesOmitidos: true,
       resumenExportado: resumenConsolidado,
@@ -1172,7 +1175,7 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
     tipo: `EXPORTACION_${formatoSalida}`,
     titulo: `Reporte Consolidado (${formatoSalida}) generado`,
     mensaje: `La Dirección (${user.nombre}) exportó el Reporte Consolidado de Gestión (${sec}) en formato ${formatoSalida}. Por protección de datos, la información de contacto de los postulantes no se incluye.`,
-    destinatarios: ['DIRECTORA', 'VETERINARIA', 'ENCARGADA_ADOPCIONES'],
+    destinatarios: ['DIRECCION', 'PERSONAL_VETERINARIO', 'PERSONAL_ADOPCIONES'],
     usuario: user,
     metadata: {
       tipoReporte: formatoSalida,

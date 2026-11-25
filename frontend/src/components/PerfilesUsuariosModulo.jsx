@@ -2,7 +2,6 @@ import { formatearErrorApi } from '../utils/errores';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Ban,
-  CalendarDays,
   CircleCheck,
   Crown,
   Handshake,
@@ -10,6 +9,7 @@ import {
   KeyRound,
   Lock,
   Mail,
+  Pencil,
   Search,
   ShieldCheck,
   Star,
@@ -22,19 +22,17 @@ import {
 import { API_URL, getAuthHeaders } from '../api/config';
 
 const ICONOS_ROL = {
-  DIRECTORA: Crown,
-  VETERINARIA: Stethoscope,
-  ENCARGADA_ADOPCIONES: House,
-  COORDINADOR: CalendarDays,
+  DIRECCION: Crown,
+  PERSONAL_VETERINARIO: Stethoscope,
+  PERSONAL_ADOPCIONES: House,
   VOLUNTARIO_AVANZADO: Star,
   VOLUNTARIO_NOVATO: Handshake
 };
 
 const COLORES_ROL = {
-  DIRECTORA: { bg: '#e8f0e8', color: '#2f5540' },
-  VETERINARIA: { bg: '#e8f1f7', color: '#25637d' },
-  ENCARGADA_ADOPCIONES: { bg: '#f3ecf8', color: '#6b3e84' },
-  COORDINADOR: { bg: '#fdf1de', color: '#9a6300' },
+  DIRECCION: { bg: '#e8f0e8', color: '#2f5540' },
+  PERSONAL_VETERINARIO: { bg: '#e8f1f7', color: '#25637d' },
+  PERSONAL_ADOPCIONES: { bg: '#f3ecf8', color: '#6b3e84' },
   VOLUNTARIO_AVANZADO: { bg: '#fff4d9', color: '#a66a00' },
   VOLUNTARIO_NOVATO: { bg: '#eef0fb', color: '#4550c0' }
 };
@@ -42,10 +40,28 @@ const COLORES_ROL = {
 const FORM_INICIAL = {
   nombre: '',
   email: '',
+  sexo: 'NEUTRO',
   rol: 'VOLUNTARIO_NOVATO',
   password: '',
   confirmar: ''
 };
+
+const opcionesSexo = [
+  { valor: 'NEUTRO', etiqueta: 'Neutro' },
+  { valor: 'FEMENINO', etiqueta: 'Femenino' },
+  { valor: 'MASCULINO', etiqueta: 'Masculino' }
+];
+
+const SelectorSexo = ({ sexo, onChange }) => (
+  <label className="perfil-field">
+    <span>Sexo</span>
+    <select value={sexo} onChange={event => onChange(event.target.value)}>
+      {opcionesSexo.map(({ valor, etiqueta }) => <option key={valor} value={valor}>{etiqueta}</option>)}
+    </select>
+  </label>
+);
+
+const etiquetaPerfil = (perfil, sexo) => perfil?.etiquetasPorSexo[sexo] || perfil?.etiqueta;
 
 const IconoPerfil = ({ rol, size = 18 }) => {
   const Icono = ICONOS_ROL[rol] || Users;
@@ -69,7 +85,7 @@ const EtiquetaRol = ({ usuario }) => {
   return (
     <span className="portal-badge" style={{ background: colores.bg, color: colores.color }}>
       <IconoPerfil rol={usuario.rol} size={13} />
-      {usuario.perfil?.etiqueta || usuario.rol}
+      {usuario.rolEtiqueta}
     </span>
   );
 };
@@ -91,7 +107,7 @@ const ListaPermisos = ({ items = [], tipo }) => {
 
 const formatearFecha = valor => valor ? new Date(valor).toLocaleDateString('es-CL') : 'Sin registro';
 
-export default function PerfilesUsuariosModulo({ user }) {
+export default function PerfilesUsuariosModulo({ user, onActualizarUsuario }) {
   const [datos, setDatos] = useState({
     usuarios: [],
     perfiles: [],
@@ -109,6 +125,9 @@ export default function PerfilesUsuariosModulo({ user }) {
   const [form, setForm] = useState(FORM_INICIAL);
   const [formError, setFormError] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [perfilAEditar, setPerfilAEditar] = useState(null);
+  const [sexoEditado, setSexoEditado] = useState('NEUTRO');
+  const [errorEdicion, setErrorEdicion] = useState('');
 
   const [perfilAEliminar, setPerfilAEliminar] = useState(null);
   const [errorAccion, setErrorAccion] = useState('');
@@ -194,6 +213,7 @@ export default function PerfilesUsuariosModulo({ user }) {
         body: JSON.stringify({
           nombre: form.nombre.trim(),
           email: form.email.trim(),
+          sexo: form.sexo,
           rol: form.rol,
           password: form.password
         })
@@ -208,6 +228,39 @@ export default function PerfilesUsuariosModulo({ user }) {
       await cargarDatos();
     } catch (err) {
       setFormError(formatearErrorApi(err));
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const abrirEdicionSexo = usuario => {
+    setPerfilAEditar(usuario);
+    setSexoEditado(usuario.sexo);
+    setErrorEdicion('');
+  };
+
+  const editarSexo = async event => {
+    event.preventDefault();
+    setGuardando(true);
+    setErrorEdicion('');
+    try {
+      const respuesta = await fetch(`${API_URL}/usuarios/${encodeURIComponent(perfilAEditar.email)}/sexo`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ sexo: sexoEditado })
+      });
+      const data = await respuesta.json();
+      if (!respuesta.ok) throw new Error(formatearErrorApi(data, 'No se pudo actualizar el perfil.'));
+
+      if (data.usuario.email === user?.email) {
+        const { sexo, rolEtiqueta } = data.usuario;
+        onActualizarUsuario(actual => ({ ...actual, sexo, rolEtiqueta }));
+      }
+      setPerfilAEditar(null);
+      setExito('Trato del perfil actualizado.');
+      await cargarDatos();
+    } catch (err) {
+      setErrorEdicion(formatearErrorApi(err));
     } finally {
       setGuardando(false);
     }
@@ -351,7 +404,7 @@ export default function PerfilesUsuariosModulo({ user }) {
                     <th scope="col">Rol asignado</th>
                     <th scope="col">Estado</th>
                     <th scope="col">Alta</th>
-                    <th scope="col" className="is-actions">Acción</th>
+                    <th scope="col" className="is-actions">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -385,18 +438,27 @@ export default function PerfilesUsuariosModulo({ user }) {
                         </td>
                         <td className="perfil-date">{formatearFecha(usuario.creadoEn)}</td>
                         <td className="is-actions">
-                          {usuario.activo ? (
+                          <div className="perfil-row-actions">
                             <button
-                              className="portal-btn portal-btn-danger perfil-delete-btn"
-                              onClick={() => { setErrorAccion(''); setPerfilAEliminar(usuario); }}
-                              disabled={esMiPerfil}
-                              title={esMiPerfil ? 'No puedes eliminar tu propio perfil' : `Eliminar el perfil de ${usuario.nombre}`}
+                              className="portal-btn portal-btn-secondary perfil-action-btn"
+                              onClick={() => abrirEdicionSexo(usuario)}
+                              aria-label={`Editar sexo de ${usuario.nombre}`}
                             >
-                              <Trash2 size={14} aria-hidden="true" /> Eliminar
+                              <Pencil size={14} aria-hidden="true" /> Editar sexo
                             </button>
-                          ) : (
-                            <span className="perfil-no-access"><Ban size={14} aria-hidden="true" /> Sin acceso</span>
-                          )}
+                            {usuario.activo ? (
+                              <button
+                                className="portal-btn portal-btn-danger perfil-action-btn"
+                                onClick={() => { setErrorAccion(''); setPerfilAEliminar(usuario); }}
+                                disabled={esMiPerfil}
+                                title={esMiPerfil ? 'No puedes eliminar tu propio perfil' : `Eliminar el perfil de ${usuario.nombre}`}
+                              >
+                                <Trash2 size={14} aria-hidden="true" /> Eliminar
+                              </button>
+                            ) : (
+                              <span className="perfil-no-access"><Ban size={14} aria-hidden="true" /> Sin acceso</span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -490,14 +552,16 @@ export default function PerfilesUsuariosModulo({ user }) {
                     </div>
                   </label>
 
-                  <label className="perfil-field perfil-field-wide">
+                  <SelectorSexo sexo={form.sexo} onChange={sexo => setForm(actual => ({ ...actual, sexo }))} />
+
+                  <label className="perfil-field">
                     <span>Perfil de rol</span>
                     <select
                       value={form.rol}
                       onChange={event => setForm(actual => ({ ...actual, rol: event.target.value }))}
                     >
                       {datos.perfiles.map(perfil => (
-                        <option key={perfil.rol} value={perfil.rol}>{perfil.etiqueta}</option>
+                        <option key={perfil.rol} value={perfil.rol}>{etiquetaPerfil(perfil, form.sexo)}</option>
                       ))}
                     </select>
                   </label>
@@ -542,7 +606,7 @@ export default function PerfilesUsuariosModulo({ user }) {
                     <div className="perfil-preview-head">
                       <AvatarPerfil rol={perfilSeleccionado.rol} size={38} />
                       <div>
-                        <strong>{perfilSeleccionado.etiqueta}</strong>
+                        <strong>{etiquetaPerfil(perfilSeleccionado, form.sexo)}</strong>
                         <span>{perfilSeleccionado.descripcion}</span>
                       </div>
                     </div>
@@ -560,6 +624,37 @@ export default function PerfilesUsuariosModulo({ user }) {
                 </button>
                 <button type="submit" className="portal-btn portal-btn-primary" disabled={guardando}>
                   <UserPlus size={16} aria-hidden="true" /> {guardando ? 'Creando perfil...' : 'Crear perfil'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {perfilAEditar && (
+        <div className="perfil-modal-backdrop">
+          <div className="perfil-modal perfil-modal-small" role="dialog" aria-modal="true" aria-labelledby="perfil-editar-sexo-title">
+            <div className="perfil-modal-header">
+              <div>
+                <h3 id="perfil-editar-sexo-title">Editar sexo del perfil</h3>
+                <p>{perfilAEditar.nombre}</p>
+              </div>
+              <button className="perfil-icon-btn" onClick={() => setPerfilAEditar(null)} aria-label="Cerrar" disabled={guardando}>
+                <X size={19} aria-hidden="true" />
+              </button>
+            </div>
+            <form onSubmit={editarSexo}>
+              <div className="perfil-modal-body">
+                {errorEdicion && <div className="portal-alert portal-alert-danger" role="alert">{errorEdicion}</div>}
+                <SelectorSexo sexo={sexoEditado} onChange={setSexoEditado} />
+                <p>El rol se mostrará como <strong>{etiquetaPerfil(perfilAEditar.perfil, sexoEditado)}</strong>.</p>
+              </div>
+              <div className="perfil-modal-footer">
+                <button type="button" className="portal-btn portal-btn-secondary" onClick={() => setPerfilAEditar(null)} disabled={guardando}>
+                  Cancelar
+                </button>
+                <button type="submit" className="portal-btn portal-btn-primary" disabled={guardando || sexoEditado === perfilAEditar.sexo}>
+                  {guardando ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </form>

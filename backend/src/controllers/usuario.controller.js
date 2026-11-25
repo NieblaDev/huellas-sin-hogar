@@ -19,6 +19,16 @@ export const crearUsuario = async (req, res) => {
   }
 };
 
+export const actualizarSexoUsuario = async (req, res) => {
+  try {
+    const ip = req.ip || req.connection?.remoteAddress;
+    const resultado = await usuarioService.actualizarSexoUsuario(req.params.email, req.body.sexo, req.user, ip);
+    res.json(resultado);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: error.statusCode ? error.message : 'No se pudo actualizar el sexo del perfil.' });
+  }
+};
+
 export const eliminarUsuario = async (req, res) => {
   try {
     const ip = req.ip || req.connection?.remoteAddress;
