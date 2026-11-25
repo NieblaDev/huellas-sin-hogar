@@ -59,3 +59,11 @@ export const getTraslados = asyncHandler(async (req, res) => {
   const traslados = await canilService.getTraslados(req.query);
   res.json(traslados);
 });
+
+import { historialCanil } from '../services/canilHistorial.js';
+import { finalizarCuarentena } from '../services/cuarentena.service.js';
+
+export const detalle = asyncHandler(async (req,res) => res.json(await canilService.getCanil(req.params.id)));
+export const historial = asyncHandler(async (req,res) => res.json(await historialCanil(req.params.id, req.query)));
+export const editar = asyncHandler(async (req,res) => res.json(await canilService.actualizarCanil(req.params.id, req.body, req.user, req.ip)));
+export const finalizar = asyncHandler(async (req,res) => res.json(await finalizarCuarentena({ ...req.body, canilId: req.params.id, user: req.user, ip: req.ip })));

@@ -2,7 +2,7 @@ import { sinParametrosSchema, idParamSchema } from '../schemas/request.schema.js
 import { listarTrasladosSchema } from '../schemas/canil.schema.js';
 import { Router } from 'express';
 import {
-  getCaniles,
+  detalle, historial, finalizar, editar, getCaniles,
   asignarCanil,
   solicitarTrasladoExterno,
   gestionarAprobacion,
@@ -14,7 +14,7 @@ import {
 import { authenticateToken, requireRole } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import {
-  asignarCanilSchema,
+  actualizarCanilSchema, finalizarCuarentenaSchema, historialCanilSchema, asignarCanilSchema,
   trasladoExternoSchema,
   gestionAprobacionSchema,
   crearCanilSchema,
@@ -51,5 +51,10 @@ router.get('/traslados', authenticateToken, validate(listarTrasladosSchema, 'que
 
 // Aprobación de traslado: RESTRICCIÓN ESTRICTA SOLO DIRECCION
 router.put('/traslados/:id/aprobacion', authenticateToken, requireRole('DIRECCION'), validate(idParamSchema, 'params'), validate(gestionAprobacionSchema, 'body'), gestionarAprobacion);
+
+router.get('/:id/historial', authenticateToken, validate(idParamSchema, 'params'), validate(historialCanilSchema, 'query'), historial);
+router.post('/:id/finalizar-cuarentena', authenticateToken, requireRole('DIRECCION','PERSONAL_VETERINARIO'), validate(idParamSchema, 'params'), validate(finalizarCuarentenaSchema), finalizar);
+router.put('/:id', authenticateToken, requireRole('DIRECCION'), validate(idParamSchema, 'params'), validate(actualizarCanilSchema), editar);
+router.get('/:id', authenticateToken, validate(idParamSchema, 'params'), detalle);
 
 export default router;

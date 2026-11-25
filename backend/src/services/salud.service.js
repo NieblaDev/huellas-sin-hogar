@@ -1,4 +1,6 @@
 import { ErrorDominio } from '../utils/errorDominio.js';
+import { iniciarCuarentena } from './cuarentena.service.js';
+import { bloquearCaniles, buscarCanil } from './canilOcupacion.js';
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
 
@@ -99,45 +101,17 @@ export const registrarAtencionClinica = async (data, user, ip) => {
 };
 
 // 3. REGISTRAR CUARENTENA Y ACTUALIZAR CANIL
-export const registrarCuarentena = async (data, user, ip) => {
-  const animal = await validarAnimalActivo(data.animalId);
-
-  const cuarentena = await prisma.cuarentenaAnimal.create({
-    data: {
-      animalId: animal.id,
-      motivo: data.motivo,
-      canilAislamiento: data.canilAislamiento || (animal.canil ? animal.canil.codigo : null),
-      fechaFinEstimada: new Date(data.fechaFinEstimada),
-      observaciones: data.observaciones
-    }
-  });
-
-  // Actualizar estado del canil si el animal está alojado en uno
-  if (animal.canilId) {
-    await prisma.canil.update({
-      where: { id: animal.canilId },
-      data: { estado: 'CUARENTENA' }
-    });
-  }
-
-  // Marcar estado de salud del animal como CONDICION_ESPECIAL
-  await prisma.animal.update({
-    where: { id: animal.id },
-    data: { estadoSalud: 'CONDICION_ESPECIAL' }
-  });
-
-  await registrarAuditoria({
-    entidad: 'CuarentenaAnimal',
-    entidadId: cuarentena.id,
-    accion: 'CREACION',
-    valorAnterior: null,
-    valorNuevo: { animal: animal.nombre, motivo: data.motivo },
-    usuario: user,
-    ip
-  });
-
+export const registrarCuarentena = (data, user, ip) => prisma.$transaction(async tx => {
+  const id = Number(data.animalId);
+  await tx.$queryRaw`SELECT id FROM animales WHERE id = ${id} FOR UPDATE`;
+  const animal = await tx.animal.findUnique({ where: { id } });
+  if (!animal?.activo) throw new ErrorDominio(400, 'El animal no tiene una ficha activa.');
+  await bloquearCaniles(tx, animal.canilId);
+  const canil = animal.canilId ? await buscarCanil(tx, animal.canilId) : null;
+  const cuarentena = await iniciarCuarentena(tx, { ...data, animal, canil, user, ip });
+  await tx.animal.update({ where: { id }, data: { estadoSalud: 'CONDICION_ESPECIAL' } });
   return cuarentena;
-};
+});
 
 // 4. HISTORIAL CLÍNICO CONSOLIDADO POR ANIMAL
 export const obtenerHistorialAnimal = async (animalId) => {

@@ -14,9 +14,9 @@ export const registrarAuditoria = async ({
   valorNuevo = null,
   usuario = null,
   ip = null
-}) => {
+}, db = prisma) => {
   try {
-    return await prisma.auditoria.create({
+    return await db.auditoria.create({
       data: {
         entidad,
         entidadId: entidadId ? Number(entidadId) : null,
@@ -30,6 +30,7 @@ export const registrarAuditoria = async ({
       }
     });
   } catch (error) {
+    if (db !== prisma) throw error;
     console.error('Error al registrar auditoría:', error.message);
     // No bloqueamos la transacción principal si falla auditoría en logs, pero dejamos registro
   }

@@ -1,5 +1,9 @@
 import { request } from './api.js';
 
+export const obtenerCanil = id => request('/caniles/' + id);
+export const obtenerHistorialCanil = (id, { limit = 20, cursor } = {}) => request('/caniles/' + id + '/historial?limit=' + limit + (cursor ? '&cursor=' + cursor : ''));
+export const finalizarCuarentena = (id, json) => request('/caniles/' + id + '/finalizar-cuarentena', { method:'POST', json });
+export const actualizarCanil = (id, json) => request('/caniles/' + id, { method:'PUT', json });
 export const listarCaniles = () => request('/caniles');
 export const listarTraslados = () => request('/caniles/traslados');
 export const asignarCanil = json => request('/caniles/asignar', { method: 'POST', json });
