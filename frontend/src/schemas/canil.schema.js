@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { idSeleccion, opcional, texto } from './campos.js';
 
-export const crearCanilSchema = z.object({ sector: texto(1, 100) });
+export const crearCanilSchema = z.object({ sector: texto(1, 60), tipo: z.enum(['Perro','Gato','Mixto']).default('Mixto'), capacidad: z.coerce.number().int().min(1).max(20).default(1), notas: z.string().max(500).optional() });
 export const gestionarCanilSchema = z.object({
   sectorEdicion: crearCanilSchema.shape.sector,
   selectedAnimalId: z.union([z.literal(''), idSeleccion]),

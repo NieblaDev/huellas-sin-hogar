@@ -1,0 +1,34 @@
+.canil-grid,.qr-preview { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr)); gap:1rem; margin-top:1rem }
+.canil-tarjeta,.qr-etiqueta { background:var(--portal-surface,white); border:var(--portal-border-emphasis,2px) solid var(--portal-border,#ddd); border-radius:14px; padding:1rem; }
+.canil-tarjeta { border-top:4px solid var(--portal-primary); }
+.canil-tarjeta p,.canil-tarjeta small { color:var(--portal-text-muted); }
+.canil-tarjeta progress { display:block; width:100%; accent-color:var(--portal-primary); }
+.canil-resaltado { outline:3px solid var(--portal-primary); }
+.canil-abrir,.canil-residente { color:inherit; background:none; border:0; font:inherit; text-align:left; width:100%; cursor:pointer; }
+.canil-abrir,.canil-ficha header,.canil-ficha nav,.canil-fila,.canil-residente { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+.canil-abrir,.canil-ficha header { justify-content:space-between; }
+.canil-residente,.canil-fila { background:var(--portal-surface-muted); border-radius:8px; margin:.5rem 0; padding:.5rem; }
+.canil-residente { cursor:grab; }
+.canil-cuarentena { display:block; color:#a02b38; padding:.4rem 0; }
+.canil-ficha { padding:1.5rem; width:min(620px,95vw); max-height:90dvh; overflow-y:auto; }
+.canil-ficha fieldset { border:0; padding:0; min-width:0; }
+.canil-ficha label,.canil-ficha section,.canil-ficha form { display:block; margin:.75rem 0; }
+.canil-ficha nav { flex-wrap:nowrap; overflow-x:auto; }
+.canil-ficha :is(input:not([type=checkbox]),textarea,select) { display:block; width:100%; padding:.5rem; }
+.canil-ficha button { margin:.2rem; }
+.canil-undo { position:fixed; bottom:1rem; right:1rem; padding:.8rem; z-index:1200; background:var(--portal-surface); border:2px solid var(--portal-primary); border-radius:8px; }
+.qr-print-area { display:none; }
+.qr-etiqueta { color:black; background:white; overflow-wrap:anywhere; }
+.qr-etiqueta img { display:block; width:30mm; height:30mm; }
+@media(max-width:600px) { .canil-grid { grid-template-columns:1fr; } .canil-ficha { width:100vw; height:100dvh; max-height:100dvh; } }
+@media print {
+  @page { size:A4; margin:10mm; }
+  body:has(> .qr-print-area) > :not(.qr-print-area) { display:none !important; }
+  body:has(> .qr-print-area) { display:block !important; overflow:visible !important; padding:0 !important; margin:0; }
+  .qr-print-area { display:block; }
+  .qr-hoja { display:grid; grid-template-columns:repeat(2,95mm);grid-template-rows:repeat(4,69mm);break-after:page; }
+  .qr-hoja:last-child { break-after:auto; }
+  .qr-etiqueta { box-sizing:border-box; border:1px solid black; border-radius:0; position:relative; padding:3mm; font:9pt/1.15 sans-serif; break-inside:avoid; }
+  .qr-etiqueta h3 { margin:1mm 0; }
+  .qr-etiqueta hr { width:35mm; margin-left:0; }
+}

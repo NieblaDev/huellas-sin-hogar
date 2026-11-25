@@ -78,10 +78,8 @@ function Portal() {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchCaniles();
-    }
-  }, [user, reloadKey]);
+    if (user) fetchCaniles();
+  }, [user, reloadKey, modalOpen]);
 
   const fetchCaniles = async () => {
     try {
@@ -404,6 +402,7 @@ function Portal() {
                 <Routes>
                   <Route path="/dashboard" element={<DashboardPage user={user} onNavigate={setActiveTab} />} />
 
+                  <Route path="/caniles/:canilId" element={<CanilesPage user={user} />} />
                   <Route path="/caniles" element={<CanilesPage user={user} />} />
 
                   <Route path="/animales" element={
