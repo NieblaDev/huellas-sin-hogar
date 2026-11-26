@@ -26,7 +26,7 @@ function Confirmacion({ solicitud, onResolve }) {
 }
 
 function Aviso({ aviso, onDismiss }) {
-  const { id, mensaje, tipo } = aviso;
+  const { id, mensaje, tipo, accion } = aviso;
   useEffect(() => {
     const timer = window.setTimeout(() => onDismiss(id), tipo === 'error' ? 9000 : 6000);
     return () => window.clearTimeout(timer);
@@ -39,6 +39,10 @@ function Aviso({ aviso, onDismiss }) {
         <Icono size={18} aria-hidden="true" />
         <span>{mensaje}</span>
       </div>
+      {accion && <button type="button" className="portal-aviso-accion" onClick={() => {
+        onDismiss(id);
+        accion.ejecutar();
+      }}>{accion.etiqueta}</button>}
       <button type="button" aria-label="Cerrar aviso" onClick={() => onDismiss(id)}><X size={16} aria-hidden="true" /></button>
     </div>
   );
@@ -50,12 +54,12 @@ export default function PortalFeedback({ children }) {
   const contador = useRef(0);
   const resolver = useRef(null);
 
-  const avisar = useCallback((mensaje, tipo = 'info') => {
-    const id = ++contador.current;
-    setAvisos(actuales => [...actuales.slice(-3), { id, mensaje, tipo }]);
-  }, []);
-
   const cerrarAviso = useCallback(id => setAvisos(actuales => actuales.filter(aviso => aviso.id !== id)), []);
+  const avisar = useCallback((mensaje, tipo = 'info', accion) => {
+    const id = ++contador.current;
+    setAvisos(actuales => [...actuales.slice(-3), { id, mensaje, tipo, accion }]);
+    return () => cerrarAviso(id);
+  }, [cerrarAviso]);
 
   const confirmar = useCallback(opciones => {
     if (resolver.current) return Promise.resolve(false);

@@ -177,7 +177,7 @@
 
 .portal-aviso {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 12px;
@@ -200,7 +200,7 @@
 
 .portal-aviso-contenido {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   line-height: 1.4;
   font-size: 0.88rem;
@@ -221,6 +221,19 @@
   color: var(--portal-text-muted);
   background: transparent;
   cursor: pointer;
+}
+
+.portal-aviso button.portal-aviso-accion {
+  margin-inline-start: auto;
+  padding: 6px 10px;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.portal-aviso button.portal-aviso-accion:hover {
+  background: var(--portal-surface-muted);
 }
 
 .portal-dashboard-operativo {

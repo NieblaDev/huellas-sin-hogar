@@ -13,7 +13,7 @@ import { aprobacionTrasladoSchema, crearCanilSchema, trasladoSchema } from '../s
 import ErrorCampo from '../components/ui/ErrorCampo.jsx';
 import { usePortalFeedback } from '../context/PortalFeedback.jsx';
 import AnimalPhoto from '../components/AnimalPhoto';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeftRight,
   Bell,
@@ -537,13 +537,25 @@ export default function CanilesPage({ user }) {
   const [dockRetraido, retraerDock] = useState(true);
   const [guardando, guardar] = useState(false);
   const [undo, deshacer] = useState(null);
+  const ejecutarDeshacer = useRef(null);
+  useEffect(() => {
+    ejecutarDeshacer.current = movimiento => moverAnimal(
+      movimiento.animal,
+      caniles.find(c => c.id === movimiento.origen),
+      movimiento.destino === null ? null : caniles.find(c => c.id === movimiento.destino),
+      true
+    );
+  });
   const sensores = useCanilesDragAndDrop();
   useEffect(() => seleccionar(canilId ? Number(canilId) : null), [canilId]);
   useEffect(() => {
-    if (!undo) return;
-    const timer = setTimeout(() => deshacer(null),6000);
-    return () => clearTimeout(timer);
-  }, [undo]);
+    if (!undo || guardando) return;
+    const mensaje = undo.liberar ? undo.animal.nombre + ' quedó sin canil.' : 'Se movió a ' + undo.animal.nombre + '.';
+    return avisar(mensaje, 'exito', {
+      etiqueta: 'Deshacer',
+      ejecutar: () => ejecutarDeshacer.current(undo)
+    });
+  }, [undo, guardando, avisar]);
 
   // Formulario Solicitud de Traslado Externo (Protectora o Hogar Temporal)
   const trasladoForm = useFormulario(trasladoSchema, {
@@ -1127,7 +1139,6 @@ export default function CanilesPage({ user }) {
       {qr && <QrEtiquetasModal todos={caniles} sector={canilesDelSector} filtrados={canilesFiltrados} cerrar={() => abrirQr(false)}/>}
       {errorMapa && <p role="alert">{errorMapa} <Button onClick={cargarDatos}>Reintentar</Button></p>}
       {canilId && !errorMapa && !cargando && !caniles.some(c => c.id === Number(canilId)) && <p role="alert">El canil solicitado no existe o fue eliminado. <a href="/caniles">Volver al mapa</a></p>}
-      {undo && <div className="canil-undo" role="status">{undo.liberar ? undo.animal.nombre + ' quedó sin canil.' : 'Se movió a ' + undo.animal.nombre + '.'} <Button disabled={guardando} onClick={() => moverAnimal(undo.animal,caniles.find(c => c.id === undo.origen),undo.destino === null ? null : caniles.find(c => c.id === undo.destino),true)}>Deshacer</Button></div>}
       {mensajeExito && (
         <div className="portal-alert portal-alert-success" style={{ marginBottom: '18px', fontWeight: '600' }}>
           ✓ {mensajeExito}

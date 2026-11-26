@@ -354,7 +354,6 @@
 .canil-campos :is(input,select,textarea),.canil-ficha textarea,.canil-fila select,.canil-qr-modal select {box-sizing:border-box;width:100%;padding:8px 10px;border:var(--portal-border-emphasis) solid var(--portal-border);border-radius:8px;background:var(--portal-surface);color:var(--portal-text-main);font:inherit}
 .canil-acciones {width:100%;justify-content:space-between}
 .canil-acciones > :only-child {margin-left:auto}
-.canil-undo {position:fixed;bottom:1rem;right:1rem;padding:.8rem;z-index:1200;background:var(--portal-surface);border:2px solid var(--portal-primary);border-radius:8px}
 .canil-qr-modal.canil-modal {max-width:760px}
 .canil-qr-modal .canil-modal-header {align-items:center;justify-content:flex-start}
 .canil-qr-modal h2 {margin:0}
