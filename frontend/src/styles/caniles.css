@@ -12,8 +12,9 @@
 .canil-estado {padding:3px 8px;border-radius:6px;background:var(--fondo);color:var(--tinta);font-size:.7rem;font-weight:800;text-transform:uppercase}
 .canil-sector {margin:12px 0 10px;font-size:.78rem;color:var(--portal-text-muted)}
 .canil-residente {position:relative;margin-top:4px;cursor:grab}
-.canil-residente-info {display:grid;gap:3px;min-width:0;font-size:.88rem;font-weight:800;overflow-wrap:anywhere}
+.canil-residente-info {display:grid;flex:1 1 auto;gap:3px;min-width:0;max-width:100%;font-size:.88rem;font-weight:800;overflow-wrap:anywhere}
 .canil-residente-info small,.canil-tarjeta > small,.canil-campos small {font-size:.75rem;font-weight:500;color:var(--portal-text-muted)}
+.canil-residente-info small {display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .canil-vacio,.canil-fila {display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;background:var(--portal-surface-muted);font-size:.82rem}
 .canil-vacio {color:var(--portal-text-muted);padding-block:14px}
 .canil-avatares,.canil-chips,.canil-fila-acciones,.canil-nota {white-space:pre-wrap;overflow-wrap:anywhere}
