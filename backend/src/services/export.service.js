@@ -374,7 +374,7 @@ const construirBufferPDF = ({ animal, tipoIngreso, notaClinica, fechaGeneracion 
     y -= 9;
   };
   seccion('Salud y convivencia');
-  const salud = { NORMAL: 'Normal', CONDICION_ESPECIAL: 'Condición especial', CRITICO: 'Crítico' };
+  const salud = { NORMAL: 'Normal', ESPECIAL: 'Especial', CRITICO: 'Crítico' };
   dato('Estado de salud y esterilización', `${salud[animal.estadoSalud] || 'Sin registrar'} · Esterilización: ${animal.esterilizacion || 'Sin registrar'}`);
   dato('Comportamiento', animal.comportamiento || 'Por evaluar');
   dato('Notas y observaciones', /^Sin antecedentes (clínicos|médicos) registrados/i.test(notaClinica || '') ? 'Sin Observaciones' : notaClinica || 'Sin Observaciones');
@@ -546,7 +546,7 @@ const construirBufferReporteConsolidadoPDF = ({
   );
   drawLine(
     'Clasificacion Clinica:',
-    `Normal: ${resumen.saludNormal} | Condicion Especial: ${resumen.saludEspecial} | Critico: ${resumen.saludCritico}`
+    `Normal: ${resumen.saludNormal} | Especial: ${resumen.saludEspecial} | Critico: ${resumen.saludCritico}`
   );
   drawLine(
     'Ocupacion de Caniles:',
@@ -898,7 +898,7 @@ export const generarReporteConsolidadoCSV = async (user, ip, query = {}) => {
   const totalGatos = animalesActivos.filter((a) => a.especie.toLowerCase() === 'gato').length;
 
   const saludNormal = animalesActivos.filter((a) => a.estadoSalud === 'NORMAL').length;
-  const saludEspecial = animalesActivos.filter((a) => a.estadoSalud === 'CONDICION_ESPECIAL').length;
+  const saludEspecial = animalesActivos.filter((a) => a.estadoSalud === 'ESPECIAL').length;
   const saludCritico = animalesActivos.filter((a) => a.estadoSalud === 'CRITICO').length;
 
   const canilesLibres = caniles.filter((c) => c.estado === 'LIBRE').length;

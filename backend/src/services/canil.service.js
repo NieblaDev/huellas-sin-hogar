@@ -42,6 +42,8 @@ export async function getAllCaniles() {
 }
 
 export async function asignarCanil(datos, user, ip) {
+  if (datos.ampliarCapacidad && (datos.estado !== 'OCUPADO' || !datos.animalId))
+    throw new ErrorDominio(400, 'Selecciona un animal para ampliar la capacidad del canil.');
   if (datos.notaMantencion && datos.estado !== 'MANTENIMIENTO')
     throw new ErrorDominio(400, 'La nota de mantención solo se puede guardar durante la mantención.');
   if (datos.estado === 'MANTENIMIENTO' && datos.animalId) throw new ErrorDominio(400, 'El mantenimiento requiere un canil vacío.');
@@ -75,9 +77,17 @@ export async function asignarCanil(datos, user, ip) {
           data: { estado, notas: estado === 'MANTENIMIENTO' ? datos.notaMantencion?.trim() || null : null }
         });
     } else {
-      validarIngresoAnimal({ animal, canil: anterior });
+      let capacidad = anterior.capacidad;
+      if (datos.ampliarCapacidad && animal.canilId !== canilId && anterior.animales.length >= capacidad) {
+        capacidad = anterior.animales.length + 1;
+        if (capacidad > 20) throw new ErrorDominio(409, 'El canil alcanzó el máximo de 20 cupos.');
+      }
+      validarIngresoAnimal({ animal, canil: { ...anterior, capacidad } });
       if (animal.canilId !== canilId) {
         await validarSalida(tx, animal.id);
+        if (capacidad !== anterior.capacidad) {
+          await tx.canil.update({ where: { id: canilId }, data: { capacidad } });
+        }
         await registrarMovimiento(tx, animal, canilId, user.id, motivo);
         await tx.animal.update({ where: { id: animal.id }, data: { canilId, fechaIngresoCanil: new Date() } });
         await sincronizarEstadoCanil(tx, animal.canilId);
@@ -86,7 +96,7 @@ export async function asignarCanil(datos, user, ip) {
     }
     await sincronizarEstadoCanil(tx, canilId);
     const canil = await getCanil(canilId, tx);
-    await registrarAuditoria({ entidad: 'Canil', entidadId: canilId, accion: 'MODIFICACION', valorAnterior: { origen: animal?.canilId, animales: anterior.animales, dias: diasEntre(animal?.fechaIngresoCanil), notaMantencion: anterior.notaMantencion }, valorNuevo: { animales: canil.animales, estado: canil.estado, motivo, notaMantencion: canil.notaMantencion }, usuario: user, ip }, tx);
+    await registrarAuditoria({ entidad: 'Canil', entidadId: canilId, accion: 'MODIFICACION', valorAnterior: { origen: animal?.canilId, animales: anterior.animales, capacidad: anterior.capacidad, dias: diasEntre(animal?.fechaIngresoCanil), notaMantencion: anterior.notaMantencion }, valorNuevo: { animales: canil.animales, capacidad: canil.capacidad, estado: canil.estado, motivo, notaMantencion: canil.notaMantencion }, usuario: user, ip }, tx);
     return { success: true, mensaje: 'Canil actualizado.', canil, animales: canil.animales, animal: canil.animales.find(a => a.id === animalId), cuarentena: canil.cuarentena };
   });
   const { resumen } = await getAllCaniles();

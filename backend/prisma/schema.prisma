@@ -37,7 +37,7 @@ enum SubtipoMovimientoInventario {
 
 enum EstadoSalud {
   NORMAL
-  CONDICION_ESPECIAL
+  ESPECIAL
   CRITICO
 }
 

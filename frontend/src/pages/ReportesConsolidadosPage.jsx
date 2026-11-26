@@ -290,7 +290,7 @@ export default function ReportesConsolidadosPage({ user }) {
               >
                 <option value="">Todos los estados</option>
                 <option value="NORMAL">Normal</option>
-                <option value="CONDICION_ESPECIAL">Condición especial</option>
+                <option value="ESPECIAL">Especial</option>
                 <option value="CRITICO">Crítico</option>
               </Input>
             </div>

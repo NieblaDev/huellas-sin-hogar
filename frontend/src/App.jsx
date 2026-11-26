@@ -113,8 +113,7 @@ function Portal() {
       ) : (
         <>
           {/* SIDEBAR DE NAVEGACIÓN — RETRAÍBLE CON UN CLICK */}
-          <aside className="portal-sidebar" style={{
-            width: sidebarRetraida ? '72px' : '252px',
+          <aside className={`portal-sidebar${sidebarRetraida ? ' is-collapsed' : ''}`} style={{
             height: '100vh',
             borderRight: 'var(--portal-border-emphasis) solid var(--portal-border)',
             display: 'flex',
@@ -123,7 +122,6 @@ function Portal() {
             top: 0,
             left: 0,
             zIndex: 100,
-            transition: 'width 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
             overflowX: 'hidden'
           }}>
             <div className={`portal-sidebar-header${sidebarRetraida ? ' is-collapsed' : ''}`}>
@@ -389,12 +387,10 @@ function Portal() {
           </aside>
 
           {/* ÁREA PRINCIPAL */}
-          <main style={{
-            marginLeft: sidebarRetraida ? '72px' : '252px',
+          <main className={`portal-main${sidebarRetraida ? ' is-sidebar-collapsed' : ''}`} style={{
             flex: 1,
             minHeight: '100vh',
-            boxSizing: 'border-box',
-            transition: 'margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1)'
+            boxSizing: 'border-box'
           }}>
             {/* key={activeTab} remonta el panel y reproduce la transición al cambiar de sección */}
             <div key={activeTab} className="portal-tab-panel">

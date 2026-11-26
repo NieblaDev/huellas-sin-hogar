@@ -5,10 +5,18 @@ export const ocupacionDeCanil = ({ animales, capacidad }) => ({
   porcentaje: Math.round(animales.length * 100 / capacidad)
 });
 
+export function validarEspeciesDelCanil(animal, canil) {
+  const residenteDeOtraEspecie = { Perro: 'Gato', Gato: 'Perro' }[animal.especie];
+  if (residenteDeOtraEspecie && canil.animales.some(a => a.id !== animal.id && a.especie === residenteDeOtraEspecie)) {
+    throw new ErrorDominio(409, 'Perros y gatos deben alojarse en caniles separados.');
+  }
+}
+
 export function validarIngresoAnimal({ animal, canil }) {
   if (animal.activo === false || animal.estadoAdopcion === 'ADOPTADO') throw new ErrorDominio(409, 'El animal está inactivo o adoptado.');
   if (canil.estado === 'MANTENIMIENTO') throw new ErrorDominio(409, 'El canil está en mantenimiento.');
   if (canil.estado === 'CUARENTENA' && animal.canilId !== canil.id) throw new ErrorDominio(409, 'El destino está en cuarentena.');
+  if (animal.canilId !== canil.id) validarEspeciesDelCanil(animal, canil);
   if (canil.animales.filter(a => a.id !== animal.id).length >= canil.capacidad) throw new ErrorDominio(409, 'El canil ya no tiene cupos disponibles.');
 }
 

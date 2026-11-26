@@ -71,7 +71,7 @@ export const createAnimalSchema = z.object({
   estadoSalud: z
     .preprocess(
       (val) => (!val || val === '' ? 'NORMAL' : String(val).toUpperCase()),
-      z.enum(['NORMAL', 'CONDICION_ESPECIAL', 'CRITICO'])
+      z.enum(['NORMAL', 'ESPECIAL', 'CRITICO'])
     )
     .default('NORMAL'),
 
@@ -180,7 +180,7 @@ export const updateAnimalSchema = z.object({
   estadoSalud: z
     .preprocess(
       (val) => (val === undefined || val === '' || val === null ? undefined : String(val).toUpperCase()),
-      z.enum(['NORMAL', 'CONDICION_ESPECIAL', 'CRITICO']).optional()
+      z.enum(['NORMAL', 'ESPECIAL', 'CRITICO']).optional()
     ),
 
   estadoAdopcion: z
@@ -235,7 +235,7 @@ export const updateAnimalSchema = z.object({
 
 export const listarAnimalesSchema = z.object({
   especie: z.string().optional(),
-  estadoSalud: z.string().toUpperCase().pipe(z.enum(['NORMAL', 'CONDICION_ESPECIAL', 'CRITICO'])).optional(),
+  estadoSalud: z.string().toUpperCase().pipe(z.enum(['NORMAL', 'ESPECIAL', 'CRITICO'])).optional(),
   search: z.string().optional(),
   estado: z.string().optional(),
   incluirBajas: z.enum(['true', 'false']).optional(),

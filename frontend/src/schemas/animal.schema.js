@@ -13,7 +13,7 @@ export const fichaAnimalSchema = z.object({
   comportamiento: opcional(),
   esterilizacion: opcional(),
   nota: opcional(),
-  estadoSalud: z.enum(['NORMAL', 'CONDICION_ESPECIAL', 'CRITICO']),
+  estadoSalud: z.enum(['NORMAL', 'ESPECIAL', 'CRITICO']),
   estadoAdopcion: z.enum(['EN_REFUGIO', 'ADOPTADO']).optional(),
   canilId: z.union([z.literal(''), idSeleccion]).optional()
 });

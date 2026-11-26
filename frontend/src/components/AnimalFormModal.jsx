@@ -1,3 +1,4 @@
+import { aceptaEspecieEnCanil } from '../utils/especiesCanil.js';
 import { observacionesAnimal } from '../utils/observacionesAnimal.js';
 import Button from './ui/Button.jsx';
 import Input from './ui/Input.jsx';
@@ -520,7 +521,7 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
                 style={{ width: '100%', padding: '8px', borderRadius: '6px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', background: 'var(--portal-surface)' }}
               >
                 <option value="NORMAL">Normal</option>
-                <option value="CONDICION_ESPECIAL">Condición Especial</option>
+                <option value="ESPECIAL">Especial</option>
                 <option value="CRITICO">Crítico</option>
               </Input>
             </div>
@@ -550,7 +551,8 @@ export default function AnimalFormModal({ isOpen, onClose, onGuardar, onSuccess,
               >
                 <option value="">— Sin asignar —</option>
                 {caniles
-                  .filter((c) => c.estado !== 'MANTENIMIENTO' && ((c.estado !== 'CUARENTENA' && c.ocupacion?.libres > 0) || Number(c.id) === Number(canilActualId)))
+                  .filter((c) => c.estado !== 'MANTENIMIENTO' && ((c.estado !== 'CUARENTENA' && c.ocupacion?.libres > 0 &&
+                    aceptaEspecieEnCanil({ id: animalEditar?.id, especie: formData.especie }, c)) || Number(c.id) === Number(canilActualId)))
                   .map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre} ({c.sector}){canilActualId && Number(c.id) === Number(canilActualId) ? ' — Actual' : ''}

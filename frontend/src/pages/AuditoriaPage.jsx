@@ -421,7 +421,7 @@ export default function AuditoriaPage({ user }) {
 
       <div className="portal-page-scroll-content">
         {/* TABLA DE AUDITORÍA CON CLIC EN FILA */}
-        <div style={{ background: 'var(--portal-surface)', borderRadius: '16px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(20,24,32,0.03)' }}>
+        <div className="portal-auditoria-tabla" style={{ background: 'var(--portal-surface)', borderRadius: '16px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(20,24,32,0.03)' }}>
           <div style={{ padding: '16px 20px', borderBottom: 'var(--portal-border-emphasis) solid #f0f1f3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1f2430' }}>
               Total de registros: {total} {auditoriasFiltradas.length !== auditorias.length && `(mostrando ${auditoriasFiltradas.length})`}
@@ -431,7 +431,7 @@ export default function AuditoriaPage({ user }) {
             </span>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
+          <div className="portal-auditoria-registros">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
               <thead>
                 <tr style={{ background: 'var(--portal-surface-muted)', borderBottom: 'var(--portal-border-emphasis) solid var(--portal-border)', textAlign: 'left', color: 'var(--portal-text-muted)' }}>

@@ -1,4 +1,4 @@
-import { bloquearCaniles, buscarCanil, registrarMovimiento, sincronizarEstadoCanil, validarIngresoAnimal, validarSalida } from './canilOcupacion.js';
+import { bloquearCaniles, buscarCanil, registrarMovimiento, sincronizarEstadoCanil, validarEspeciesDelCanil, validarIngresoAnimal, validarSalida } from './canilOcupacion.js';
 import { ErrorDominio } from '../utils/errorDominio.js';
 import prisma from '../config/prisma.js';
 import { registrarAuditoria } from './audit.service.js';
@@ -156,7 +156,7 @@ export const createAnimal = async (data, user, ip) => {
     const destino = canilId ? Number(canilId) : null;
     if (destino) {
       await bloquearCaniles(tx, destino);
-      validarIngresoAnimal({ animal: { activo: true }, canil: await buscarCanil(tx, destino) });
+      validarIngresoAnimal({ animal: { activo: true, especie: especieFinal }, canil: await buscarCanil(tx, destino) });
     }
     const creado = await tx.animal.create({
     data: {
@@ -321,6 +321,8 @@ export const updateAnimal = async (id, data, user, ip) => {
     if (cambio) await validarSalida(tx, animal.id);
     if (destino && cambio) {
       validarIngresoAnimal({ animal: { ...animal, ...updatePayload }, canil: await buscarCanil(tx, destino) });
+    } else if (destino && updatePayload.especie && updatePayload.especie !== animal.especie) {
+      validarEspeciesDelCanil({ ...animal, ...updatePayload }, await buscarCanil(tx, destino));
     }
     if (cambio) {
       updatePayload.canilId = destino;

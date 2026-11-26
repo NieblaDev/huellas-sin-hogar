@@ -34,7 +34,7 @@ El sistema centraliza el control de ingresos, ocupación de caniles, expedientes
 ### 1. 📊 Inicio (Dashboard Operativo en Tiempo Real)
 - **Indicadores Clave (KPIs):** Conteo de animales albergados, caniles ocupados/libres, porcentaje de ocupación, insumos en stock crítico y turnos descubiertos.
 - **Alertas Prioritarias:** Avisos automáticos ante sobrecupo (>90%), medicamentos por vencer y solicitudes pendientes.
-- **Tendencias y Distribución:** Gráficas de solo lectura con desglose por especie (perros / gatos) y clasificación clínica (Normal, Condición Especial, Crítico).
+- **Tendencias y Distribución:** Gráficas de solo lectura con desglose por especie (perros / gatos) y clasificación clínica (Normal, Especial, Crítico).
 - **Notificaciones del Staff:** Campana con listado desplegable de eventos prioritarios en vivo.
 
 ### 2. 🐶 Registro de Ingreso, Fichas de Animales y Reportes

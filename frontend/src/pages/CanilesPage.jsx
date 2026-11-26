@@ -1,11 +1,7 @@
-import { DndContext, DragOverlay, closestCenter, pointerWithin } from '@dnd-kit/core';
-import { useParams } from 'react-router-dom';
-import { QrCode } from 'lucide-react';
+import { DndContext, DragOverlay, closestCenter, pointerWithin, useDraggable, useDroppable } from '@dnd-kit/core';
+import { useNavigate, useParams } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { destinoInvalido, useCanilesDragAndDrop, accesibilidadArrastre } from '../hooks/useCanilesDragAndDrop';
-import CanilCard from '../components/caniles/CanilCard';
-import CanilDetalleModal from '../components/caniles/CanilDetalleModal';
-import QrEtiquetasModal from '../components/caniles/QrEtiquetasModal';
-import { textoCuarentena } from '../components/caniles/CuarentenaBadge';
 import '../styles/caniles.css';
 import Card from '../components/ui/Card.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -21,24 +17,37 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowLeftRight,
   Bell,
+  ChartColumn,
   ClipboardList,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
   DoorOpen,
+  FileText,
+  LogOut,
   Map,
   MapPin,
   PawPrint,
   Plus,
+  QrCode,
   Send,
   Search,
   ShieldCheck,
   Siren,
   Trash2,
+  TrendingUp,
   TriangleAlert,
+  Wrench,
   X
 } from 'lucide-react';
-import { asignarCanil, crearCanil, eliminarCanil as eliminarCanilApi, listarCaniles, listarTraslados, resolverTraslado, solicitarTraslado } from '../services/canil.service.js';
+import { actualizarCanil, actualizarSector, asignarCanil, crearCanil, finalizarCuarentena, eliminarCanil as eliminarCanilApi, listarCaniles, listarTraslados, resolverTraslado, solicitarTraslado } from '../services/canil.service.js';
 import { listarAnimales } from '../services/animal.service.js';
 import AnimalSelect from '../components/AnimalSelect';
+import { resumirAnimalEnCanil } from '../utils/condicionAnimal';
 import { formatearErrorApi } from '../utils/errores';
+import { DIAS_ESTADIA_PROLONGADA, diasRestantesCuarentena, formatearDiasEnCanil } from '../utils/dias';
+import { mezclaPerrosYGatos } from '../utils/especiesCanil.js';
+import { imagenQr, urlCanil } from '../utils/qr';
 
 const ETIQUETAS_TIPO_TRASLADO = {
   INTERNO_CANIL: 'Movimiento interno entre caniles',
@@ -75,6 +84,422 @@ const formatearFecha = (fecha, incluirHora = false) => {
 
 const normalizarBusqueda = texto => texto.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
 
+function textoCuarentena(q) {
+  const n = diasRestantesCuarentena(q.fechaFinEstimada);
+  if (n < 0) return 'Cuarentena vencida hace ' + Math.abs(n) + (n === -1 ? ' día' : ' días');
+  return 'Cuarentena · ' + (n === 0 ? 'vence hoy' : n === 1 ? 'vence mañana' : 'quedan ' + n + ' días');
+}
+function CuarentenaBadge({ cuarentena }) {
+  return cuarentena && <strong className="canil-cuarentena">{textoCuarentena(cuarentena)}</strong>;
+}
+
+function CanilGrupoAvatarStack({ animales, capacidad }) {
+  return <div className="canil-avatares">
+    <strong>{animales.length} / {capacidad}</strong>
+    {/* {animales.slice(0,3).map(a => <AnimalPhoto key={a.id} src={a.fotoUrl} className="portal-animal-photo-thumb"/>)}
+    {animales.length > 3 && <b>+{animales.length-3}</b>} */}
+    <span>animales</span>
+  </div>;
+}
+
+function Residente({ animal, origen, bloqueado }) {
+  const drag = useDraggable({ id: 'animal-' + animal.id, data: { animal, origen },
+    disabled: bloqueado || !animal.activo || animal.estadoAdopcion === 'ADOPTADO' || origen?.estado === 'CUARENTENA' });
+  return <button type="button" className="portal-canil-resident canil-residente" ref={drag.setNodeRef} {...drag.attributes} {...drag.listeners}
+    aria-label={(origen ? 'Mover a ' : 'Arrastrar a ') + animal.nombre}
+    onClick={origen ? () => document.getElementById('abrir-canil-' + origen.id)?.click() : undefined}>
+    <AnimalPhoto src={animal.fotoUrl} className="portal-animal-photo-thumb"/>
+    <span className="canil-residente-info">
+      <span>{animal.nombre}</span>
+      <small>{resumirAnimalEnCanil(animal)}</small>
+    </span>
+  </button>;
+}
+const DESTINO_SIN_CANIL = 'animales-sin-canil';
+
+function AnimalesSinCanil({ animales, retraido, cambiar, bloqueado }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: DESTINO_SIN_CANIL, data: { nombre: 'Animales sin canil', sinCanil: true }, disabled: bloqueado
+  });
+  return (
+    <aside ref={setNodeRef} className={`canil-dock${isOver ? ' canil-dock-destino' : ''}`} aria-label="Animales sin canil">
+      <div className="canil-dock-header">
+        {!retraido && <>
+          <PawPrint size={19} aria-hidden="true" />
+          <h3>Animales sin canil</h3>
+          <span className="canil-modal-chip" aria-label={animales.length + ' animales sin canil'}>{animales.length}</span>
+        </>}
+        <Button key="plegar-panel" className={retraido ? 'portal-btn portal-btn-secondary canil-dock-expandir' : 'canil-dock-toggle'}
+          aria-expanded={!retraido} aria-controls="canil-dock-lista" onClick={cambiar}
+          aria-label={retraido ? 'Expandir animales sin canil (' + animales.length + ')' : 'Plegar animales sin canil'}>
+          {retraido ? <>
+            <PawPrint size={19} aria-hidden="true" />
+            <span>Sin canil</span>
+            <span className="canil-modal-chip">{animales.length}</span>
+            <ChevronRight size={16} aria-hidden="true" />
+          </> : <>
+            <ChevronLeft size={18} aria-hidden="true" />
+          </>}
+        </Button>
+      </div>
+      <div id="canil-dock-lista" className="canil-dock-cuerpo" hidden={retraido}>
+        {animales.length ? <>
+          <p>Arrastra un animal al mapa para asignarlo.</p>
+          <ul className="canil-dock-lista">
+            {animales.map(animal => <li key={animal.id}>
+              <Residente animal={animal} origen={null} bloqueado={bloqueado} />
+            </li>)}
+          </ul>
+        </> : <p>Todos los animales están asignados a un canil.</p>}
+      </div>
+    </aside>
+  );
+}
+
+export function CanilCard({ canil, abrir, bloqueado, resaltado }) {
+  const { setNodeRef, isOver } = useDroppable({ id: canil.id, data: { nombre: canil.nombre }, disabled: bloqueado });
+  const animales = canil.animales;
+  return <article ref={setNodeRef} data-estado={canil.estado} className={'portal-card-selectable canil-tarjeta ' + (isOver || resaltado ? 'canil-resaltado' : '')}>
+    <button className="canil-abrir" id={'abrir-canil-' + canil.id} onClick={() => abrir(canil)}
+      aria-label={[canil.nombre,canil.estado, animales.length + ' de ' + canil.capacidad, ...animales.map(a => a.nombre)].join(', ')}>
+      <strong>{canil.nombre}</strong><span className="canil-estado">{canil.estado}</span></button>
+    <p className="canil-sector">Sector: <strong>{canil.sector}</strong></p>
+    {canil.capacidad > 1 && <><CanilGrupoAvatarStack animales={animales} capacidad={canil.capacidad}/></>}
+    {animales.length ? (
+      <div className={animales.length > 1 ? 'canil-residentes-grupo' : undefined}
+        role={animales.length > 1 ? 'group' : undefined}
+        aria-label={animales.length > 1 ? 'Residentes del canil, en una fila desplazable' : undefined}>
+        {animales.map(animal => <Residente key={animal.id} animal={animal} origen={canil} bloqueado={bloqueado} />)}
+      </div>
+    ) : <div className="canil-vacio">{canil.estado === 'MANTENIMIENTO' ? <><Wrench size={16}/> En mantenimiento</> : <><DoorOpen size={16}/> Canil disponible</>}</div>}
+    {mezclaPerrosYGatos(animales) && <span className="canil-cuarentena">Perros y gatos por separar</span>}
+    <CuarentenaBadge cuarentena={canil.cuarentena}/>
+  </article>;
+}
+
+const fechaEn = n => new Date(Date.now() + n * 86400000).toISOString().slice(0,10);
+
+function CuarentenaPanel({ c, user, ejecutar, confirmar }) {
+  const [inicio, abrir] = useState(c.estado === 'CUARENTENA'), [motivo, escribir] = useState(''), [observaciones, observar] = useState(''), [fin, fechar] = useState(fechaEn(14));
+  const [notaCierre, escribirNotaCierre] = useState('');
+  if (c.capacidad > 1) return <p>La cuarentena requiere un canil individual. Mueve a los animales a caniles individuales para continuar.</p>;
+  if (!c.animales.length) return null;
+  if (c.cuarentena) return <section><CuarentenaBadge cuarentena={c.cuarentena}/><p>{c.cuarentena.motivo} · Término estimado {c.cuarentena.fechaFinEstimada.slice(0,10)}</p>
+    {c.cuarentena.observaciones && <p className="canil-nota">{c.cuarentena.observaciones}</p>}
+    {['DIRECCION','PERSONAL_VETERINARIO'].includes(user.rol) && <><label>Nota de cierre (opcional)<textarea maxLength={4000} value={notaCierre} onChange={e => escribirNotaCierre(e.target.value)}/></label>
+      <Button className="portal-btn portal-btn-secondary" onClick={async () => {
+        if (await confirmar({ titulo: 'Finalizar cuarentena', mensaje: c.animales[0].nombre, accion: 'Finalizar' }))
+          ejecutar(() => finalizarCuarentena(c.id, { animalId: c.animales[0].id, observaciones: notaCierre.trim() || null }), 'Cuarentena finalizada.');
+      }}>Finalizar cuarentena</Button></>}
+    </section>;
+  return <section>{c.estado === 'CUARENTENA' && <p>Este aislamiento anterior no tiene fecha registrada. Completa el motivo y la fecha de término.</p>}<label className="canil-cuarentena-control canil-cuarentena-label"><span>En cuarentena</span><input className="canil-cuarentena-checkbox" type="checkbox" checked={inicio} onChange={e => abrir(e.target.checked)}/></label>
+    {inicio && <form className="canil-campos" onSubmit={e => { e.preventDefault(); ejecutar(() => asignarCanil({ canilId: c.id, animalId: c.animales[0].id, origenEsperadoId: c.id, estado: 'CUARENTENA', motivo, fechaFinEstimada: fin, observaciones: observaciones.trim() || null })); }}>
+      <label>Motivo<input required minLength={5} value={motivo} onChange={e => escribir(e.target.value)}/></label>
+      <label>Duración<select defaultValue="14" onChange={e => fechar(fechaEn(Number(e.target.value)))}>{[7,14,21,30].map(n => <option key={n} value={n}>{n} días</option>)}</select></label>
+      <label>Fecha de término<input type="date" required min={fechaEn(1)} value={fin} onChange={e => fechar(e.target.value)}/></label>
+      <label>Nota de cuarentena (opcional)<textarea maxLength={4000} value={observaciones} onChange={e => observar(e.target.value)}/></label><Button className="portal-btn portal-btn-primary" type="submit">Iniciar cuarentena</Button>
+    </form>}</section>;
+}
+
+function MoverAnimalDialog({ animal, origen, caniles, mover }) {
+  const destinos = caniles.filter(c => !destinoInvalido(animal, c, origen));
+  return <label>Destino para {animal.nombre}
+    <Input as="select" autoFocus defaultValue="" onChange={e => e.target.value && mover(Number(e.target.value))}>
+      <option value="">{destinos.length ? 'Seleccionar destino' : 'Sin destinos disponibles'}</option>
+      {destinos.map(c => <option key={c.id} value={c.id}>{c.nombre} · {c.sector}</option>)}
+    </Input>
+  </label>;
+}
+
+function SelectorSectorCanil({ sectores, sectorInicial = '', onChange, error }) {
+  const [opcion, seleccionar] = useState(sectorInicial);
+  const crearSector = opcion === '';
+  return (
+    <div className="canil-selector-sector">
+      <Input as="select" label="Sector" className="portal-select" name={crearSector ? undefined : 'sector'}
+        value={opcion} error={crearSector ? undefined : error} onChange={e => {
+          seleccionar(e.target.value);
+          onChange?.(e.target.value);
+        }}>
+        <option value="">— Crear un nuevo sector —</option>
+        {sectores.map(sector => <option key={sector} value={sector}>{sector}</option>)}
+      </Input>
+      {crearSector && <Input as="input" label="Nuevo sector" className="portal-input" name="sector"
+        required maxLength={60} placeholder="Ej: Patio Principal" error={error}
+        onChange={e => onChange?.(e.target.value)} />}
+    </div>
+  );
+}
+
+function CanilDetalleModal({ c, caniles, sectores, animales, user, cerrar, recargar, eliminar }) {
+  const navegar = useNavigate();
+  const [tab, elegir] = useState('Resumen'), [id, seleccionar] = useState(''), [moviendo, mover] = useState(null);
+  const [espera, esperar] = useState(false), [error, fallo] = useState('');
+  const [edicion, editar] = useState(false);
+  const [iniciarMantencion, mostrarMantencion] = useState(false);
+  const { confirmar, avisar } = usePortalFeedback();
+  const residenteUnico = c.animales.length === 1 ? c.animales[0] : null;
+  const enCuarentena = c.estado === 'CUARENTENA';
+  const direccion = user.rol === 'DIRECCION';
+  async function ejecutar(peticion, mensaje = 'Canil actualizado.') {
+    esperar(true); fallo('');
+    try {
+      const r = await peticion(), data = await r.json();
+      if (!r.ok) throw Error(formatearErrorApi(data, 'No se pudo actualizar el canil.'));
+      seleccionar(''); mover(null); editar(false); mostrarMantencion(false); avisar(mensaje,'exito');
+    } catch (e) { fallo(e.message); }
+    finally { await recargar(); esperar(false); }
+  }
+  const asignar = datos => ejecutar(() => asignarCanil({ canilId: c.id, ...datos }));
+  const enAnimales = tab === 'Animales';
+  const cuposLibres = c.ocupacion.libres;
+  const puedeAmpliar = enAnimales && c.capacidad < 20;
+  const mostrarSelector = !['MANTENIMIENTO', 'CUARENTENA'].includes(c.estado) && (cuposLibres > 0 || puedeAmpliar);
+  const disponibles = animales.filter(animal => !destinoInvalido(
+    animal, c, caniles.find(canil => canil.id === animal.canilId), { ampliarCapacidad: puedeAmpliar }
+  ));
+  const seleccionado = disponibles.find(animal => String(animal.id) === id);
+  return <Modal nombre={c.nombre} onClose={cerrar} bloqueado={espera} papel={{ className: 'canil-modal canil-ficha' }}>
+    <header className="canil-modal-header" data-estado={c.estado}>
+      <div className="canil-icono"><DoorOpen size={22}/></div>
+      <div className="canil-identidad"><small>Gestión de canil</small><h2>{c.nombre}</h2>
+        <div className="canil-chips"><span className="canil-estado" style={{ marginRight: '12px' }}>{c.estado}</span>
+          <span className="canil-modal-chip"><MapPin size={12}/>{c.sector}</span>
+        </div>
+      </div>
+      <Button className="canil-cerrar" aria-label="Cerrar" onClick={cerrar} disabled={espera}><X size={17}/></Button>
+    </header>
+    <nav className="canil-nav" aria-label="Detalle del canil">{['Resumen','Animales'].map(t =>
+      <Button aria-pressed={t===tab} key={t} onClick={() => { elegir(t); mover(null); seleccionar(''); }}>{t}</Button>)}</nav>
+    <div className="canil-modal-body">
+    {error && <p role="alert" className="portal-alert portal-alert-error">{error}</p>}
+    <fieldset disabled={espera}>
+      <section className="canil-modal-seccion"><div className="canil-seccion-cabecera">
+        <h3 className="canil-modal-seccion-titulo">{c.capacidad === 1 ? 'Animal en el canil' : 'Animales en el canil'}</h3>
+        <span className="canil-modal-chip">{c.animales.length} / {c.capacidad} cupos</span>
+      </div>
+      {!c.animales.length && <strong>Canil libre</strong>}
+      {c.animales.map(a => <div className="canil-fila" key={a.id}>
+        <AnimalPhoto src={a.fotoUrl} className="portal-animal-photo-thumb"/>
+        <div className="canil-residente-info">
+          <strong>{a.nombre}</strong>
+          <small>{resumirAnimalEnCanil(a)}</small>
+        </div>
+        <span className="canil-estadia">
+          <Clock size={12} aria-hidden="true" /> Estadía · {formatearDiasEnCanil(a.diasEnCanil)}
+          {a.diasEnCanil >= DIAS_ESTADIA_PROLONGADA && <span title="Al menos 30 días en este canil">· Estadía prolongada</span>}
+        </span>
+        {enAnimales && <div className="canil-fila-acciones">
+          <Button className="portal-btn portal-btn-secondary canil-accion" aria-label={'Ver ficha de ' + a.nombre}
+            onClick={() => navegar('/animales?ficha=' + a.id)}>
+            <FileText size={16} aria-hidden="true" /> Ver ficha
+          </Button>
+          {!residenteUnico && <>
+            <Button className="portal-btn portal-btn-primary canil-accion" disabled={espera || enCuarentena}
+              aria-label={'Mover a ' + a.nombre} onClick={() => mover(a.id)}>
+              <ArrowLeftRight size={16} aria-hidden="true" /> Mover
+            </Button>
+            <Button className="portal-btn portal-btn-danger canil-accion" disabled={espera || enCuarentena}
+              aria-label={'Retirar a ' + a.nombre + ' del canil'}
+              onClick={() => asignar({ animalId: a.id, estado: 'LIBRE' })}>
+              <LogOut size={16} aria-hidden="true" /> Retirar del canil
+            </Button>
+          </>}
+        </div>}
+        {moviendo === a.id && <MoverAnimalDialog animal={a} origen={c} caniles={caniles}
+          mover={destino => asignar({canilId:destino,animalId:a.id,origenEsperadoId:c.id,estado:'OCUPADO'})}/>}
+      </div>)}
+      {mostrarSelector && <>
+        <div className="canil-asignacion">
+          <AnimalSelect animales={disponibles} describir={resumirAnimalEnCanil} value={seleccionado ? id : ''} onChange={seleccionar} disabled={espera} />
+          <Button className="portal-btn portal-btn-primary" disabled={!seleccionado} onClick={() => asignar({
+            animalId: seleccionado.id,
+            origenEsperadoId: seleccionado.canilId ?? null,
+            estado: 'OCUPADO',
+            ampliarCapacidad: puedeAmpliar
+          })}>
+            {enAnimales && <Plus size={16} aria-hidden="true" />}
+            {enAnimales && c.animales.length ? 'Agregar otro animal' : 'Asignar animal'}
+          </Button>
+        </div>
+        {puedeAmpliar && !cuposLibres && <p className="canil-ayuda">Al agregar otro animal, la capacidad aumentará a {c.capacidad + 1} cupos.</p>}
+      </>}
+      {enAnimales && c.capacidad >= 20 && !cuposLibres &&
+        <p className="canil-ayuda">El canil alcanzó el máximo de 20 cupos.</p>}
+
+      </section>
+      {tab === 'Resumen' && <>
+        <section className="canil-modal-seccion"><div className="canil-seccion-cabecera">
+          <div><h3 className="canil-modal-seccion-titulo">Sector del canil</h3><span>{c.sector}</span></div>
+        <Button className="portal-btn portal-btn-secondary" onClick={() => editar(!edicion)}>{direccion ? 'Editar canil' : 'Cambiar sector'}</Button></div>
+        {edicion && <form className="canil-campos" onSubmit={e => {
+          e.preventDefault(); const datos=Object.fromEntries(new FormData(e.currentTarget));
+          ejecutar(() => direccion ? actualizarCanil(c.id,{...datos,capacidad:Number(datos.capacidad)}) : actualizarSector(c.id,datos));
+        }}>
+          <SelectorSectorCanil sectores={sectores} sectorInicial={c.sector} />
+          {direccion && <>
+          <label>Capacidad<input type="number" required min={1} max={20} name="capacidad" defaultValue={c.capacidad}/></label>
+          </>}
+          <Button className="portal-btn portal-btn-primary" type="submit">Guardar cambios</Button></form>}
+        </section>
+
+        {(iniciarMantencion || c.estado === 'MANTENIMIENTO') && <section className="canil-modal-seccion">
+          <h3 className="canil-modal-seccion-titulo">Mantención</h3>
+          {iniciarMantencion ? <form className="canil-campos" onSubmit={e => {
+            e.preventDefault();
+            const notaMantencion = new FormData(e.currentTarget).get('notaMantencion');
+            asignar({ estado: 'MANTENIMIENTO', notaMantencion });
+          }}>
+            <label className="canil-ancho">Nota de mantención (opcional)
+              <textarea name="notaMantencion" rows={3} maxLength={500} defaultValue={c.notaMantencion || ''} autoFocus />
+            </label>
+            <Button className="portal-btn portal-btn-primary" type="submit">
+              {c.estado === 'MANTENIMIENTO' ? 'Guardar nota' : 'Iniciar mantención'}
+            </Button>
+          </form> : <>
+            {c.notaMantencion && <p className="canil-nota">{c.notaMantencion}</p>}
+            <Button className="portal-btn portal-btn-secondary" onClick={() => mostrarMantencion(true)}>
+              {c.notaMantencion ? 'Editar nota de mantención' : 'Agregar nota de mantención'}
+            </Button>
+          </>}
+        </section>}
+        {c.animales.length > 0 && <section className="canil-modal-seccion"><h3 className="canil-modal-seccion-titulo">Cuarentena</h3>
+          <CuarentenaPanel c={c} user={user} ejecutar={ejecutar} confirmar={confirmar}/></section>}
+      </>}
+    </fieldset>
+    </div>
+    {(tab === 'Resumen' || (tab === 'Animales' && residenteUnico)) && <footer className="canil-modal-footer">
+      <fieldset disabled={espera} className="canil-acciones">
+        {residenteUnico && <Button className="portal-btn portal-btn-primary canil-accion" disabled={espera || enCuarentena} onClick={() => mover(residenteUnico.id)}>
+          <ArrowLeftRight size={16} aria-hidden="true" /> Mover animal
+        </Button>}
+        {c.animales.length > 0 && <Button className="portal-btn portal-btn-danger canil-accion" disabled={espera || enCuarentena} onClick={async () => {
+          if (c.animales.length === 1 || await confirmar({ titulo:'Liberar canil', mensaje:'Se liberarán ' + c.animales.length + ' animales. ¿Continuar?', accion:'Liberar todos' }))
+            asignar({ estado:'LIBRE', confirmarLiberacionMultiple:true });
+        }}><LogOut size={16} aria-hidden="true" /> Liberar canil</Button>}
+        {!c.animales.length && <Button className="portal-btn portal-btn-secondary" onClick={() => {
+          if (iniciarMantencion) mostrarMantencion(false);
+          else if (c.estado === 'MANTENIMIENTO') asignar({ estado: 'LIBRE' });
+          else mostrarMantencion(true);
+        }}>{iniciarMantencion ? 'Cancelar' : c.estado === 'MANTENIMIENTO' ? 'Finalizar mantención' : 'Poner en mantención'}</Button>}
+        {!c.animales.length && <Button className="portal-btn portal-btn-danger" onClick={eliminar}><Trash2 size={14}/> Eliminar canil</Button>}
+    </fieldset></footer>}
+  </Modal>;
+}
+
+export function QrEtiquetasModal({ todos, sector, filtrados, cerrar }) {
+  const [alcance, elegir] = useState('todos');
+  const [imagenes, guardar] = useState({});
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let vigente = true;
+    Promise.all(todos.map(async c => [c.id, await imagenQr(c.id)])).then(pares => {
+      if (vigente) guardar(Object.fromEntries(pares));
+    }).catch(() => vigente && setError('Error al generar los códigos QR.'));
+    return () => { vigente = false; };
+  }, [todos]);
+  const lista = { todos, sector, filtro: filtrados }[alcance];
+  const etiquetasPorHoja = 30;
+  const etiquetas = lista.map(c => <article className="qr-etiqueta" key={c.id}>
+    <h3>{c.nombre}</h3>
+    {imagenes[c.id] && <img src={imagenes[c.id]} alt={'QR de ' + c.nombre} />}
+  </article>);
+  return <Modal nombre="Etiquetas QR" onClose={cerrar} papel={{ className: "canil-modal canil-qr-modal" }}>
+    <header className="canil-modal-header"><div className="canil-icono"><QrCode size={22}/></div><h2>Etiquetas QR</h2>
+      <Button className="canil-cerrar" aria-label="Cerrar etiquetas QR" onClick={cerrar}><X size={17}/></Button></header>
+    <div className="canil-modal-body"><div className="canil-opciones-qr">
+    <label>Imprimir <select value={alcance} onChange={e => elegir(e.target.value)}><option value="todos">Todos los caniles</option><option value="sector">Sector actual</option><option value="filtro">Filtro actual</option></select></label>
+    </div>
+    {['localhost','127.0.0.1'].includes(new URL(urlCanil(1)).hostname) && <p>La URL del QR apunta a localhost; desde un celular no abrirá. Configura VITE_PUBLIC_APP_URL con el dominio público.</p>}
+    {error && <p role="alert">{error}</p>}
+    <div className="qr-preview">{etiquetas}</div></div>
+    <footer className="canil-modal-footer"><Button className="portal-btn portal-btn-secondary" onClick={cerrar}>Cerrar</Button> <Button className="portal-btn portal-btn-primary" disabled={!lista.length || lista.some(c => !imagenes[c.id])} onClick={() => window.print()}>Imprimir</Button></footer>
+    {createPortal(
+      <div className="qr-print-area" aria-hidden="true">
+        {Array.from({ length: Math.ceil(etiquetas.length / etiquetasPorHoja) }, (_, i) => (
+          <div className="qr-hoja" key={i}>
+            {etiquetas.slice(i * etiquetasPorHoja, (i + 1) * etiquetasPorHoja)}
+          </div>
+        ))}
+      </div>,
+      document.body
+    )}
+  </Modal>;
+}
+
+function medirOcupacion(caniles) {
+  return caniles.reduce((totales, canil) => {
+    const alojados = canil.animales.length;
+    const libreParaAsignar = ['LIBRE', 'OCUPADO'].includes(canil.estado) && !mezclaPerrosYGatos(canil.animales);
+    totales.capacidad += canil.capacidad;
+    totales.alojados += alojados;
+    if (libreParaAsignar) totales.disponibles += Math.max(0, canil.capacidad - alojados);
+    return totales;
+  }, { capacidad: 0, alojados: 0, disponibles: 0 });
+}
+
+function OcupacionCaniles({ caniles, sectores, cargando }) {
+  if (cargando && !caniles.length) return <p role="status">Cargando ocupación…</p>;
+  const { capacidad, alojados, disponibles } = medirOcupacion(caniles);
+  const porcentaje = capacidad ? Math.round(alojados / capacidad * 100) : null;
+  const estados = [
+    ['LIBRE', 'Libres'], ['OCUPADO', 'Ocupados'],
+    ['CUARENTENA', 'En cuarentena'], ['MANTENIMIENTO', 'En mantención']
+  ];
+  const porSeparar = caniles.filter(canil => mezclaPerrosYGatos(canil.animales));
+  const alertaOcupacion = porcentaje > 90;
+  const indicadores = [
+    { etiqueta: 'Ocupación total', valor: porcentaje === null ? '—' : porcentaje + '%',
+      detalle: alertaOcupacion ? 'Ocupación sobre el 90%' : `${alojados} / ${capacidad} cupos ocupados`, Icono: TrendingUp, alerta: alertaOcupacion },
+    { etiqueta: 'Animales alojados', valor: alojados, Icono: PawPrint },
+    { etiqueta: 'Capacidad total', valor: capacidad, detalle: `${caniles.length} caniles`, Icono: DoorOpen },
+    { etiqueta: 'Cupos disponibles', valor: disponibles, detalle: 'Cupos habilitados para asignar', Icono: ShieldCheck }
+  ];
+  return (
+    <section className="canil-ocupacion" aria-labelledby="canil-ocupacion-titulo">
+      <h3 id="canil-ocupacion-titulo">Ocupación de caniles</h3>
+      {porSeparar.length > 0 && <p className="portal-alert" role="status">
+        Perros y gatos por separar en {porSeparar.map(canil => canil.nombre).join(', ')}.
+      </p>}
+      <dl className="canil-kpis">
+        {indicadores.map(({ etiqueta, valor, detalle, Icono, alerta }) => (
+          <div className={`canil-kpi${alerta ? ' canil-kpi-alerta' : ''}`} key={etiqueta}>
+            <dt>{etiqueta}<span className="canil-kpi-icono"><Icono size={20} aria-hidden="true" /></span></dt>
+            <dd><strong>{valor}</strong>{detalle && <small>{detalle}</small>}</dd>
+          </div>
+        ))}
+      </dl>
+      <p>La ocupación compara los animales alojados con la capacidad total. Los cupos disponibles excluyen caniles en cuarentena, en mantención o con perros y gatos por separar.</p>
+      <div className="canil-ocupacion-paneles">
+        <section className="canil-ocupacion-panel">
+          <h4><ChartColumn size={17} aria-hidden="true" /> Ocupación por sector</h4>
+          {!sectores.length ? <p>No hay caniles registrados.</p> : (
+            <ul className="canil-ocupacion-sectores">
+              {sectores.map(sector => {
+                const datos = medirOcupacion(caniles.filter(canil => canil.sector === sector));
+                const ocupacionAlta = datos.capacidad > 0 && datos.alojados / datos.capacidad > 0.9;
+                return <li key={sector}>
+                  <div><strong>{sector}</strong><span>{datos.alojados} / {datos.capacidad} cupos · {datos.disponibles} disponibles</span></div>
+                  <progress className={ocupacionAlta ? 'canil-progreso-alerta' : undefined}
+                    aria-label={`Ocupación de ${sector}`} value={datos.alojados} max={datos.capacidad || 1} />
+                </li>;
+              })}
+            </ul>
+          )}
+        </section>
+        <section className="canil-ocupacion-panel">
+          <h4><DoorOpen size={17} aria-hidden="true" /> Caniles por estado</h4>
+          <dl className="canil-ocupacion-estados">
+            {estados.map(([estado, etiqueta]) => <div key={estado} data-estado={estado}>
+              <dt>{etiqueta}</dt><dd>{caniles.filter(canil => canil.estado === estado).length}</dd>
+            </div>)}
+          </dl>
+        </section>
+      </div>
+    </section>
+  );
+}
+
 export default function CanilesPage({ user }) {
   const { avisar } = usePortalFeedback();
   const [caniles, setCaniles] = useState([]);
@@ -94,8 +519,6 @@ export default function CanilesPage({ user }) {
   const [agregarCanilOpen, setAgregarCanilOpen] = useState(false);
   const altaCanilForm = useFormulario(crearCanilSchema, { sector: '' });
   const nuevoCanil = altaCanilForm.valores;
-  const setNuevoCanil = actualizar => typeof actualizar === 'function' ? altaCanilForm.cambiarCampos(actualizar) : altaCanilForm.reset(actualizar);
-  const [sectorMode, setSectorMode] = useState('select'); // 'select' | 'nuevo'
   const [errorNuevoCanil, setErrorNuevoCanil] = useState(null);
   const creandoCanil = altaCanilForm.isSubmitting;
 
@@ -111,6 +534,7 @@ export default function CanilesPage({ user }) {
   const [qr, abrirQr] = useState(false);
   const [orden, ordenar] = useState('nombre');
   const [arrastre, arrastrar] = useState(null);
+  const [dockRetraido, retraerDock] = useState(true);
   const [guardando, guardar] = useState(false);
   const [undo, deshacer] = useState(null);
   const sensores = useCanilesDragAndDrop();
@@ -204,24 +628,43 @@ export default function CanilesPage({ user }) {
 
   async function moverAnimal(animal, origen, destino, inverso = false) {
     if (guardando) return;
-    const razon = destinoInvalido(animal, destino, origen);
+    const liberar = destino === null;
+    if (liberar && !origen) return;
+    if (liberar && origen.estado === 'CUARENTENA') {
+      avisar('Finaliza la cuarentena antes de liberar al animal.', 'error');
+      return;
+    }
+    const razon = liberar ? '' : destinoInvalido(animal, destino, origen);
     if (razon) { avisar(razon, 'error'); return; }
     guardar(true);
     deshacer(null);
     const anteriores = caniles;
+    const animalesAnteriores = animales;
+    setAnimales(actuales => actuales.map(actual =>
+      actual.id === animal.id ? { ...actual, canilId: destino?.id ?? null } : actual));
     setCaniles(caniles.map(c => {
-      if (![origen.id,destino.id].includes(c.id)) return c;
-      const residentes = c.id === origen.id ? c.animales.filter(a => a.id !== animal.id) : [...c.animales,{...animal,diasEnCanil:0}];
+      if (c.id !== origen?.id && c.id !== destino?.id) return c;
+      const residentes = c.id === origen?.id ? c.animales.filter(a => a.id !== animal.id) : [...c.animales,{...animal,diasEnCanil:0}];
       return { ...c, animales:residentes, animalAlojado:residentes[0], estado:residentes.length ? 'OCUPADO' : 'LIBRE',
         ocupacion:{ ...c.ocupacion, alojados: residentes.length, libres:c.capacidad-residentes.length } };
     }));
     try {
-      const r = await asignarCanil({ canilId:destino.id, animalId:animal.id, origenEsperadoId:origen.id,
-        estado:'OCUPADO', motivo:inverso ? 'Deshacer movimiento' : 'Reubicación desde el mapa' });
+      const r = await asignarCanil({
+        canilId: liberar ? origen.id : destino.id,
+        animalId: animal.id,
+        origenEsperadoId: origen?.id ?? null,
+        estado: liberar ? 'LIBRE' : 'OCUPADO',
+        motivo: inverso ? 'Deshacer movimiento' : liberar ? 'Liberación desde el mapa'
+          : origen ? 'Reubicación desde el mapa' : 'Asignación desde animales sin canil'
+      });
       if (!r.ok) throw Error(formatearErrorApi(await r.json(), 'No se pudo mover al animal.'));
-      if (!inverso) deshacer({ animal, origen:destino.id, destino:origen.id });
+      if (!inverso) deshacer({ animal, origen: destino?.id ?? null, destino: origen?.id ?? null, liberar });
       else avisar('Movimiento deshecho.', 'exito');
-    } catch (e) { setCaniles(anteriores); avisar(e.message,'error'); }
+    } catch (e) {
+      setCaniles(anteriores);
+      setAnimales(animalesAnteriores);
+      avisar(e.message, 'error');
+    }
     finally { await cargarDatos(); guardar(false); }
   }
 
@@ -272,8 +715,7 @@ export default function CanilesPage({ user }) {
     // Preferir el sector del último canil creado; si no hay, el primero disponible.
     const ultimoCanil = [...caniles].sort((a, b) => b.id - a.id)[0];
     const sectorPorDefecto = ultimoCanil?.sector || sectoresExistentes[0] || '';
-    setNuevoCanil({ sector: sectorPorDefecto });
-    setSectorMode(sectorPorDefecto ? 'select' : 'nuevo');
+    altaCanilForm.reset({ sector: sectorPorDefecto });
     setErrorNuevoCanil(null);
     setAgregarCanilOpen(true);
   };
@@ -312,8 +754,7 @@ export default function CanilesPage({ user }) {
       setMensajeExito(data.message || 'Canil creado con éxito');
       setTimeout(() => setMensajeExito(null), 4000);
       setAgregarCanilOpen(false);
-      setNuevoCanil({ sector: '' });
-      setSectorMode('select');
+      altaCanilForm.reset({ sector: '' });
       setErrorNuevoCanil(null);
       await cargarDatos();
     } catch (err) {
@@ -369,6 +810,7 @@ export default function CanilesPage({ user }) {
   const trasladosExternos = traslados.filter(t => t.tipo !== 'INTERNO_CANIL');
   const trasladosPendientes = trasladosExternos.filter(t => t.estado === 'PENDIENTE_APROBACION');
   const verMovimientosCaniles = tab === 'movimientos-caniles';
+  const verBitacora = verMovimientosCaniles || tab === 'traslados-externos';
   const busqueda = busquedasBitacora[tab] || '';
   const consulta = normalizarBusqueda(busqueda);
   const historial = verMovimientosCaniles ? movimientosCaniles : trasladosExternos;
@@ -464,6 +906,9 @@ export default function CanilesPage({ user }) {
   const detalleDestino = detalleTraslado
     ? (detalleEsInterno ? (detalleTraslado.canilDestino?.nombre || '—') : (detalleTraslado.destinoNombre || '—'))
     : '';
+  const alojados = new Set(caniles.flatMap(canil => canil.animales.map(animal => animal.id)));
+  const animalesSinCanil = animales.filter(animal => animal.activo !== false &&
+    animal.estadoAdopcion !== 'ADOPTADO' && animal.canilId == null && !alojados.has(animal.id));
   const puedeAprobarTraslado = esDireccion && !detalleEsInterno && detalleTraslado?.estado === 'PENDIENTE_APROBACION';
   return (
     <div className={tab === 'mapa' ? 'portal-page-container portal-page-scroll portal-page-scroll-con-filtros' : 'portal-page-container portal-page-scroll'}>
@@ -669,13 +1114,20 @@ export default function CanilesPage({ user }) {
         >
           <ClipboardList size={15} aria-hidden="true" /> Traslados Externos
         </Button>
+        <Button
+          onClick={() => setTab('ocupacion')}
+          className={`portal-subtab-btn ${tab === 'ocupacion' ? 'active' : ''}`}
+          aria-pressed={tab === 'ocupacion'}
+        >
+          <ChartColumn size={15} aria-hidden="true" /> Ocupación
+        </Button>
       </div>
 
 
       {qr && <QrEtiquetasModal todos={caniles} sector={canilesDelSector} filtrados={canilesFiltrados} cerrar={() => abrirQr(false)}/>}
       {errorMapa && <p role="alert">{errorMapa} <Button onClick={cargarDatos}>Reintentar</Button></p>}
       {canilId && !errorMapa && !cargando && !caniles.some(c => c.id === Number(canilId)) && <p role="alert">El canil solicitado no existe o fue eliminado. <a href="/caniles">Volver al mapa</a></p>}
-      {undo && <div className="canil-undo" role="status">Se movió a {undo.animal.nombre}. <Button disabled={guardando} onClick={() => moverAnimal(undo.animal,caniles.find(c => c.id === undo.origen),caniles.find(c => c.id === undo.destino),true)}>Deshacer</Button></div>}
+      {undo && <div className="canil-undo" role="status">{undo.liberar ? undo.animal.nombre + ' quedó sin canil.' : 'Se movió a ' + undo.animal.nombre + '.'} <Button disabled={guardando} onClick={() => moverAnimal(undo.animal,caniles.find(c => c.id === undo.origen),undo.destino === null ? null : caniles.find(c => c.id === undo.destino),true)}>Deshacer</Button></div>}
       {mensajeExito && (
         <div className="portal-alert portal-alert-success" style={{ marginBottom: '18px', fontWeight: '600' }}>
           ✓ {mensajeExito}
@@ -709,45 +1161,8 @@ export default function CanilesPage({ user }) {
               Se creará <strong>Canil {getProximoNumeroCanil()}</strong>
             </div>
 
-            <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '4px' }}>
-                Sector *
-              </label>
-              <Input as="select" {...(sectorMode === 'select' ? altaCanilForm.campo("sector") : {})}
-                value={sectorMode === 'nuevo' ? '__nuevo__' : nuevoCanil.sector}
-                onChange={e => {
-                  if (e.target.value === '__nuevo__') {
-                    setSectorMode('nuevo');
-                    altaCanilForm.cambiar('sector', '');
-                  } else {
-                    setSectorMode('select');
-                    altaCanilForm.cambiar('sector', e.target.value);
-                  }
-                }}
-                style={{ width: '100%', padding: '9px', borderRadius: '8px', border: 'var(--portal-border-emphasis) solid var(--portal-border)' }}
-              >
-                <option value="__nuevo__">— Crear un nuevo sector —</option>
-                {sectoresExistentes.map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </Input>
-            </div>
-
-            {sectorMode === 'nuevo' && (
-              <div style={{ marginBottom: '14px' }}>
-                <label htmlFor={altaCanilForm.idCampo('sector')} style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: 'var(--portal-text-muted)', marginBottom: '4px' }}>
-                  Nuevo sector *
-                </label>
-                <Input {...altaCanilForm.campo("sector")}
-                  type="text"
-                  required
-                  placeholder="Ej: Patio Principal"
-                  value={nuevoCanil.sector}
-                  onChange={e => altaCanilForm.cambiar('sector', e.target.value)}
-                  style={{ width: '100%', padding: '9px', borderRadius: '8px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', boxSizing: 'border-box' }}
-                />
-              </div>
-            )}
+            <SelectorSectorCanil sectores={sectoresExistentes} sectorInicial={nuevoCanil.sector}
+              onChange={sector => altaCanilForm.cambiar('sector', sector)} error={altaCanilForm.errorCampo('sector')} />
 
             <div className="canil-campos">
               <label>Capacidad<Input type="number" className="portal-input" min={1} max={20} value={nuevoCanil.capacidad ?? 1} onChange={e => altaCanilForm.cambiar('capacidad',e.target.value)}/><ErrorCampo error={altaCanilForm.errorCampo('capacidad')}/></label>
@@ -824,10 +1239,11 @@ export default function CanilesPage({ user }) {
         </Card>
       )}
       {/* CONTENIDO SEGÚN TAB */}
-      <div key={tab} className="portal-page-scroll-content">
+      <div key={tab} className={`portal-page-scroll-content${tab === 'mapa' ? ' canil-mapa-scroll' : verBitacora ? ' canil-bitacora-scroll' : ''}`}>
+      {tab === 'ocupacion' && <OcupacionCaniles caniles={caniles} cargando={cargando} sectores={sectoresExistentes} />}
       {tab === 'mapa' && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        <div className="canil-mapa-contenido">
+          <div className="canil-mapa-leyenda">
             <span style={{ fontSize: '0.9rem', color: 'var(--portal-text-muted)', fontWeight: '600' }}>
               Haz clic en cualquier canil para reubicar, asignar o liberar un animal.
             </span>
@@ -838,29 +1254,41 @@ export default function CanilesPage({ user }) {
             </div>
           </div>
 
-          {canilesFiltrados.length === 0 ? (
-            <div style={{
-              background: 'var(--portal-surface)', borderRadius: '14px', border: 'var(--portal-border-emphasis) dashed #d8dde4', padding: '32px 20px',
-              textAlign: 'center', color: 'var(--portal-text-muted)', fontSize: '0.88rem'
-            }}>
-              No hay caniles que coincidan con el filtro seleccionado.
-            </div>
-          ) : (
-          <DndContext accessibility={accesibilidadArrastre} sensors={sensores} collisionDetection={args => args.pointerCoordinates ? pointerWithin(args) : closestCenter(args)} onDragStart={e => arrastrar(e.active.data.current)} onDragCancel={() => arrastrar(null)}
+          <DndContext accessibility={accesibilidadArrastre} sensors={sensores}
+            collisionDetection={args => {
+              const destinos = args.active.data.current.origen ? args.droppableContainers :
+                args.droppableContainers.filter(destino => !destino.data.current.sinCanil);
+              const detectar = args.pointerCoordinates ? pointerWithin : closestCenter;
+              return detectar({ ...args, droppableContainers: destinos });
+            }}
+            onDragStart={e => arrastrar(e.active.data.current)} onDragCancel={() => arrastrar(null)}
             onDragEnd={({ active, over }) => {
               arrastrar(null);
-              if (over && over.id !== active.data.current.origen.id) moverAnimal(active.data.current.animal,active.data.current.origen,caniles.find(c => c.id === over.id));
+              const { animal, origen } = active.data.current;
+              if (!over || over.id === origen?.id) return;
+              const destino = over.id === DESTINO_SIN_CANIL ? null : caniles.find(canil => canil.id === over.id);
+              moverAnimal(animal, origen, destino);
             }}>
-            <div className="canil-grid">{canilesFiltrados.map(c => <CanilCard key={c.id} canil={c} abrir={k => seleccionar(k.id)} resaltado={Number(canilId) === c.id} bloqueado={guardando || cargando}/>)}</div>
-            <DragOverlay>{arrastre && <div className="canil-tarjeta"><AnimalPhoto src={arrastre.animal.fotoUrl} className="portal-animal-photo-thumb"/> {arrastre.animal.nombre} · {arrastre.origen.nombre}</div>}</DragOverlay>
-            <span className="sr-only" aria-live="polite">{arrastre && 'Moviendo a ' + arrastre.animal.nombre}</span>
+            <div className={`canil-mapa-layout${dockRetraido ? ' canil-mapa-retraido' : ''}`}>
+              <AnimalesSinCanil animales={animalesSinCanil} retraido={dockRetraido}
+                cambiar={() => retraerDock(anterior => !anterior)} bloqueado={guardando || cargando} />
+              {canilesFiltrados.length ? (
+                <div className="canil-grid">
+                  {canilesFiltrados.map(canil => <CanilCard key={canil.id} canil={canil} abrir={destino => seleccionar(destino.id)}
+                    resaltado={Number(canilId) === canil.id} bloqueado={guardando || cargando} />)}
+                </div>
+              ) : <p className="canil-mapa-vacio">No hay caniles que coincidan con el filtro seleccionado.</p>}
+            </div>
+            <DragOverlay>{arrastre && <div className="canil-tarjeta">
+              <AnimalPhoto src={arrastre.animal.fotoUrl} className="portal-animal-photo-thumb" />
+              {arrastre.animal.nombre} · {arrastre.origen?.nombre || 'Sin canil'}
+            </div>}</DragOverlay>
           </DndContext>
-          )}
         </div>
       )}
 
-      {(verMovimientosCaniles || tab === 'traslados-externos') && (
-        <div style={{ background: 'var(--portal-surface)', borderRadius: '16px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', padding: '20px' }}>
+      {verBitacora && (
+        <div className="canil-bitacora">
           <h3 id="caniles-bitacora-titulo" style={{ margin: '0 0 16px', color: '#1f2430' }}>
             {verMovimientosCaniles ? 'Bitácora de Movimientos de Caniles' : 'Bitácora de Traslados Externos'}
           </h3>
@@ -881,7 +1309,7 @@ export default function CanilesPage({ user }) {
               />
             </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="canil-bitacora-registros" role="region" aria-label="Registros de la bitácora" tabIndex={0}>
             <table aria-labelledby="caniles-bitacora-titulo" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
                 <tr style={{ background: 'var(--portal-surface-muted)', borderBottom: 'var(--portal-border-emphasis) solid var(--portal-border)', textAlign: 'left', color: 'var(--portal-text-muted)' }}>
@@ -998,6 +1426,7 @@ export default function CanilesPage({ user }) {
               </label>
               <AnimalSelect
                 id="traslado-externo-animal"
+                describir={resumirAnimalEnCanil}
                 animales={animales}
                 value={trasladoExterno.animalId}
                 onChange={(animalId) => setTrasladoExterno(prev => ({ ...prev, animalId }))}
@@ -1155,9 +1584,7 @@ export default function CanilesPage({ user }) {
                   {detalleTraslado.animal?.nombre || 'Animal'}
                 </div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)', marginTop: '2px' }}>
-                  {[detalleTraslado.animal?.especie, detalleTraslado.animal?.sexo, detalleTraslado.animal?.estadoSalud]
-                    .filter(Boolean)
-                    .join(' · ')}
+                  {detalleTraslado.animal && resumirAnimalEnCanil(detalleTraslado.animal)}
                 </div>
               </div>
             </div>
@@ -1358,7 +1785,7 @@ export default function CanilesPage({ user }) {
           </Modal>
       )}
 
-      {selectedCanil && <CanilDetalleModal key={selectedCanil.id} c={selectedCanil} user={user} animales={animales} caniles={caniles} recargar={cargarDatos}
+      {selectedCanil && <CanilDetalleModal key={selectedCanil.id} c={selectedCanil} user={user} animales={animales} caniles={caniles} sectores={sectoresExistentes} recargar={cargarDatos}
         cerrar={() => seleccionar(null)} eliminar={() => { seleccionar(null); setEliminarCanil(selectedCanil); setEliminarConfirmOpen(true); }}/>}
       {/* MODAL CONFIRMACIÓN ELIMINAR CANIL */}
       {eliminarConfirmOpen && (

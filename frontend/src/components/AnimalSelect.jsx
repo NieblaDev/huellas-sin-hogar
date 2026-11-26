@@ -2,21 +2,16 @@ import Button from './ui/Button.jsx';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PawPrint } from 'lucide-react';
+import { formatearCondicionAnimal } from '../utils/condicionAnimal';
 
 const normalizarTexto = (valor) => String(valor ?? '')
   .toLowerCase()
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '');
 
-const ESTADOS_SALUD = {
-  NORMAL: 'Normal',
-  CONDICION_ESPECIAL: 'Condición especial',
-  CRITICO: 'Crítico'
-};
-
 const describirAnimal = (animal) => {
   if (!animal) return '';
-  return [animal.especie, animal.sexo, ESTADOS_SALUD[animal.estadoSalud]]
+  return [animal.especie, animal.sexo, formatearCondicionAnimal(animal.estadoSalud)]
     .filter(Boolean)
     .join(' · ');
 };
@@ -68,6 +63,7 @@ export default function AnimalSelect({
   animales = [],
   value = '',
   onChange,
+  describir = describirAnimal,
   placeholder = '— Seleccionar animal —',
   disabled = false,
   allowClear = false,
@@ -110,7 +106,7 @@ export default function AnimalSelect({
         animal.especie,
         animal.raza,
         animal.sexo,
-        ESTADOS_SALUD[animal.estadoSalud],
+        formatearCondicionAnimal(animal.estadoSalud),
         animal.canil?.nombre,
         animal.canil?.sector
       ];
@@ -367,7 +363,7 @@ export default function AnimalSelect({
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
             }}>
-              {describirAnimal(seleccionado)}
+              {describir(seleccionado)}
               {seleccionado.canil ? ` · ${seleccionado.canil.nombre}` : ' · Sin canil'}
             </div>
           )}
@@ -541,7 +537,7 @@ export default function AnimalSelect({
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap'
                       }}>
-                        {describirAnimal(animal)}
+                        {describir(animal)}
                         {animal.canil ? ` · ${animal.canil.nombre}` : ' · Sin canil'}
                       </div>
                     </div>

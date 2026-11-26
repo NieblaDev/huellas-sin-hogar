@@ -103,15 +103,15 @@ async function main() {
   // 3. Animales
   const animalesRaw = [
     { nombre: 'Mochi', especie: 'Gato', sexo: 'Hembra', edad: '3 años', raza: 'Mestizo', peso: 4.1, estadoSalud: 'NORMAL', nota: 'Vacunas al día. Lista para adopción.', esterilizacion: 'SÍ (Operada)', comportamiento: 'Tranquila, cariñosa', creadoPorId: directora.id },
-    { nombre: 'Rocky', especie: 'Perro', sexo: 'Macho', edad: '2 años', raza: 'Labrador', peso: 26.5, chip: 'ES-4471120', estadoSalud: 'CONDICION_ESPECIAL', nota: 'Dieta blanda por 5 días. No puede correr.', esterilizacion: 'NO', comportamiento: 'Activo, en recuperación', creadoPorId: veterinaria.id },
+    { nombre: 'Rocky', especie: 'Perro', sexo: 'Macho', edad: '2 años', raza: 'Labrador', peso: 26.5, chip: 'ES-4471120', estadoSalud: 'ESPECIAL', nota: 'Dieta blanda por 5 días. No puede correr.', esterilizacion: 'NO', comportamiento: 'Activo, en recuperación', creadoPorId: veterinaria.id },
     { nombre: 'Luna', especie: 'Perro', sexo: 'Hembra', edad: '1.5 años', raza: 'Mestizo', peso: 14.5, chip: 'ES-9831122', estadoSalud: 'NORMAL', nota: 'Sin novedad.', esterilizacion: 'SÍ (Operada)', comportamiento: 'Sociable, dócil, activa', creadoPorId: voluntarioAvanzado.id },
     { nombre: 'Bruno', especie: 'Perro', sexo: 'Macho', edad: '5 años', raza: 'Mestizo', peso: 22.0, chip: 'ES-1120987', estadoSalud: 'NORMAL', nota: 'Sin novedad. Paseos normales.', esterilizacion: 'SÍ (Operado)', comportamiento: 'Calmado, obediente', creadoPorId: voluntarioAvanzado.id },
-    { nombre: 'Nala', especie: 'Gato', sexo: 'Hembra', edad: '4 meses', raza: 'Mestizo', peso: 1.8, estadoSalud: 'CONDICION_ESPECIAL', nota: 'En observación médica.', esterilizacion: 'NO', comportamiento: 'Tímida, en observación', creadoPorId: veterinaria.id },
+    { nombre: 'Nala', especie: 'Gato', sexo: 'Hembra', edad: '4 meses', raza: 'Mestizo', peso: 1.8, estadoSalud: 'ESPECIAL', nota: 'En observación médica.', esterilizacion: 'NO', comportamiento: 'Tímida, en observación', creadoPorId: veterinaria.id },
     { nombre: 'Thor', especie: 'Perro', sexo: 'Macho', edad: '3 años', raza: 'Husky', peso: 24.0, chip: 'ES-7743201', estadoSalud: 'NORMAL', nota: 'Energético. Requiere paseos largos.', esterilizacion: 'SÍ (Operado)', comportamiento: 'Enérgico, paseos largos', creadoPorId: voluntarioNovato.id },
     { nombre: 'Simba', especie: 'Gato', sexo: 'Macho', edad: '6 años', raza: 'Naranja', peso: 5.2, estadoSalud: 'NORMAL', nota: 'Ideal para departamento.', esterilizacion: 'SÍ (Operado)', comportamiento: 'Muy tranquilo', creadoPorId: voluntarioNovato.id },
     { nombre: 'Canela', especie: 'Perro', sexo: 'Hembra', edad: '2 años', raza: 'Cocker', peso: 12.0, chip: 'ES-5528834', estadoSalud: 'CRITICO', nota: 'Tratamiento antibiótico estricto.', esterilizacion: 'NO', comportamiento: 'En recuperación delicada', creadoPorId: veterinaria.id },
     { nombre: 'Oreo', especie: 'Gato', sexo: 'Macho', edad: '1 año', raza: 'Mestizo', peso: 3.6, estadoSalud: 'NORMAL', nota: 'Juguetón sin restricciones.', esterilizacion: 'NO', comportamiento: 'Juguetón', creadoPorId: voluntarioNovato.id },
-    { nombre: 'Perla', especie: 'Perro', sexo: 'Hembra', edad: '7 años', raza: 'Poodle', peso: 9.4, chip: 'ES-3341556', estadoSalud: 'CONDICION_ESPECIAL', nota: 'Medicación para artritis cada 12h.', esterilizacion: 'SÍ (Operada)', comportamiento: 'Tranquila, medicada', creadoPorId: veterinaria.id },
+    { nombre: 'Perla', especie: 'Perro', sexo: 'Hembra', edad: '7 años', raza: 'Poodle', peso: 9.4, chip: 'ES-3341556', estadoSalud: 'ESPECIAL', nota: 'Medicación para artritis cada 12h.', esterilizacion: 'SÍ (Operada)', comportamiento: 'Tranquila, medicada', creadoPorId: veterinaria.id },
   ];
 
   for (const an of animalesRaw) {

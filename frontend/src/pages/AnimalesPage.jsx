@@ -8,6 +8,7 @@ import { usePortalFeedback } from '../context/PortalFeedback.jsx';
 import AnimalPhoto from '../components/AnimalPhoto';
 import { formatearErrorApi } from '../utils/errores';
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Bell,
   Calendar,
@@ -117,6 +118,8 @@ function TrazabilidadTrasladosExternos({ traslados = [] }) {
 
 export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
   const { avisar, confirmar } = usePortalFeedback();
+  const [parametros, cambiarParametros] = useSearchParams();
+  const fichaId = parametros.get('ficha');
   const [animales, setAnimales] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [revisionListado, setRevisionListado] = useState(0);
@@ -162,10 +165,34 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
 
   useEffect(() => {
     fetchNotificaciones();
-    if (fichaSeleccionada?.id) {
-      abrirFichaAnimal(fichaSeleccionada.id, true);
-    }
   }, [reloadKey]);
+
+  useEffect(() => {
+    setFichaSeleccionada(null);
+    setCargandoFicha(false);
+    if (fichaId === null) return;
+    if (!/^[1-9]\d*$/.test(fichaId)) {
+      avisar('El enlace no identifica una ficha de animal válida.', 'error');
+      return;
+    }
+
+    const controller = new AbortController();
+    setCargandoFicha(true);
+    async function cargarFicha() {
+      try {
+        const respuesta = await obtenerAnimal(fichaId, controller.signal);
+        const data = await respuesta.json();
+        if (!respuesta.ok) throw new Error(formatearErrorApi(data, 'Error al cargar la ficha del animal'));
+        if (!controller.signal.aborted) setFichaSeleccionada(data);
+      } catch (error) {
+        if (!controller.signal.aborted) avisar(formatearErrorApi(error), 'error');
+      } finally {
+        if (!controller.signal.aborted) setCargandoFicha(false);
+      }
+    }
+    cargarFicha();
+    return () => controller.abort();
+  }, [fichaId, reloadKey, avisar]);
 
   // Cierra la foto ampliada si se cierra la ficha o con la tecla Escape
   useEffect(() => {
@@ -225,25 +252,23 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
     }
   };
 
-  const abrirFichaAnimal = async (animalId, silencioso = false) => {
-    if (!silencioso) setCargandoFicha(true);
-    try {
-      const res = await obtenerAnimal(animalId);
-      const data = await res.json();
-      if (!res.ok) throw new Error(formatearErrorApi(data, 'Error al cargar la ficha del animal'));
-      setFichaSeleccionada(data);
-    } catch (err) {
-      if (!silencioso) avisar(formatearErrorApi(err), 'error');
-    } finally {
-      if (!silencioso) setCargandoFicha(false);
-    }
+  const abrirFichaAnimal = animalId => {
+    const siguientes = new URLSearchParams(parametros);
+    siguientes.set('ficha', String(animalId));
+    cambiarParametros(siguientes);
+  };
+
+  const cerrarFichaAnimal = () => {
+    const siguientes = new URLSearchParams(parametros);
+    siguientes.delete('ficha');
+    cambiarParametros(siguientes, { replace: true });
   };
 
   const abrirEdicionFicha = (animal, e) => {
     if (e) e.stopPropagation();
     const editar = onEditAnimal ?? onOpenModal;
     if (!editar) return;
-    setFichaSeleccionada(null);
+    cerrarFichaAnimal();
     editar(animal);
   };
 
@@ -307,7 +332,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
       }
       setRevisionListado((prev) => prev + 1);
       if (fichaSeleccionada?.id === id) {
-        setFichaSeleccionada(null);
+        cerrarFichaAnimal();
       }
     } catch (err) {
       avisar(formatearErrorApi(err), 'error');
@@ -331,7 +356,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
 
   const badgeMap = {
     NORMAL: { bg: 'var(--portal-primary-soft)', color: 'var(--portal-primary-dark)', label: 'Normal' },
-    CONDICION_ESPECIAL: { bg: 'var(--portal-warning-bg)', color: 'var(--portal-warning-text)', label: 'Condición especial' },
+    ESPECIAL: { bg: 'var(--portal-warning-bg)', color: 'var(--portal-warning-text)', label: 'Especial' },
     CRITICO: { bg: '#ffe4e6', color: '#b82d44', label: 'Crítico' }
   };
 
@@ -598,7 +623,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
             >
               <option value="">Todos los estados de salud</option>
               <option value="NORMAL">Normal</option>
-              <option value="CONDICION_ESPECIAL">Condición especial</option>
+              <option value="ESPECIAL">Especial</option>
               <option value="CRITICO">Crítico</option>
             </Input>
           </div>
@@ -755,8 +780,8 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
       </div>
 
       {/* MODAL DE FICHA DEL ANIMAL */}
-      {(fichaSeleccionada || cargandoFicha) && (
-        <Modal onClose={() => setFichaSeleccionada(null)} nombre="Ficha del animal" bloqueado={cargandoFicha}
+      {fichaId && (String(fichaSeleccionada?.id) === fichaId || cargandoFicha) && (
+        <Modal onClose={cerrarFichaAnimal} nombre="Ficha del animal" bloqueado={cargandoFicha}
           papel={{ style: {
               background: 'var(--portal-surface)',
               borderRadius: '18px',
@@ -843,7 +868,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                       </div>
                       <Button
                         type="button"
-                        onClick={() => setFichaSeleccionada(null)}
+                        onClick={cerrarFichaAnimal}
                         style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--portal-text-muted)', flexShrink: 0 }}
                       >
                         ✕
@@ -1045,7 +1070,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
 
                   {/* <button
                     type="button"
-                    onClick={() => setFichaSeleccionada(null)}
+                    onClick={cerrarFichaAnimal}
                     style={{
                       background: 'var(--portal-surface-muted)',
                       border: 'var(--portal-border-emphasis) solid var(--portal-border)',

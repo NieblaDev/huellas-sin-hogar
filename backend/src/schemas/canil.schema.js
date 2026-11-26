@@ -8,6 +8,7 @@ export const asignarCanilSchema = z.object({
   fechaFinEstimada: z.union([z.string().date(), z.string().datetime({ offset: true })]).nullish(),
   observaciones: z.string().max(4000).nullish(),
   notaMantencion: z.string().trim().max(500).nullish(),
+  ampliarCapacidad: z.boolean().optional(),
   confirmarLiberacionMultiple: z.boolean().optional(),
   origenEsperadoId: z.number().int().positive().nullish(),
   estado: z.enum(['LIBRE', 'OCUPADO', 'CUARENTENA', 'MANTENIMIENTO']).default('OCUPADO')
@@ -41,7 +42,6 @@ export const crearCanilSchema = z.object({
 
 export const actualizarCanilSchema = crearCanilSchema.pick({ sector: true, capacidad: true }).extend({ sector: z.string().trim().min(1).max(60) }).partial().strict();
 export const finalizarCuarentenaSchema = z.object({ animalId: z.number().int().positive().optional(), observaciones: z.string().max(4000).nullish() });
-export const historialCanilSchema = z.object({ limit: z.coerce.number().int().min(1).max(100).default(20), cursor: z.coerce.number().int().positive().optional() });
 
 export const eliminarCanilSchema = idParamSchema;
 

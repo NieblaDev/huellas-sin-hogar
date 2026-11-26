@@ -109,7 +109,7 @@ export const registrarCuarentena = (data, user, ip) => prisma.$transaction(async
   await bloquearCaniles(tx, animal.canilId);
   const canil = animal.canilId ? await buscarCanil(tx, animal.canilId) : null;
   const cuarentena = await iniciarCuarentena(tx, { ...data, animal, canil, user, ip });
-  await tx.animal.update({ where: { id }, data: { estadoSalud: 'CONDICION_ESPECIAL' } });
+  await tx.animal.update({ where: { id }, data: { estadoSalud: 'ESPECIAL' } });
   return cuarentena;
 });
 

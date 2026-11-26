@@ -861,12 +861,12 @@ export default function DashboardPage({ user, onNavigate }) {
             {tendencias.salud.map((st, i) => {
               const labelMap = {
                 NORMAL: "Normal",
-                CONDICION_ESPECIAL: "Condición Especial",
+                ESPECIAL: "Especial",
                 CRITICO: "Crítico",
               };
               const colorMap = {
                 NORMAL: "var(--portal-primary)",
-                CONDICION_ESPECIAL: "#d99a3d",
+                ESPECIAL: "#d99a3d",
                 CRITICO: "#b82d44",
               };
               const pct =
