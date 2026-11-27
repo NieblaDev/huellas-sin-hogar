@@ -1,9 +1,8 @@
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '@prisma/client';
+import { pushSchema } from './helpers/push-schema.js';
 import jwt from 'jsonwebtoken';
 
 const url = new URL(process.env.TEST_DATABASE_URL);
@@ -18,7 +17,7 @@ const { default: app } = await import('../src/app.js');
 let server, base, direccion, voluntario;
 before(async () => {
   await admin.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`);
-  execFileSync(process.execPath,[fileURLToPath(new URL('../prisma/migrate.js',import.meta.url))],{stdio:'pipe'});
+  pushSchema();
   for (const rol of ['DIRECCION','VOLUNTARIO_AVANZADO']) {
     const u = await db.usuario.create({ data:{nombre:rol,email:rol+'@example.test',rol,password:'prueba'} });
     const token = jwt.sign({id:u.id,rol},process.env.JWT_SECRET);

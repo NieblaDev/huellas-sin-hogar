@@ -34,7 +34,7 @@ export const gestionAprobacionSchema = z.object({
 
 export const crearCanilSchema = z.object({
   codigo: z.string().min(1, 'El código del canil es obligatorio'),
-  nombre: z.string().min(1, 'El nombre del canil es obligatorio'),
+  nombre: z.string().trim().regex(/^Canil \d+$/, 'El nombre del canil debe tener el formato "Canil <número>"'),
   sector: z.string().trim().min(1).max(60).default('General'),
   capacidad: z.number().int().min(1).max(20).optional().default(1),
   estado: z.enum(['LIBRE','MANTENIMIENTO']).default('LIBRE')

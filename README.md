@@ -107,7 +107,7 @@ El acceso a las rutas del backend y los componentes del frontend está regulado 
 | **`VOLUNTARIO_AVANZADO`** | Registro de rondas de cuidado, movimientos de caniles, soporte en inventario y turnos de mayor responsabilidad. |
 | **`VOLUNTARIO_NOVATO`** | Visualización de turnos, registro de asistencia, consulta de catálogo y realización de rondas básicas asignadas. |
 
-El campo **Sexo** define cómo se muestra el nombre del rol. Dirección puede actualizarlo en **Usuarios y Perfiles**. En una base existente, ejecuta `npm run prisma:deploy` desde `backend/` para aplicar la migración, que asigna trato neutro a los perfiles existentes y reclasifica las antiguas cuentas de coordinación como `VOLUNTARIO_NOVATO`.
+El campo **Sexo** define cómo se muestra el nombre del rol. Dirección puede actualizarlo en **Usuarios y Perfiles**. Sincroniza el esquema con `npm run prisma:push` desde `backend/` y repuebla la base con `npm run prisma:seed`.
 
 ---
 
@@ -117,10 +117,19 @@ El script de inicialización (`seed.js`) crea las siguientes cuentas de prueba l
 
 | Rol | Correo Electrónico | Contraseña |
 | :--- | :--- | :--- |
-| **Directora** | `directora@huellas.cl` | `admin123` |
-| **Veterinaria** | `veterinaria@huellas.cl` | `admin123` |
+| **Dirección** | `directora@huellas.cl` | `admin123` |
+| **Dirección** | `staff@huellas.cl` | `admin123` |
+| **Personal Veterinario** | `veterinaria@huellas.cl` | `admin123` |
+| **Personal Veterinario** | `veterinario2@huellas.cl` | `admin123` |
+| **Personal de Adopciones** | `adopciones@huellas.cl` | `admin123` |
+| **Personal de Adopciones** | `adopciones2@huellas.cl` | `admin123` |
 | **Voluntario Avanzado** | `voluntario.avanzado@huellas.cl` | `admin123` |
 | **Voluntario Novato** | `voluntario@huellas.cl` | `admin123` |
+| **Voluntaria Novata** | `voluntaria@huellas.cl` | `admin123` |
+
+El seed carga además caniles grupales, cuarentenas, fichas clínicas, tratamientos, vacunas, indicaciones de cuidado con bitácoras, inventario con movimientos, solicitudes de adopción en todas las etapas, adopciones, seguimientos, devoluciones, traslados, turnos, permutas, configuración, notificaciones leídas y auditoría.
+
+Es **idempotente**: puedes ejecutarlo varias veces sin duplicar registros. Para reiniciar el dataset desde cero usa `npm run prisma:seed:reset` (borra los datos y los vuelve a cargar, conservando el esquema).
 
 ---
 
@@ -134,7 +143,6 @@ huellas-sin-hogar/
 │   ├── ecosystem.config.cjs         # PM2, HTTP interno en el puerto 80
 │   ├── prisma/
 │   │   ├── schema.prisma            # Esquema relacional de la base de datos PostgreSQL
-│   │   ├── migrations/              # Historial de migraciones de PostgreSQL
 │   │   └── seed.js                  # Carga de datos iniciales (usuarios, caniles, animales, turnos)
 │   ├── src/
 │   │   ├── app.js                   # Configuración de Express y montaje de la API
@@ -190,10 +198,10 @@ huellas-sin-hogar/
 
 2. Copiar `backend/.env.example` a `backend/.env` y completar `DATABASE_URL` y `JWT_SECRET`. Si cambias el puerto local, ajusta `PORT` y `VITE_API_URL` en el frontend.
 
-3. Generar el cliente de Prisma y ejecutar las migraciones:
+3. Sincronizar el esquema con la base de datos y generar el cliente de Prisma:
    ```bash
-   npx prisma generate
-   npm run prisma:deploy
+   npm run prisma:push
+   npm run prisma:generate
    ```
 
 4. Poblar la base de datos con los datos iniciales de prueba:
@@ -252,7 +260,7 @@ Este proyecto está desarrollado para fines académicos y comunitarios bajo la l
 
 ## Ejecución con PM2
 
-- En `backend/`, configura `.env`, ejecuta `npm run prisma:deploy` y arranca con `npm run start:prod`. La API escucha en el puerto `80`.
+- En `backend/`, configura `.env`, ejecuta `npm run prisma:push` y arranca con `npm run start:prod`. La API escucha en el puerto `80`.
 - En `frontend/`, configura `VITE_API_URL` con la URL de la API accesible desde el navegador, ejecuta `npm run build` y arranca con `npm run start:prod`. Vite Preview sirve la SPA por HTTP en el puerto interno `443`.
 
 ### Ocupación de caniles
@@ -261,4 +269,4 @@ El mapa, el dashboard y los reportes calculan el porcentaje con los animales alo
 
 Las etiquetas usan `VITE_PUBLIC_APP_URL` o el origen del navegador y requieren iniciar sesión. Un canil histórico marcado en cuarentena sin registro clínico conserva el aislamiento. Completa su motivo y fecha de término en la ficha para iniciar el seguimiento.
 
-En desarrollo, aplica las migraciones con `npm run prisma:deploy` y regenera el cliente con `npm run prisma:generate` desde `backend`. Para volver al modelo individual, restaura el respaldo previo en otra base y configura `DATABASE_URL` con el código y el cliente anteriores. Volver a imponer unicidad sobre una base con grupos requiere resolver antes sus asignaciones.
+En desarrollo, sincroniza el esquema con `npm run prisma:push` y regenera el cliente con `npm run prisma:generate` desde `backend`. Para volver al modelo individual, restaura el respaldo previo en otra base y configura `DATABASE_URL` con el código y el cliente anteriores. Volver a imponer unicidad sobre una base con grupos requiere resolver antes sus asignaciones.

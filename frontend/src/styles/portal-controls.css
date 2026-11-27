@@ -1833,3 +1833,42 @@ button.portal-turno-vacio:focus-visible {
   padding: 6px 14px;
   font-size: 0.82rem;
 }
+
+.portal-ayuda-registros {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  margin-block: .5rem;
+  font-size: .82rem;
+  color: var(--portal-text-muted);
+}
+.portal-ayuda-registros svg { flex-shrink: 0; }
+.portal-registro-interactivo:hover,
+.portal-registro-interactivo:focus-visible {
+  background: var(--portal-primary-soft);
+  box-shadow: inset 3px 0 var(--portal-primary);
+}
+.portal-registro-interactivo:focus-visible {
+  outline: 2px solid var(--portal-primary);
+  outline-offset: -2px;
+}
+.notificacion-acciones {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-top: .3rem;
+}
+.notificacion-leida {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding-inline: .4rem;
+  color: var(--portal-text-muted);
+}
+.notificaciones-pie {
+  display: flex;
+  justify-content: flex-end;
+  padding: .375rem .75rem;
+  border-top: 1px solid var(--portal-border);
+}

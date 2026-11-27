@@ -516,7 +516,7 @@ export default function PerfilesUsuariosPage({ user, onActualizarUsuario }) {
                       onChange={event => setForm(actual => ({ ...actual, nombre: event.target.value }))}
                       maxLength={100}
                       autoComplete="name"
-                      placeholder="Ej: Camila Rojas"
+                      placeholder=" Ej: Camila Rojas"
                       required
                     />
                   </label>
@@ -531,7 +531,7 @@ export default function PerfilesUsuariosPage({ user, onActualizarUsuario }) {
                         onChange={event => setForm(actual => ({ ...actual, email: event.target.value }))}
                         maxLength={120}
                         autoComplete="email"
-                        placeholder="nombre@huellas.cl"
+                        placeholder=" nombre@huellas.cl"
                         required
                       />
                     </div>
@@ -553,7 +553,7 @@ export default function PerfilesUsuariosPage({ user, onActualizarUsuario }) {
                   </label>
 
                   <label className="perfil-field">
-                    <span>Contraseña temporal</span>
+                    <span>Contraseña</span>
                     <div className="perfil-input-icon">
                       <KeyRound size={15} aria-hidden="true" />
                       <Input {...perfilForm.campo("password")}
@@ -563,7 +563,7 @@ export default function PerfilesUsuariosPage({ user, onActualizarUsuario }) {
                         minLength={8}
                         maxLength={72}
                         autoComplete="new-password"
-                        placeholder="Mínimo 8 caracteres"
+                        placeholder=" Mínimo 8 caracteres"
                         required
                       />
                     </div>
@@ -580,7 +580,7 @@ export default function PerfilesUsuariosPage({ user, onActualizarUsuario }) {
                         minLength={8}
                         maxLength={72}
                         autoComplete="new-password"
-                        placeholder="Repite la contraseña"
+                        placeholder=" Repite la contraseña"
                         required
                       />
                     </div>

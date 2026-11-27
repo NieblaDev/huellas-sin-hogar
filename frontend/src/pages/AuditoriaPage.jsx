@@ -9,7 +9,6 @@ import {
   ArrowRight,
   Calendar,
   CheckCircle2,
-  ChevronRight,
   ClipboardList,
   Eye,
   FileText,
@@ -19,6 +18,7 @@ import {
   Pencil,
   Plus,
   Search,
+  MousePointerClick,
   ShieldCheck,
   Tag,
   Trash2,
@@ -422,17 +422,15 @@ export default function AuditoriaPage({ user }) {
       <div className="portal-page-scroll-content">
         {/* TABLA DE AUDITORÍA CON CLIC EN FILA */}
         <div className="portal-auditoria-tabla" style={{ background: 'var(--portal-surface)', borderRadius: '16px', border: 'var(--portal-border-emphasis) solid var(--portal-border)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(20,24,32,0.03)' }}>
-          <div style={{ padding: '16px 20px', borderBottom: 'var(--portal-border-emphasis) solid #f0f1f3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '16px 20px', flexWrap: 'wrap', gap: '8px', borderBottom: 'var(--portal-border-emphasis) solid #f0f1f3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#1f2430' }}>
               Total de registros: {total} {auditoriasFiltradas.length !== auditorias.length && `(mostrando ${auditoriasFiltradas.length})`}
             </span>
-            <span style={{ fontSize: '0.78rem', color: 'var(--portal-text-muted)', fontStyle: 'italic' }}>
-              Haz clic en cualquier fila para ver el detalle comparativo y trazabilidad
-            </span>
+            <span id="auditoria-ayuda-registros" className="portal-ayuda-registros"><MousePointerClick size={16} aria-hidden="true" /> Selecciona una fila para ver los detalles.</span>
           </div>
 
           <div className="portal-auditoria-registros">
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+            <table aria-describedby="auditoria-ayuda-registros" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
               <thead>
                 <tr style={{ background: 'var(--portal-surface-muted)', borderBottom: 'var(--portal-border-emphasis) solid var(--portal-border)', textAlign: 'left', color: 'var(--portal-text-muted)' }}>
                   <th style={{ padding: '12px 16px' }}>Fecha y Hora</th>
@@ -440,19 +438,18 @@ export default function AuditoriaPage({ user }) {
                   <th style={{ padding: '12px 16px' }}>Entidad Afectada</th>
                   <th style={{ padding: '12px 16px' }}>Acción</th>
                   <th style={{ padding: '12px 16px' }}>Descripción de la Acción</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>Detalle</th>
                 </tr>
               </thead>
               <tbody>
                 {cargando && !resultado ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--portal-text-muted)' }}>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '30px', color: 'var(--portal-text-muted)' }}>
                       Cargando bitácora de auditoría...
                     </td>
                   </tr>
                 ) : auditoriasFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--portal-text-muted)' }}>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '30px', color: 'var(--portal-text-muted)' }}>
                       No se encontraron registros que coincidan con los filtros aplicados.
                     </td>
                   </tr>
@@ -464,9 +461,10 @@ export default function AuditoriaPage({ user }) {
                     return (
                       <tr
                         key={item.id}
+                        tabIndex={0}
+                        onKeyDown={e => { if (e.key === 'Enter') setDetalleRegistro(item); }}
                         onClick={() => setDetalleRegistro(item)}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--portal-surface-muted)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        className="portal-registro-interactivo"
                         style={{ borderBottom: 'var(--portal-border-emphasis) solid #f0f1f3', cursor: 'pointer', transition: 'background 0.15s ease' }}
                       >
                         <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
@@ -490,18 +488,6 @@ export default function AuditoriaPage({ user }) {
                         </td>
                         <td style={{ padding: '12px 16px', color: '#1f2430' }}>
                           {describirAccion(item)}
-                        </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            color: 'var(--portal-primary)',
-                            fontWeight: '700',
-                            fontSize: '0.78rem'
-                          }}>
-                            Ver detalle <ChevronRight size={14} aria-hidden="true" />
-                          </span>
                         </td>
                       </tr>
                     );

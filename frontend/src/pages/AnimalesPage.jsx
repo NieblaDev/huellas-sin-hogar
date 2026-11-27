@@ -1,5 +1,6 @@
 import Button from '../components/ui/Button.jsx';
 import { observacionesAnimal } from '../utils/observacionesAnimal.js';
+import { AccionesNotificacion, EliminarNotificaciones } from '../components/AccionesNotificacion.jsx';
 import useLecturasNotificaciones from '../hooks/useLecturasNotificaciones.js';
 import Card from '../components/ui/Card.jsx';
 import Input from '../components/ui/Input.jsx';
@@ -133,6 +134,7 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
   const [notificaciones, setNotificaciones] = useState([]);
   const [notificacionesOpen, setNotificacionesOpen] = useState(false);
   const lecturas = useLecturasNotificaciones(notificaciones.map(n => `animales:${n.id}`));
+  const visibles = notificaciones.filter(n => !lecturas.descartada('animales:' + n.id));
   const [avisoReciente, setAvisoReciente] = useState(null);
 
   // Modal de Ficha del Animal y Exportación de Expediente
@@ -494,14 +496,14 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                   </div>
 
                   <div style={{ maxHeight: '340px', overflowY: 'auto', padding: '10px' }}>
-                    {notificaciones.length === 0 ? (
+                    {visibles.length === 0 ? (
                       <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--portal-text-muted)', fontSize: '0.84rem' }}>
                         <Bell size={24} aria-hidden="true" style={{ marginBottom: '6px', opacity: 0.5 }} />
                         <div>No hay notificaciones recientes.</div>
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {notificaciones.map((n) => (
+                        {visibles.map((n) => (
                           <div
                             key={n.id}
                             style={{
@@ -519,14 +521,14 @@ export default function AnimalesPage({ onOpenModal, onEditAnimal, reloadKey }) {
                               </span>
                             </div>
                             <div style={{ color: '#555e6d', marginTop: '3px', fontSize: '0.78rem' }}>{n.mensaje}</div>
-                            {lecturas.leidas.has(`animales:${n.id}`) ? <small>Leída</small> : (
-                              <Button variante="texto" onClick={() => lecturas.marcar(`animales:${n.id}`)}>Marcar como leída</Button>
-                            )}
+                            <AccionesNotificacion titulo={n.titulo} leida={lecturas.leidas.has('animales:' + n.id)}
+                              marcar={() => lecturas.marcar('animales:' + n.id)} descartar={() => lecturas.descartar(['animales:' + n.id])} />
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
+                  {visibles.length > 0 && <EliminarNotificaciones onClick={() => lecturas.descartar()} />}
                 </div>
               </>
             )}

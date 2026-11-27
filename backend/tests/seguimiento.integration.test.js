@@ -1,13 +1,12 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import jwt from 'jsonwebtoken';
-import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { pushSchema } from './helpers/push-schema.js';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 
 const testUrl = process.env.TEST_DATABASE_URL;
-if (!testUrl) throw new Error('Define TEST_DATABASE_URL con una base PostgreSQL local de pruebas migrada.');
+if (!testUrl) throw new Error('Define TEST_DATABASE_URL con una base PostgreSQL local de pruebas.');
 const parsedUrl = new URL(testUrl);
 if (!['localhost', '127.0.0.1', '[::1]'].includes(parsedUrl.hostname) || !parsedUrl.pathname.includes('test')) {
   throw new Error('TEST_DATABASE_URL debe apuntar a localhost y el nombre de la base debe incluir test.');
@@ -75,7 +74,7 @@ const prepararAdopcionConcretada = async () => {
 
 before(async () => {
   await admin.$executeRawUnsafe(`CREATE SCHEMA "${testSchema}"`);
-  execFileSync(process.execPath, [fileURLToPath(new URL('../prisma/migrate.js', import.meta.url))], { env: { ...process.env, CHECKPOINT_DISABLE: '1' }, stdio: 'pipe' });
+  pushSchema();
 
   responsable = await prisma.usuario.create({
     data: { email: `${run}-admin@example.test`, nombre: `Admin ${run}`, password: 'hash', rol: 'DIRECCION', activo: true }

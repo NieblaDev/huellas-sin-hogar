@@ -377,3 +377,18 @@
   .qr-hoja:last-child { break-after:auto; }
   .qr-etiqueta { box-sizing:border-box; border:1px solid black; border-radius:0; position:relative; padding:3mm; font:9pt/1.15 sans-serif; break-inside:avoid; }
 }
+
+.canil-tabla-movimientos {
+  table-layout: fixed;
+  min-width: 40rem;
+  overflow-wrap: anywhere;
+}
+.canil-bitacora-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .25rem 1rem;
+  margin-bottom: 1rem;
+}
+.canil-bitacora-encabezado .portal-ayuda-registros { margin: 0; }

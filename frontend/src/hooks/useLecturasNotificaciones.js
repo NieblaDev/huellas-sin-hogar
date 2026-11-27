@@ -8,7 +8,7 @@ export default function useLecturasNotificaciones(claves) {
   const lista = JSON.stringify(claves);
 
   useEffect(() => {
-    const actuales = JSON.parse(lista);
+    const actuales = JSON.parse(lista).flatMap(clave => [clave, 'x:' + clave]);
     if (!actuales.length || !localStorage.getItem('token')) return;
     const controller = new AbortController();
     async function consultar() {
@@ -40,5 +40,21 @@ export default function useLecturasNotificaciones(claves) {
     }
   }
 
-  return { leidas, marcar, pendientes: claves.filter(clave => !leidas.has(clave)).length };
+  const descartada = clave => leidas.has('x:' + clave);
+  async function descartar(seleccion = claves.filter(clave => !descartada(clave))) {
+    try {
+      for (let i = 0; i < seleccion.length; i += 60) {
+        const lote = seleccion.slice(i, i + 60);
+        const respuesta = await request('/lecturas-notificaciones/descartar', {
+          method: 'PUT', json: { claves: lote }
+        });
+        if (!respuesta.ok) throw new Error();
+        setLeidas(prev => new Set([...prev, ...lote.map(clave => 'x:' + clave)]));
+      }
+    } catch {
+      avisar('No se pudieron descartar las notificaciones. Inténtalo nuevamente.', 'error');
+    }
+  }
+
+  return { leidas, marcar, descartada, descartar, pendientes: claves.filter(clave => !descartada(clave) && !leidas.has(clave)).length };
 }

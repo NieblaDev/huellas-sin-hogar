@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "prisma:migrate": "npm run prisma:deploy",
-    "prisma:deploy": "node prisma/migrate.js",
+    "prisma:push": "prisma db push",
+    "prisma:deploy": "npm run prisma:push",
+    "prisma:migrate": "npm run prisma:push",
     "prisma:generate": "prisma generate",
     "prisma:seed": "node prisma/seed.js",
+    "prisma:seed:reset": "node prisma/seed.js --reset",
     "start:prod": "pm2-runtime ecosystem.config.cjs",
     "test:unit": "node --test tests/*.schema.test.js tests/app.test.js",
     "test": "node --test --test-concurrency=1 tests/*.test.js"

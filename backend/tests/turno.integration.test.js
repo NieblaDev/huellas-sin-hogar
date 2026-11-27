@@ -1,7 +1,6 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { pushSchema } from './helpers/push-schema.js';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
@@ -42,7 +41,7 @@ if (!testUrl) {
 
   before(async () => {
     await admin.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${testSchema}"`);
-    execFileSync(process.execPath, [fileURLToPath(new URL('../prisma/migrate.js', import.meta.url))], { env: { ...process.env, CHECKPOINT_DISABLE: '1' }, stdio: 'pipe' });
+    pushSchema();
     server = app.listen(0, '127.0.0.1');
     await new Promise((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
     base = 'http://127.0.0.1:' + server.address().port + '/api';

@@ -9,7 +9,7 @@ const router = Router();
 const clave = z.string().max(100).regex(/^(animales|caniles):[a-z0-9:-]+$/i);
 router.use(authenticateToken);
 
-router.post('/consultar', validate(z.object({ claves: z.array(clave).max(60) })), asyncHandler(async (req, res) => {
+router.post('/consultar', validate(z.object({ claves: z.array(z.string().max(100).regex(/^(x:)?(animales|caniles):[a-z0-9:-]+$/i)).max(60) })), asyncHandler(async (req, res) => {
   const filas = await prisma.lecturaNotificacion.findMany({
     where: { usuarioId: req.user.id, clave: { in: req.body.claves } },
     select: { clave: true }
@@ -20,6 +20,14 @@ router.post('/consultar', validate(z.object({ claves: z.array(clave).max(60) }))
 router.put('/', validate(z.object({ clave })), asyncHandler(async (req, res) => {
   await prisma.lecturaNotificacion.createMany({
     data: [{ usuarioId: req.user.id, clave: req.body.clave }],
+    skipDuplicates: true
+  });
+  res.sendStatus(204);
+}));
+
+router.put('/descartar', validate(z.object({ claves: z.array(clave.max(98)).min(1).max(60) })), asyncHandler(async (req, res) => {
+  await prisma.lecturaNotificacion.createMany({
+    data: req.body.claves.map(clave => ({ usuarioId: req.user.id, clave: 'x:' + clave })),
     skipDuplicates: true
   });
   res.sendStatus(204);

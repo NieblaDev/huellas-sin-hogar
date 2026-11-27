@@ -5,6 +5,7 @@ import { destinoInvalido, useCanilesDragAndDrop, accesibilidadArrastre } from '.
 import '../styles/caniles.css';
 import Card from '../components/ui/Card.jsx';
 import Button from '../components/ui/Button.jsx';
+import { AccionesNotificacion, EliminarNotificaciones } from '../components/AccionesNotificacion.jsx';
 import useLecturasNotificaciones from '../hooks/useLecturasNotificaciones.js';
 import Input from '../components/ui/Input.jsx';
 import Modal from '../components/ui/Modal.jsx';
@@ -32,6 +33,7 @@ import {
   QrCode,
   Send,
   Search,
+  MousePointerClick,
   ShieldCheck,
   Siren,
   Trash2,
@@ -181,6 +183,7 @@ const fechaEn = n => new Date(Date.now() + n * 86400000).toISOString().slice(0,1
 
 function CuarentenaPanel({ c, user, ejecutar, confirmar }) {
   const [inicio, abrir] = useState(c.estado === 'CUARENTENA'), [motivo, escribir] = useState(''), [observaciones, observar] = useState(''), [fin, fechar] = useState(fechaEn(14));
+  const [duracion, setDuracion] = useState('14');
   const [notaCierre, escribirNotaCierre] = useState('');
   if (c.capacidad > 1) return <p>La cuarentena requiere un canil individual. Mueve a los animales a caniles individuales para continuar.</p>;
   if (!c.animales.length) return null;
@@ -195,8 +198,11 @@ function CuarentenaPanel({ c, user, ejecutar, confirmar }) {
   return <section>{c.estado === 'CUARENTENA' && <p>Este aislamiento anterior no tiene fecha registrada. Completa el motivo y la fecha de término.</p>}<label className="canil-cuarentena-control canil-cuarentena-label"><span>En cuarentena</span><input className="canil-cuarentena-checkbox" type="checkbox" checked={inicio} onChange={e => abrir(e.target.checked)}/></label>
     {inicio && <form className="canil-campos" onSubmit={e => { e.preventDefault(); ejecutar(() => asignarCanil({ canilId: c.id, animalId: c.animales[0].id, origenEsperadoId: c.id, estado: 'CUARENTENA', motivo, fechaFinEstimada: fin, observaciones: observaciones.trim() || null })); }}>
       <label>Motivo<input required minLength={5} value={motivo} onChange={e => escribir(e.target.value)}/></label>
-      <label>Duración<select defaultValue="14" onChange={e => fechar(fechaEn(Number(e.target.value)))}>{[7,14,21,30].map(n => <option key={n} value={n}>{n} días</option>)}</select></label>
-      <label>Fecha de término<input type="date" required min={fechaEn(1)} value={fin} onChange={e => fechar(e.target.value)}/></label>
+      <label>Duración<select value={duracion} onChange={e => {
+        setDuracion(e.target.value);
+        if (e.target.value !== 'personalizada') fechar(fechaEn(Number(e.target.value)));
+      }}>{[7,14,21,30].map(n => <option key={n} value={n}>{n} días</option>)}<option value="personalizada">Fecha personalizada</option></select></label>
+      <label>Fecha de término<input type="date" required min={fechaEn(1)} value={fin} onChange={e => { fechar(e.target.value); setDuracion('personalizada'); }}/></label>
       <label>Nota de cuarentena (opcional)<textarea maxLength={4000} value={observaciones} onChange={e => observar(e.target.value)}/></label><Button className="portal-btn portal-btn-primary" type="submit">Iniciar cuarentena</Button>
     </form>}</section>;
 }
@@ -871,6 +877,7 @@ export default function CanilesPage({ user }) {
   ];
 
   const lecturas = useLecturasNotificaciones(avisosCaniles.map(aviso => aviso.clave));
+  const visibles = avisosCaniles.filter(aviso => !lecturas.descartada(aviso.clave));
 
   const canilesDelSector = filtroSector === 'TODOS'
     ? caniles
@@ -1030,14 +1037,14 @@ export default function CanilesPage({ user }) {
                   </div>
 
                   <div style={{ maxHeight: '340px', overflowY: 'auto', padding: '10px' }}>
-                    {avisosCaniles.length === 0 ? (
+                    {visibles.length === 0 ? (
                       <div style={{ padding: '18px 12px', textAlign: 'center', color: 'var(--portal-text-muted)', fontSize: '0.84rem' }}>
                         <ShieldCheck size={22} aria-hidden="true" style={{ marginBottom: '6px' }} />
                         <div>No hay avisos de caniles en este momento.</div>
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {avisosCaniles.map(aviso => {
+                        {visibles.map(aviso => {
                           const esCritica = aviso.tipo === 'CRITICA';
                           const Icono = esCritica ? Siren : TriangleAlert;
                           const color = esCritica ? '#b82d44' : '#895100';
@@ -1082,15 +1089,15 @@ export default function CanilesPage({ user }) {
                                 {aviso.mensaje}
                               </span>
                             </Button>
-                            {lecturas.leidas.has(aviso.clave) ? <small>Leída</small> : (
-                              <Button variante="texto" onClick={() => lecturas.marcar(aviso.clave)}>Marcar como leída</Button>
-                            )}
+                            <AccionesNotificacion titulo={aviso.titulo} leida={lecturas.leidas.has(aviso.clave)}
+                              marcar={() => lecturas.marcar(aviso.clave)} descartar={() => lecturas.descartar([aviso.clave])} />
                             </div>
                           );
                         })}
                       </div>
                     )}
                   </div>
+                  {visibles.length > 0 && <EliminarNotificaciones onClick={() => lecturas.descartar()} />}
                 </div>
               </>
             )}
@@ -1300,9 +1307,12 @@ export default function CanilesPage({ user }) {
 
       {verBitacora && (
         <div className="canil-bitacora">
-          <h3 id="caniles-bitacora-titulo" style={{ margin: '0 0 16px', color: '#1f2430' }}>
+          <div className="canil-bitacora-encabezado">
+            <h3 id="caniles-bitacora-titulo" style={{ margin: 0, color: '#1f2430' }}>
             {verMovimientosCaniles ? 'Bitácora de Movimientos de Caniles' : 'Bitácora de Traslados Externos'}
-          </h3>
+            </h3>
+            <span id="caniles-ayuda-registros" className="portal-ayuda-registros"><MousePointerClick size={16} aria-hidden="true" /> Selecciona una fila para ver los detalles.</span>
+          </div>
           <div className="portal-filtros-card" style={{ padding: 0, border: 0 }}>
             <label htmlFor="buscar-bitacora" className="portal-filtros-etiqueta">Buscar en la bitácora</label>
             <div className="portal-filtros-buscador">
@@ -1321,7 +1331,15 @@ export default function CanilesPage({ user }) {
             </div>
           </div>
           <div className="canil-bitacora-registros" role="region" aria-label="Registros de la bitácora" tabIndex={0}>
-            <table aria-labelledby="caniles-bitacora-titulo" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <table className={verMovimientosCaniles ? "canil-tabla-movimientos" : undefined} aria-describedby="caniles-ayuda-registros" aria-labelledby="caniles-bitacora-titulo" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              {verMovimientosCaniles && (
+                <colgroup>
+                  <col style={{ width: "10.5rem" }} />
+                  <col style={{ width: "23%" }} />
+                  <col />
+                  <col style={{ width: "26%" }} />
+                </colgroup>
+              )}
               <thead>
                 <tr style={{ background: 'var(--portal-surface-muted)', borderBottom: 'var(--portal-border-emphasis) solid var(--portal-border)', textAlign: 'left', color: 'var(--portal-text-muted)' }}>
                   <th style={{ padding: '10px' }}>Fecha</th>
@@ -1329,14 +1347,13 @@ export default function CanilesPage({ user }) {
                   {!verMovimientosCaniles && <th style={{ padding: '10px' }}>Tipo</th>}
                   <th style={{ padding: '10px' }}>{verMovimientosCaniles ? 'Origen / Destino' : 'Destino'}</th>
                   <th style={{ padding: '10px' }}>Responsable</th>
-                  <th style={{ padding: '10px' }}>Estado</th>
-                  <th style={{ padding: '10px', textAlign: 'right' }}>Detalle</th>
+                  {!verMovimientosCaniles && <th style={{ padding: '10px' }}>Estado</th>}
                 </tr>
               </thead>
               <tbody>
                 {registrosBitacora.length === 0 ? (
                   <tr>
-                    <td colSpan={verMovimientosCaniles ? 6 : 7} style={{ textAlign: 'center', padding: '24px', color: 'var(--portal-text-muted)' }}>
+                    <td colSpan={verMovimientosCaniles ? 4 : 6} style={{ textAlign: 'center', padding: '24px', color: 'var(--portal-text-muted)' }}>
                       {cargando
                         ? 'Cargando bitácora…'
                         : consulta && historial.length > 0
@@ -1357,9 +1374,10 @@ export default function CanilesPage({ user }) {
                     return (
                       <tr
                         key={t.id}
+                        tabIndex={0}
+                        onKeyDown={e => { if (e.key === 'Enter') abrirDetalleTraslado(t); }}
                         onClick={() => abrirDetalleTraslado(t)}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--portal-surface-muted)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        className="portal-registro-interactivo"
                         style={{ borderBottom: 'var(--portal-border-emphasis) solid #f0f1f3', cursor: 'pointer' }}
                       >
                         <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
@@ -1377,35 +1395,14 @@ export default function CanilesPage({ user }) {
                           )}
                         </td>
                         <td style={{ padding: '10px' }}>{t.responsable?.nombre || '—'}</td>
-                        <td style={{ padding: '10px' }}>
+                        {!verMovimientosCaniles && <td style={{ padding: '10px' }}>
                           <span style={{
                             fontSize: '0.72rem', fontWeight: '700', padding: '3px 8px', borderRadius: '6px',
                             background: estadoInfo.bg, color: estadoInfo.color
                           }}>
                             {estadoInfo.etiqueta}
                           </span>
-                        </td>
-                        <td style={{ padding: '10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          <Button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              abrirDetalleTraslado(t);
-                            }}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: 'var(--portal-primary)',
-                              fontWeight: '700',
-                              fontSize: '0.76rem',
-                              cursor: 'pointer',
-                              padding: '4px 2px',
-                              minHeight: 0
-                            }}
-                          >
-                            {!verMovimientosCaniles && esDireccion && t.estado === 'PENDIENTE_APROBACION' ? 'Revisar' : 'Ver detalle'} →
-                          </Button>
-                        </td>
+                        </td>}
                       </tr>
                     );
                   })

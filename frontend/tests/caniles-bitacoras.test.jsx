@@ -51,6 +51,8 @@ it('muestra los movimientos internos y los traslados externos en bitácoras dist
   await user.click(screen.getByRole('button', { name: 'Movimientos de Caniles' }));
   const movimientos = within(screen.getByRole('table', { name: 'Bitácora de Movimientos de Caniles' }));
   expect(await movimientos.findByText('Luna')).toBeVisible();
+  expect(movimientos.queryByRole('columnheader', { name: 'Estado' })).toBeNull();
+  expect(movimientos.queryByRole('columnheader', { name: 'Detalle' })).toBeNull();
   expect(movimientos.getByText('Canil 1 → Canil 2')).toBeVisible();
   expect(movimientos.queryByText('Toby')).not.toBeInTheDocument();
   expect(movimientos.queryByText('Mora')).not.toBeInTheDocument();
@@ -59,6 +61,7 @@ it('muestra los movimientos internos y los traslados externos en bitácoras dist
   const externos = within(screen.getByRole('table', { name: 'Bitácora de Traslados Externos' }));
   expect(externos.getByText('Toby')).toBeVisible();
   expect(externos.getByText('Mora')).toBeVisible();
-  expect(externos.getByRole('button', { name: /Revisar/ })).toBeVisible();
+  expect(externos.queryByRole('columnheader', { name: 'Detalle' })).toBeNull();
+  expect(externos.getByRole('columnheader', { name: 'Estado' })).toBeVisible();
   expect(externos.queryByText('Luna')).not.toBeInTheDocument();
 });
